@@ -77,7 +77,7 @@ export declare namespace PermitHelper {
   };
 }
 
-export interface RainbowRouterInterface extends Interface {
+export interface OkuRouterInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "eip712Domain"
@@ -472,11 +472,11 @@ export namespace ValidSignerRemovedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface RainbowRouter extends BaseContract {
-  connect(runner?: ContractRunner | null): RainbowRouter;
+export interface OkuRouter extends BaseContract {
+  connect(runner?: ContractRunner | null): OkuRouter;
   waitForDeployment(): Promise<this>;
 
-  interface: RainbowRouterInterface;
+  interface: OkuRouterInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,

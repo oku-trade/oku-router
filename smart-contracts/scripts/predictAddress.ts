@@ -14,14 +14,14 @@ const { ethers } = require("hardhat");
 // Safe Singleton Factory - canonical address on all major EVM chains
 const SAFE_SINGLETON_FACTORY = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7";
 
-const name = "Rainbow Router";
+const name = "Oku Router";
 const version = "1.0";
 
 /**
  * Generate a version-based salt for deterministic deployment
  */
 function getVersionSalt(ver: string): string {
-  return ethers.keccak256(ethers.toUtf8Bytes(`rainbow-router-${ver}`));
+  return ethers.keccak256(ethers.toUtf8Bytes(`oku-router-${ver}`));
 }
 
 /**
@@ -45,7 +45,7 @@ async function main() {
   const networkName = hre.network.name;
   const chainId = (await ethers.provider.getNetwork()).chainId;
 
-  console.log("\n=== Rainbow Router Address Prediction ===\n");
+  console.log("\n=== Oku Router Address Prediction ===\n");
   console.log("Network:", networkName);
   console.log("Chain ID:", chainId.toString());
   console.log("Contract Name:", name);
@@ -65,8 +65,8 @@ async function main() {
   }
 
   // Get init code
-  const RainbowRouter = await ethers.getContractFactory("RainbowRouter");
-  const deployTx = await RainbowRouter.getDeployTransaction(name, version);
+  const OkuRouter = await ethers.getContractFactory("OkuRouter");
+  const deployTx = await OkuRouter.getDeployTransaction(name, version);
   const initCode = deployTx.data;
 
   if (!initCode) {

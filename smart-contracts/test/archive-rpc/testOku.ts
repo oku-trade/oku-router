@@ -1,4 +1,4 @@
-import { RainbowRouter, RainbowRouter__factory } from "../../typechain-types"
+import { OkuRouter, OkuRouter__factory } from "../../typechain-types"
 import { ERC20, IERC20 } from "../../typechain-types/contracts/interfaces/openzeppelin"
 import { AbiCoder, Interface, Signer, ZeroAddress } from "ethers"
 import { ERC20__factory, IERC20__factory } from "../../typechain-types/factories/contracts/interfaces/openzeppelin"
@@ -13,9 +13,9 @@ const { ethers } = require("hardhat")
  * Test Rainbow Specific Functions
  * NOTE: Requires archive RPC (OP_URL env var). Tests skip gracefully if unavailable.
  */
-describe("Test Rainbow Specific Functions", function () {
+describe("Test Oku Specific Functions", function () {
 
-    const name = "Rainbow Router" // EIP-712 Domain Name
+    const name = "Oku Router" // EIP-712 Domain Name
     const version = "1.0" // EIP-712 Domain Version
     const usdcNativeWhale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8" // Balancer Vault on Optimism
     let USDC: ERC20
@@ -26,7 +26,7 @@ describe("Test Rainbow Specific Functions", function () {
     let owner: Signer
     let recipient: Signer
     let recipientAddress: string
-    let Rainbow: RainbowRouter
+    let Rainbow: OkuRouter
 
     before(async function () {
         this.timeout(30000)
@@ -44,7 +44,7 @@ describe("Test Rainbow Specific Functions", function () {
         recipient = signers[3]
         recipientAddress = await recipient.getAddress()
 
-        Rainbow = await new RainbowRouter__factory(owner).deploy(name, version)
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version)
 
         const usdcAddress = "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85" // Optimism USDC
         USDC = ERC20__factory.connect(usdcAddress, owner)

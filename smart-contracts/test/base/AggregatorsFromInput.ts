@@ -36,7 +36,7 @@ import {
 } from "ethers";
 import hre from "hardhat";
 // Import TypeChain types - Adjust path as needed
-import { type RainbowRouter, type IWETH, ERC20__factory, IWETH__factory, IDAI__factory } from "../../typechain-types";
+import { type OkuRouter, type IWETH, ERC20__factory, IWETH__factory, IDAI__factory } from "../../typechain-types";
 
 const SELL_AMOUNT_STR = "0.1"; // Keep as string for initial parsing
 const TESTDATA_DIR = path.resolve(__dirname, "testdata/input");
@@ -73,7 +73,7 @@ type Warrant = {
 };
 
 
-describe("RainbowRouter Aggregators", function () {
+describe("OkuRouter Aggregators", function () {
   let swapTokenToToken: (
     source: Sources,
     inputAsset: AddressLike,
@@ -96,7 +96,7 @@ describe("RainbowRouter Aggregators", function () {
     feePercentageBasisPoints: bigint,
   ) => Promise<void>; // Return type changed
 
-  let rainbowRouterInstance: RainbowRouter;
+  let okuRouterInstance: OkuRouter;
   let signer: Signer;
   let currentVaultAddress: string; // Ethers uses string for addresses
   let getSignerBalance: () => Promise<bigint>; // Function to get signer ETH balance
@@ -119,12 +119,12 @@ describe("RainbowRouter Aggregators", function () {
     // Assume init is updated for ethers v6
     const initResult = await init();
     signer = initResult.signer; // Get Signer object
-    rainbowRouterInstance = initResult.rainbowRouterInstance; // Get TypeChain instance
+    okuRouterInstance = initResult.okuRouterInstance; // Get TypeChain instance
     getEthVaultBalance = initResult.getEthVaultBalance; // Get vault balance helper
     getSignerBalance = initResult.getSignerBalance; // Get signer balance helper
     // const publicClient = initResult.publicClient; // No longer needed
 
-    currentVaultAddress = await rainbowRouterInstance.getAddress();
+    currentVaultAddress = await okuRouterInstance.getAddress();
 
     swapTokenToToken = async (
       source: Sources,
@@ -222,7 +222,7 @@ describe("RainbowRouter Aggregators", function () {
 
 
       Logger.log(`Executing swap...`);
-      const swapTx = await rainbowRouterInstance.connect(signer).fillQuoteTokenToToken(
+      const swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToToken(
         quote.sellTokenAddress,
         quote.buyTokenAddress,
         quote.to || ZeroAddress,
@@ -362,7 +362,7 @@ describe("RainbowRouter Aggregators", function () {
         verifyingSigner: ZeroAddress, nonce: 0n, signature: Sources.Aggregator0x, validBefore: 0, validAfter: 0,
       };
 
-      const swapTx = await rainbowRouterInstance.connect(signer).fillQuoteEthToToken(
+      const swapTx = await okuRouterInstance.connect(signer).fillQuoteEthToToken(
         quote.buyTokenAddress,
         quote.to || ZeroAddress,
         quote.data || Sources.Aggregator0x,
@@ -507,7 +507,7 @@ describe("RainbowRouter Aggregators", function () {
         feePercentageBasisPoints: BigInt(quote.feePercentageBasisPoints),
       };
 
-      const swapTx = await rainbowRouterInstance.connect(signer).fillQuoteTokenToEth(
+      const swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEth(
         quoteParams.sellTokenAddress,
         quoteParams.target,
         quoteParams.data,

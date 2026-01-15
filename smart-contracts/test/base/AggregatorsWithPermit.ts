@@ -55,12 +55,12 @@ import {
   type AddressLike, // Use AddressLike for type safety if needed
 } from "ethers";
 // Import TypeChain types - Adjust path as needed
-import { type RainbowRouter, type IERC20Metadata, type IERC2612Extension, IERC20Metadata__factory, IERC2612Extension__factory } from "../../typechain-types";
+import { type OkuRouter, type IERC20Metadata, type IERC2612Extension, IERC20Metadata__factory, IERC2612Extension__factory } from "../../typechain-types";
 
 const SELL_AMOUNT = "0.1";
 const TESTDATA_DIR = path.resolve(__dirname, "testdata/inputpermit");
 
-describe("RainbowRouter Aggregators", function () {
+describe("OkuRouter Aggregators", function () {
   let swapETHtoToken: (
     source: Sources,
     tokenAddress: AddressLike,
@@ -82,7 +82,7 @@ describe("RainbowRouter Aggregators", function () {
     feePercentageBasisPoints: bigint,
   ) => Promise<void>;
 
-  let rainbowRouterInstance: RainbowRouter;
+  let okuRouterInstance: OkuRouter;
   let signer: Signer;
 
   before(async () => {
@@ -100,7 +100,7 @@ describe("RainbowRouter Aggregators", function () {
 
     const initResult = await init();
     signer = initResult.signer; // Get Signer object
-    rainbowRouterInstance = initResult.rainbowRouterInstance; // Get TypeChain instance
+    okuRouterInstance = initResult.okuRouterInstance; // Get TypeChain instance
     // const publicClient = initResult.publicClient; // No longer needed
     // const getSignerBalance = initResult.getSignerBalance; // Assuming this is still available
 
@@ -157,7 +157,7 @@ describe("RainbowRouter Aggregators", function () {
 
       Logger.log(`Executing swap... with `, formatEther(sellAmountWei));
 
-      const swapTx = await rainbowRouterInstance.connect(signer).fillQuoteEthToToken(
+      const swapTx = await okuRouterInstance.connect(signer).fillQuoteEthToToken(
         quote.buyTokenAddress,
         quote.to || ZeroAddress,
         quote.data || Sources.Aggregator0x,
@@ -256,7 +256,7 @@ describe("RainbowRouter Aggregators", function () {
         const permitSignature: PermitData = await signPermit(
           signer,
           await tokenContract.getAddress(),
-          await rainbowRouterInstance.getAddress(),
+          await okuRouterInstance.getAddress(),
           MaxUint256,
           deadline,
         );
@@ -269,7 +269,7 @@ describe("RainbowRouter Aggregators", function () {
           validAfter: 0n,
         }
 
-        swapTx = await rainbowRouterInstance.connect(signer).fillQuoteTokenToEthWithPermit(
+        swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEthWithPermit(
           quote.sellTokenAddress,
           quote.to || ZeroAddress,
           quote.data || Sources.Aggregator0x, // Provide a default value
@@ -283,7 +283,7 @@ describe("RainbowRouter Aggregators", function () {
         )
       } else {
         Logger.log(`Executing swap...`);
-        swapTx = await rainbowRouterInstance.connect(signer).fillQuoteTokenToEth(
+        swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEth(
           quote.sellTokenAddress,
           quote.to || ZeroAddress,
           quote.data || Sources.Aggregator0x,
@@ -389,7 +389,7 @@ describe("RainbowRouter Aggregators", function () {
       const permitSignature: PermitData = await signPermit(
         signer,
         tokenContract,
-        await rainbowRouterInstance.getAddress(),
+        await okuRouterInstance.getAddress(),
         MaxUint256,
         deadline,
       );
@@ -406,7 +406,7 @@ describe("RainbowRouter Aggregators", function () {
 
       Logger.log(`Executing swap with permit...`);
 
-      const swapTx = await rainbowRouterInstance.connect(signer).fillQuoteTokenToTokenWithPermit(
+      const swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToTokenWithPermit(
         quote.sellTokenAddress,
         quote.buyTokenAddress,
         quote.to || ZeroAddress, // Provide a default value

@@ -1,4 +1,4 @@
-import { RainbowRouter, RainbowRouter__factory } from "../../typechain-types"
+import { OkuRouter, OkuRouter__factory } from "../../typechain-types"
 import { ERC20, IERC20 } from "../../typechain-types/contracts/interfaces/openzeppelin"
 import { Signer, ZeroAddress } from "ethers"
 import { ERC20__factory, IERC20__factory } from "../../typechain-types/factories/contracts/interfaces/openzeppelin"
@@ -40,7 +40,7 @@ const { ethers } = require("hardhat")
  * NOTE: Requires archive RPC (ARB_URL env var). Tests skip gracefully if unavailable.
  */
 describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", function () {
-    let Rainbow: RainbowRouter
+    let Rainbow: OkuRouter
 
     // CoW Protocol addresses on Arbitrum (used by PropellerSwap solver)
     const COW_SETTLEMENT = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41"        // Execution contract
@@ -54,7 +54,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
     const usdcAmount = ethers.parseUnits("0.01", 6)  // 0.01 USDC
     const usdcWhale = "0x47c031236e19d024b42f8AE6780E44A573170703"  // USDC whale on Arbitrum
 
-    const name = "Rainbow Router"
+    const name = "Oku Router"
     const version = "1.0"
 
     let USDC: ERC20
@@ -76,7 +76,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
     })
 
     it("Deploy Rainbow Router", async () => {
-        Rainbow = await new RainbowRouter__factory(signer).deploy(name, version)
+        Rainbow = await new OkuRouter__factory(signer).deploy(name, version)
         expect(await Rainbow.getAddress()).to.be.properAddress
 
         // Whitelist CoW Protocol contracts

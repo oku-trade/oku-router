@@ -1,6 +1,6 @@
 
 import { Signer, Contract } from "ethers";
-import { RainbowRouter__factory } from "../typechain-types"
+import { OkuRouter__factory } from "../typechain-types"
 import hre, { network } from "hardhat";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { getNetworkConfig } from "../util/networkConfig";
@@ -15,7 +15,7 @@ const deterministicMode = args.includes('--deterministic');
 // https://github.com/safe-global/safe-singleton-factory
 const SAFE_SINGLETON_FACTORY = "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7";
 
-const name = "Rainbow Router"
+const name = "Oku Router"
 const version = "1.0"
 
 
@@ -27,7 +27,7 @@ const gfxOwner = "0x00a0bB9dfD2db3a6E447147426aB2D1B5Ac356d5"
  * This ensures the same address across all chains for a given version
  */
 function getVersionSalt(ver: string): string {
-  return ethers.keccak256(ethers.toUtf8Bytes(`rainbow-router-${ver}`));
+  return ethers.keccak256(ethers.toUtf8Bytes(`oku-router-${ver}`));
 }
 
 /**
@@ -60,8 +60,8 @@ async function deployDeterministic(
   const salt = getVersionSalt(ver);
 
   // Get init code (deployment bytecode + constructor args)
-  const RainbowRouter = await ethers.getContractFactory("RainbowRouter");
-  const deployTx = await RainbowRouter.getDeployTransaction(contractName, ver);
+  const OkuRouter = await ethers.getContractFactory("OkuRouter");
+  const deployTx = await OkuRouter.getDeployTransaction(contractName, ver);
   const initCode = deployTx.data;
 
   if (!initCode) {
@@ -184,11 +184,11 @@ async function main() {
       // Deterministic deployment via CREATE2 (Safe Singleton Factory)
       console.log("\n=== DETERMINISTIC DEPLOYMENT ===")
       contractAddress = await deployDeterministic(signer, name, version);
-      contract = RainbowRouter__factory.connect(contractAddress, signer);
+      contract = OkuRouter__factory.connect(contractAddress, signer);
     } else {
       // Standard deployment (default for testing)
       console.log("\n=== STANDARD DEPLOYMENT ===")
-      contract = await new RainbowRouter__factory().connect(signer).deploy(name, version, {
+      contract = await new OkuRouter__factory().connect(signer).deploy(name, version, {
         gasLimit: 5000000
       })
       await contract.waitForDeployment()
@@ -266,4 +266,4 @@ async function main() {
 
 main().catch(console.error);
 
-//hh verify --network op 0x003CCe004267597A3FFDA5C1945DA0C2C9276c96 "Rainbow Router" "1.0"
+//hh verify --network op 0x003CCe004267597A3FFDA5C1945DA0C2C9276c96 "Oku Router" "1.0"

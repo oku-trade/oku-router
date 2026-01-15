@@ -1,4 +1,4 @@
-import { RainbowRouter, RainbowRouter__factory } from "../../typechain-types"
+import { OkuRouter, OkuRouter__factory } from "../../typechain-types"
 import { ERC20, IERC20 } from "../../typechain-types/contracts/interfaces/openzeppelin"
 import { IOKXDexRouter__factory } from "../../typechain-types/factories/contracts/interfaces/aggregators"
 import { Signer, ZeroAddress } from "ethers"
@@ -23,7 +23,7 @@ const { ethers } = require("hardhat")
  * NOTE: Requires archive RPC (OP_URL env var). Tests skip gracefully if unavailable.
  */
 describe("Transfer Proxy Pattern with Warrant Validation", function () {
-    let Rainbow: RainbowRouter
+    let Rainbow: OkuRouter
 
     // OKX DEX Aggregator addresses on Optimism
     const OKX_ROUTER = "0xC44C6550a3B13116F6fD593e1ec963d5aE78C4C8"  // Swap execution contract
@@ -47,7 +47,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
     const usdcAmount = ethers.parseUnits("0.01", 6)  // 0.01 USDC
     const usdcNativeWhale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"  // Balancer Vault on Optimism
 
-    const name = "Rainbow Router"
+    const name = "Oku Router"
     const version = "1.0"
 
     let USDC: ERC20
@@ -69,7 +69,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
     })
 
     it("Deploy Rainbow Router", async () => {
-        Rainbow = await new RainbowRouter__factory(signer).deploy(name, version)
+        Rainbow = await new OkuRouter__factory(signer).deploy(name, version)
         expect(await Rainbow.getAddress()).to.be.properAddress
 
         // Whitelist all router addresses

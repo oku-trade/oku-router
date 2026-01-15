@@ -31,9 +31,9 @@ import {
   canoeParams,
 } from "../../util/canoeHelper";
 import { NETWORK_CONFIGS, NetworkConfig } from "../../util/networkConfig";
-import { IERC20__factory, RainbowRouter__factory } from "../../typechain-types";
+import { IERC20__factory, OkuRouter__factory } from "../../typechain-types";
 import { Signer } from "ethers";
-import { RainbowRouter } from "../../typechain-types";
+import { OkuRouter } from "../../typechain-types";
 import { IERC20 } from "../../typechain-types/contracts/interfaces/openzeppelin";
 
 const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
@@ -229,7 +229,7 @@ interface TestResult {
 
 interface TestSetup {
   testSigner: Signer;
-  Rainbow: RainbowRouter;
+  Rainbow: OkuRouter;
   USDC: IERC20 | null;
   WETH: IERC20 | null;
   config: NetworkConfig;
@@ -339,7 +339,7 @@ async function setupTestEnvironment(config: NetworkConfig): Promise<TestSetup> {
   console.log(`  Signer: ${testAddress}`);
   console.log(`  Rainbow Router: ${config.rainbowRouterAddress}`);
 
-  const Rainbow = RainbowRouter__factory.connect(config.rainbowRouterAddress, testSigner);
+  const Rainbow = OkuRouter__factory.connect(config.rainbowRouterAddress, testSigner);
 
   // Connect to tokens if addresses are configured
   const USDC = config.usdcAddress
@@ -511,7 +511,7 @@ async function testRouter(
     }
 
     // 4. Decode transaction and extract targets
-    const rainbowInterface = RainbowRouter__factory.createInterface();
+    const rainbowInterface = OkuRouter__factory.createInterface();
     const decoded = rainbowInterface.parseTransaction({ data: trade.data });
 
     if (!decoded) {

@@ -150,9 +150,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.CanoeHelper__factory>;
     getContractFactory(
-      name: "RainbowRouter",
+      name: "OkuRouter",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.RainbowRouter__factory>;
+    ): Promise<Contracts.OkuRouter__factory>;
     getContractFactory(
       name: "BaseAggregator",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -329,10 +329,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.CanoeHelper>;
     getContractAt(
-      name: "RainbowRouter",
+      name: "OkuRouter",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.RainbowRouter>;
+    ): Promise<Contracts.OkuRouter>;
     getContractAt(
       name: "BaseAggregator",
       address: string | ethers.Addressable,
@@ -476,9 +476,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CanoeHelper>;
     deployContract(
-      name: "RainbowRouter",
+      name: "OkuRouter",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.RainbowRouter>;
+    ): Promise<Contracts.OkuRouter>;
     deployContract(
       name: "BaseAggregator",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -655,10 +655,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CanoeHelper>;
     deployContract(
-      name: "RainbowRouter",
+      name: "OkuRouter",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.RainbowRouter>;
+    ): Promise<Contracts.OkuRouter>;
     deployContract(
       name: "BaseAggregator",
       args: any[],

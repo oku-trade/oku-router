@@ -1,4 +1,4 @@
-import { RainbowRouter, RainbowRouter__factory, IERC20Metadata__factory } from "../../typechain-types";
+import { OkuRouter, OkuRouter__factory, IERC20Metadata__factory } from "../../typechain-types";
 import { ethers } from "hardhat";
 import { Signer, ZeroAddress } from "ethers";
 import { expect } from "chai";
@@ -15,17 +15,17 @@ import {
 } from "../helpers/dummyQuotes";
 
 /**
- * Comprehensive RainbowRouter test suite covering all require statements
+ * Comprehensive OkuRouter test suite covering all require statements
  * and edge cases without external API dependencies
  *
  * NOTE: Requires archive RPC (OP_URL env var). Tests skip gracefully if unavailable.
  */
-describe("RainbowRouter Comprehensive Coverage", function () {
+describe("OkuRouter Comprehensive Coverage", function () {
     const name = "Rainbow Router";
     const version = "1.0";
     const usdcWhale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
-    let Rainbow: RainbowRouter;
+    let Rainbow: OkuRouter;
     let owner: Signer;
     let user: Signer;
     let unauthorizedSigner: Signer;
@@ -46,7 +46,7 @@ describe("RainbowRouter Comprehensive Coverage", function () {
         user = signers[1];
         unauthorizedSigner = signers[2];
 
-        Rainbow = await new RainbowRouter__factory(owner).deploy(name, version);
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version);
 
         USDC = IERC20Metadata__factory.connect(OPTIMISM_TOKENS.USDC, owner);
         WETH = IERC20Metadata__factory.connect(OPTIMISM_TOKENS.WETH, owner);

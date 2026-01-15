@@ -1,5 +1,5 @@
 import { AbiCoder, AddressLike, BigNumberish, BytesLike, formatUnits, Interface, keccak256, parseUnits, Signer, TransactionResponse, TypedDataDomain, ZeroAddress } from "ethers";
-import { ERC20__factory, ISwapRouter02__factory, RainbowRouter, RainbowRouter__factory } from "../typechain-types";
+import { ERC20__factory, ISwapRouter02__factory, OkuRouter, OkuRouter__factory } from "../typechain-types";
 import hre, { ethers, network } from "hardhat";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { IERC20__factory } from "../typechain-types/factories/contracts/interfaces/openzeppelin";
@@ -509,7 +509,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
 
 
     //sim tx
-    const Rainbow = RainbowRouter__factory.connect(RainbwoDomainInfo.address, signer);
+    const Rainbow = OkuRouter__factory.connect(RainbwoDomainInfo.address, signer);
 
 
     try {
@@ -622,7 +622,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                         const reasonString = AbiCoder.defaultAbiCoder().decode(['string'], '0x' + error.data.substring(10))[0];
                         console.error(`Decoded string revert reason: ${reasonString}`);
                     } else {
-                        console.error("Could not decode error data using RainbowRouter interface, or it's not a custom error.");
+                        console.error("Could not decode error data using OkuRouter interface, or it's not a custom error.");
                     }
                 }
             } catch (parseErr) {
@@ -649,8 +649,8 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
 }
 
 // Constants
-export const RAINBOW_ROUTER_EIP712_NAME = "Rainbow Router";
-export const RAINBOW_ROUTER_EIP712_VERSION = "1.0";
+export const OKU_ROUTER_EIP712_NAME = "Oku Router";
+export const OKU_ROUTER_EIP712_VERSION = "1.0";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const BACKEND_WARRANT_SIGNER = "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf";
 
@@ -696,7 +696,7 @@ export interface TestSetup {
     testSigner: Signer;
     contractOwner: Signer;
     mainnet: boolean;
-    Rainbow: RainbowRouter;
+    Rainbow: OkuRouter;
     USDC: IERC20;
     WETH: IERC20;
     config: NetworkConfig;
@@ -755,7 +755,7 @@ export const setupTestEnvironment = async (): Promise<TestSetup> => {
     // Initialize contracts
     const USDC = IERC20__factory.connect(config.usdcAddress, testSigner);
     const WETH = IERC20__factory.connect(config.wethAddress, testSigner);
-    const Rainbow = RainbowRouter__factory.connect(config.rainbowAddress, testSigner);
+    const Rainbow = OkuRouter__factory.connect(config.rainbowAddress, testSigner);
 
     // Fund test account if on fork
     if (!mainnet) {
@@ -855,7 +855,7 @@ export const getRainbowExecution = async (
 };
 
 // Contract interaction helpers
-export const ensureTargetIsWhitelisted = async (ownerSigner: Signer, Rainbow: RainbowRouter, targetAddress: string) => {
+export const ensureTargetIsWhitelisted = async (ownerSigner: Signer, Rainbow: OkuRouter, targetAddress: string) => {
     // Skip validation for zero address (native ETH)
     const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
     if (targetAddress.toLowerCase() === ZERO_ADDRESS.toLowerCase()) {
@@ -882,7 +882,7 @@ export const ensureTargetIsWhitelisted = async (ownerSigner: Signer, Rainbow: Ra
     }
 };
 
-export const ensureSignerIsWhitelisted = async (ownerSigner: Signer, Rainbow: RainbowRouter, signerAddress: string) => {
+export const ensureSignerIsWhitelisted = async (ownerSigner: Signer, Rainbow: OkuRouter, signerAddress: string) => {
     const isWhitelisted = await Rainbow.validSigners(signerAddress);
 
     if (isWhitelisted) {
@@ -951,7 +951,7 @@ export const extractTargetFromRainbowData = (txData: string): string => {
 
 export const extractTargetsFromRainbowData = (txData: string): ExtractedTargets => {
     try {
-        const rainbowInterface = RainbowRouter__factory.createInterface();
+        const rainbowInterface = OkuRouter__factory.createInterface();
         const decoded = rainbowInterface.parseTransaction({ data: txData });
 
         if (!decoded) {
@@ -994,7 +994,7 @@ export const extractTargetsFromRainbowData = (txData: string): ExtractedTargets 
 
 export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string, modifiedWarrant: any): string => {
     try {
-        const rainbowInterface = RainbowRouter__factory.createInterface();
+        const rainbowInterface = OkuRouter__factory.createInterface();
         const decoded = rainbowInterface.parseTransaction({ data: originalTxData });
         
         if (decoded?.name === "fillQuoteTokenToToken") {

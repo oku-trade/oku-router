@@ -7,4 +7,4 @@ import type * as libraries from "./libraries";
 export type { libraries };
 import type * as routers from "./routers";
 export type { routers };
-export type { RainbowRouter } from "./RainbowRouter";
+export type { OkuRouter } from "./OkuRouter";

@@ -12,18 +12,18 @@ import { ZeroAddress, type Signer } from "ethers"; // Import Signer type from et
 
 // Import TypeChain generated types
 // Adjust the path based on your TypeChain output directory
-import type { RainbowRouter, IWETH } from "../../typechain-types";
+import type { OkuRouter, IWETH } from "../../typechain-types";
 
 // Define a placeholder type for the return value of your updated init function using TypeChain types
 type EthersInitReturnType = {
-  rainbowRouterInstance: RainbowRouter;
+  okuRouterInstance: OkuRouter;
   wethContract: IWETH;
   deployer: Signer; // Assuming init might return the deployer signer
   // Add other return values from init if necessary
 };
 
 describe("Admin", function () {
-  let instance: RainbowRouter;
+  let instance: OkuRouter;
   let weth: IWETH;
 
   let signers: Signer[];
@@ -46,13 +46,13 @@ describe("Admin", function () {
     // Assume init is updated to use ethers and returns TypeChain contract instances & potentially a signer
     // It might look something like this internally:
     // const [deployerSigner] = await hre.ethers.getSigners();
-    // const routerFactory = await hre.ethers.getContractFactory("RainbowRouter", deployerSigner);
-    // const rainbowRouterInstance = await routerFactory.attach("YOUR_ROUTER_ADDRESS") as RainbowRouter; // Or deploy if needed
+    // const routerFactory = await hre.ethers.getContractFactory("OkuRouter", deployerSigner);
+    // const rainbowRouterInstance = await routerFactory.attach("YOUR_ROUTER_ADDRESS") as OkuRouter; // Or deploy if needed
     // const wethFactory = await hre.ethers.getContractFactory("IWETH", deployerSigner);
     // const wethContract = await wethFactory.attach(WETH_ADDRESS) as IWETH;
     // return { rainbowRouterInstance, wethContract, deployer: deployerSigner };
-    let { rainbowRouterInstance, signer, wethContract, } = await init(); // Assuming init returns TypeChain types
-    instance = rainbowRouterInstance;
+    let { okuRouterInstance, signer, wethContract, } = await init(); // Assuming init returns TypeChain types
+    instance = okuRouterInstance;
     weth = wethContract;
     deployer = signer
     // deployer = initDeployer; // Store deployer if returned by init
@@ -284,7 +284,7 @@ describe("Admin", function () {
     ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount");
   });
 
-  it('Should revert if an attacker attempts "Approval snatching" from a victim that previously approved an ERC20 token on RainbowRouter', async function () {
+  it('Should revert if an attacker attempts "Approval snatching" from a victim that previously approved an ERC20 token on OkuRouter', async function () {
     const amount = 10000000n;
     const attackerSellAmount = 1n;
     const [, victim, attacker] = signers; // Get specific signers
@@ -343,7 +343,7 @@ describe("Admin", function () {
   });
 
   // This test assumes the contract holds WETH from a previous failed withdrawal or requires setup
-  it('Should revert if an attacker attempts "Approval snatching" trying to steal collected fees from RainbowRouter', async function () {
+  it('Should revert if an attacker attempts "Approval snatching" trying to steal collected fees from OkuRouter', async function () {
     const setupAmount = 10000000n; // Amount assumed to be in the contract
     const attackerSellAmount = 1n;
     const [owner, _, attacker] = signers; // Get owner and attacker

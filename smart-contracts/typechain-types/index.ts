@@ -68,7 +68,7 @@ export type { UniswapV3Pool } from "./contracts/interfaces/uniswapV3/UniswapV3Po
 export { UniswapV3Pool__factory } from "./factories/contracts/interfaces/uniswapV3/UniswapV3Pool__factory";
 export type { CanoeHelper } from "./contracts/libraries/CanoeHelper";
 export { CanoeHelper__factory } from "./factories/contracts/libraries/CanoeHelper__factory";
-export type { RainbowRouter } from "./contracts/RainbowRouter";
-export { RainbowRouter__factory } from "./factories/contracts/RainbowRouter__factory";
+export type { OkuRouter } from "./contracts/OkuRouter";
+export { OkuRouter__factory } from "./factories/contracts/OkuRouter__factory";
 export type { BaseAggregator } from "./contracts/routers/BaseAggregator";
 export { BaseAggregator__factory } from "./factories/contracts/routers/BaseAggregator__factory";

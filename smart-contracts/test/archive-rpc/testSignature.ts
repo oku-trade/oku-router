@@ -1,4 +1,4 @@
-import { RainbowRouter, RainbowRouter__factory } from "../../typechain-types"
+import { OkuRouter, OkuRouter__factory } from "../../typechain-types"
 import { ERC20, IERC20 } from "../../typechain-types/contracts/interfaces/openzeppelin"
 import { Interface, Signer, ZeroAddress } from "ethers"
 import { ERC20__factory, IERC20__factory } from "../../typechain-types/factories/contracts/interfaces/openzeppelin"
@@ -13,7 +13,7 @@ const { ethers } = require("hardhat")
  * NOTE: Requires archive RPC (OP_URL env var). Tests skip gracefully if unavailable.
  */
 describe("Permit Signature", function () {
-    let Rainbow: RainbowRouter
+    let Rainbow: OkuRouter
     const routerAddr = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
     const universalRouter = "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8" // Example address, adjust if needed
     const ownerAddr = "0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89"
@@ -21,7 +21,7 @@ describe("Permit Signature", function () {
     const usdcAmount = ethers.parseUnits("0.01", 6)
     const usdcNativeWhale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8" // Balancer Vault on Optimism
 
-    const name = "Rainbow Router" // EIP-712 Domain Name
+    const name = "Oku Router" // EIP-712 Domain Name
     const version = "1.0" // EIP-712 Domain Version
 
     let USDC: ERC20
@@ -45,7 +45,7 @@ describe("Permit Signature", function () {
     })
 
     it("Deploy", async () => {
-        Rainbow = await new RainbowRouter__factory(signer).deploy(name, version)
+        Rainbow = await new OkuRouter__factory(signer).deploy(name, version)
 
         let tx = await Rainbow.connect(signer).updateSwapTargets(routerAddr, true)
         await tx.wait()

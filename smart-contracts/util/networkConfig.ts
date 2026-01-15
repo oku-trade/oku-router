@@ -1,7 +1,7 @@
 /**
  * networkConfig.ts
  *
- * Centralized network configuration for Rainbow Router deployments.
+ * Centralized network configuration for Oku Router deployments.
  * This file contains all network-specific addresses, supported routers,
  * and token configurations for supported chains:
  *

@@ -4,4 +4,4 @@
 export * as interfaces from "./interfaces";
 export * as libraries from "./libraries";
 export * as routers from "./routers";
-export { RainbowRouter__factory } from "./RainbowRouter__factory";
+export { OkuRouter__factory } from "./OkuRouter__factory";

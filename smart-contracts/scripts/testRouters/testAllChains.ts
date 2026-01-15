@@ -1,9 +1,9 @@
 /**
  * testAllChains.ts
  *
- * Sequential test runner for all deployed Rainbow Router chains
+ * Sequential test runner for all deployed Oku Router chains
  *
- * This script automatically detects all chains with Rainbow Router deployments
+ * This script automatically detects all chains with Oku Router deployments
  * from networkConfig.ts and runs testRouters.ts for each one sequentially.
  *
  * Usage:
@@ -85,7 +85,7 @@ function isRpcConfigured(networkName: string): boolean {
 }
 
 async function main() {
-  console.log(`\n🚀 Testing All Deployed Rainbow Routers`);
+  console.log(`\n🚀 Testing All Deployed Oku Routers`);
   console.log(`${"=".repeat(80)}\n`);
 
   // Filter for deployed chains with valid RPC URLs

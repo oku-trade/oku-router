@@ -27,8 +27,8 @@ import {
   type IERC20Metadata,
   type IERC2612,
   type IERC2612Extension, // Assuming this interface exists for _nonces
-  type RainbowRouter,
-  RainbowRouter__factory,
+  type OkuRouter,
+  OkuRouter__factory,
   IDAI__factory,
   IWETH__factory
 } from "../../typechain-types";
@@ -117,28 +117,28 @@ const init = async () => {
   const wethContract = IWETH__factory.connect(WETH_ADDRESS, signer);
   const daiContract = IDAI__factory.connect(DAI_ADDRESS, signer);
 
-  // Deploy RainbowRouter using ethers v6
+  // Deploy OkuRouter using ethers v6
   // Note: Pass constructor args if any, then overrides
-  const rainbowRouterInstance = await new RainbowRouter__factory(signer).deploy("Rainow Router", "1.0")
-  await rainbowRouterInstance.waitForDeployment(); // Wait for deployment confirmation
-  const instanceAddress = await rainbowRouterInstance.getAddress();
+  const okuRouterInstance = await new OkuRouter__factory(signer).deploy("Oku Router", "1.0")
+  await okuRouterInstance.waitForDeployment(); // Wait for deployment confirmation
+  const instanceAddress = await okuRouterInstance.getAddress();
   Logger.log("Contract address", instanceAddress);
 
   // Perform write operations using connect(signer)
   let tx: ContractTransactionResponse;
-  tx = await rainbowRouterInstance.connect(signer).updateSwapTargets(
+  tx = await okuRouterInstance.connect(signer).updateSwapTargets(
     MAINNET_ADDRESS_1INCH,
     true,
   );
   await tx.wait(); // Wait for transaction confirmation
 
-  tx = await rainbowRouterInstance.connect(signer).updateSwapTargets(
+  tx = await okuRouterInstance.connect(signer).updateSwapTargets(
     MAINNET_ADDRESS_0X,
     true,
   );
   await tx.wait();
 
-  tx = await rainbowRouterInstance.connect(signer).updateValidSigner(ZeroAddress, true);
+  tx = await okuRouterInstance.connect(signer).updateValidSigner(ZeroAddress, true);
   await tx.wait();
 
   // Utility functions using the provider instance
@@ -149,7 +149,7 @@ const init = async () => {
     getSignerBalance,
     daiContract,
     getEthVaultBalance,
-    rainbowRouterInstance,
+    okuRouterInstance,
     signer, // Return the ethers Signer
     wethContract,
     provider, // Return the ethers Provider
