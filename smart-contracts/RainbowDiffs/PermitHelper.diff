@@ -1,0 +1,94 @@
+--- audited-reference/contracts/libraries/PermitHelper.sol	2026-01-16 19:30:00.817432800 -0600
++++ contracts/libraries/PermitHelper.sol	2026-01-16 19:29:48.542104500 -0600
+@@ -1,34 +1,44 @@
+ //SPDX-License-Identifier: GPL-3.0
+-pragma solidity =0.8.11;
++pragma solidity ^0.8.27;
+ import "../interfaces/IERC2612.sol";
+ import "../interfaces/IDAI.sol";
++import "../interfaces/uniswapV3/IPermit2.sol";
+ 
+ /// @title PermitHelper
+-/// @dev Helper methods for using ERC20 Permit (ERC2612 or DAI/CHAI like)
++/// @dev Helper methods for using ERC20 Permit (ERC2612, DAI, or Permit2)
+ library PermitHelper {
++    /// @dev Canonical Permit2 contract address (same across all chains)
++    address constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
++    enum PermitStyle {
++        DAI,
++        EIP, //2612 / 2616
++        PERMIT_2
++    }
++
+     struct Permit {
+         uint256 value;
+         uint256 nonce;
+         uint256 deadline;
+-        bool isDaiStylePermit;
++        PermitStyle permitStyle;
+         uint8 v;
+         bytes32 r;
+         bytes32 s;
+     }
+ 
+-    /// @dev permit method helper that will handle both known implementations
+-    // DAI vs ERC2612 tokens
++    /// @dev permit method helper that will handle all known permit implementations
++    /// @notice For Permit2, this executes permitTransferFrom which transfers tokens directly to spender
++    /// @notice For DAI/EIP-2612, this grants allowance only (tokens transferred later by caller)
+     /// @param permitData bytes containing the encoded permit signature
+-    /// @param tokenAddress address of the token that will be permitted
++    /// @param tokenAddress address of the token that will be permitted/transferred
+     /// @param holder address that holds the tokens to be permitted
+-    /// @param spender address that will be permitted to spend the tokens
++    /// @param spender address that will receive the tokens (for Permit2) or be granted allowance (for DAI/EIP-2612)
+     function permit(
+         Permit memory permitData,
+         address tokenAddress,
+         address holder,
+         address spender
+     ) internal {
+-        if (permitData.isDaiStylePermit) {
++        if (permitData.permitStyle == PermitStyle.DAI) {
+             IDAI(tokenAddress).permit(
+                 holder,
+                 spender,
+@@ -39,6 +49,38 @@
+                 permitData.r,
+                 permitData.s
+             );
++        } else if (permitData.permitStyle == PermitStyle.PERMIT_2) {
++            // Permit2 uses SignatureTransfer: signature authorizes immediate transfer
++            // This is different from DAI/EIP-2612 which only grant allowances
++            IPermit2 permit2 = IPermit2(PERMIT2_ADDRESS);
++
++            // Build the permit transfer struct
++            IPermit2.PermitTransferFrom memory permitTransferFrom = IPermit2.PermitTransferFrom({
++                permitted: IPermit2.TokenPermissions({
++                    token: tokenAddress,
++                    amount: permitData.value
++                }),
++                nonce: permitData.nonce,
++                deadline: permitData.deadline
++            });
++
++            // Build the transfer details (where tokens go)
++            IPermit2.SignatureTransferDetails memory transferDetails =
++                IPermit2.SignatureTransferDetails({
++                    to: spender,  // Tokens transferred directly to spender
++                    requestedAmount: permitData.value
++                });
++
++            // Encode signature (Permit2 expects bytes, not split v,r,s)
++            bytes memory signature = abi.encodePacked(permitData.r, permitData.s, permitData.v);
++
++            // Execute the transfer (this both verifies signature AND transfers tokens)
++            permit2.permitTransferFrom(
++                permitTransferFrom,
++                transferDetails,
++                holder,
++                signature
++            );
+         } else {
+             IERC2612(tokenAddress).permit(
+                 holder,
