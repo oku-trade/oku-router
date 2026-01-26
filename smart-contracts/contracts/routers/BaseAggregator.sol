@@ -122,8 +122,8 @@ contract BaseAggregator is EIP712, Pausable {
     )
         external
         payable
-        whenNotPaused
         nonReentrant
+        whenNotPaused
         onlyApprovedTarget(target)
         onlyApprovedSigner(warrant.verifyingSigner)
     {
@@ -220,8 +220,8 @@ contract BaseAggregator is EIP712, Pausable {
     )
         external
         payable
-        whenNotPaused
         nonReentrant
+        whenNotPaused
         onlyApprovedTarget(target)
         onlyApprovedTarget(approvalTarget)
         onlyApprovedSigner(warrant.verifyingSigner)
@@ -262,8 +262,8 @@ contract BaseAggregator is EIP712, Pausable {
     )
         external
         payable
-        whenNotPaused
         nonReentrant
+        whenNotPaused
         onlyApprovedTarget(target)
         onlyApprovedTarget(approvalTarget)
         onlyApprovedSigner(warrant.verifyingSigner)
@@ -315,8 +315,8 @@ contract BaseAggregator is EIP712, Pausable {
     )
         external
         payable
-        whenNotPaused
         nonReentrant
+        whenNotPaused
         onlyApprovedTarget(target)
         onlyApprovedTarget(approvalTarget)
         onlyApprovedSigner(warrant.verifyingSigner)
@@ -354,8 +354,8 @@ contract BaseAggregator is EIP712, Pausable {
     )
         external
         payable
-        whenNotPaused
         nonReentrant
+        whenNotPaused
         onlyApprovedTarget(target)
         onlyApprovedTarget(approvalTarget)
         onlyApprovedSigner(warrant.verifyingSigner)
