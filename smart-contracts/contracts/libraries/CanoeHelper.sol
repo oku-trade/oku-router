@@ -75,7 +75,6 @@ library CanoeHelper {
         );
 
         // 5. Validate the signer
-        require(recoveredSigner != address(0), "CANOE: INVALID_SIG_RECOVERY");
         require(
             recoveredSigner == warrant.verifyingSigner,
             "CANOE: INVALID_SIGNATURE"
