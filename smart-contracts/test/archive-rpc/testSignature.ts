@@ -314,7 +314,7 @@ describe("Permit Signature", function () {
         const time: number = latestBlock ? Number(latestBlock.timestamp) : Math.floor(Date.now() / 1000)
         const validBefore: number = time + 3600
         const validAfter: number = time - 300
-        const nonce: bigint = 1n
+        const nonce: bigint = 2n
         const verifyingSignerAddress: string = await signer.getAddress()
 
         const swapCallDataHash = ethers.keccak256(swapCallData)

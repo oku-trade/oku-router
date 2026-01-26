@@ -21,6 +21,9 @@ contract BaseAggregator is EIP712, Pausable {
     // @dev set of valid signers
     mapping(address => bool) public validSigners;
 
+    /// @dev Tracks used warrant nonces per verifying signer to prevent replays
+    mapping(address => mapping(uint160 => bool)) public usedWarrantNonces;
+
     /// @dev Emitted when an order is filled
     event OrderFilled(
         address indexed sender,
@@ -50,6 +53,25 @@ contract BaseAggregator is EIP712, Pausable {
             feeAmount,
             target
         );
+    }
+
+    /// @dev Consumes a warrant nonce to prevent replay attacks
+    /// @param warrant The warrant containing the nonce to consume
+    /// @notice Skips nonce tracking when verifyingSigner is address(0) (warrant bypass mode)
+    function _consumeWarrantNonce(CanoeHelper.Warrant calldata warrant) internal {
+        // Optimization: Skip storage operations entirely when warrant is bypassed
+        if (warrant.verifyingSigner == address(0)) {
+            return;
+        }
+
+        // Check if nonce has already been used
+        require(
+            !usedWarrantNonces[warrant.verifyingSigner][warrant.nonce],
+            "WARRANT_NONCE_USED"
+        );
+
+        // Mark nonce as consumed
+        usedWarrantNonces[warrant.verifyingSigner][warrant.nonce] = true;
     }
 
     /// @dev modifier that prevents reentrancy attacks on specific methods
@@ -106,6 +128,7 @@ contract BaseAggregator is EIP712, Pausable {
         onlyApprovedSigner(warrant.verifyingSigner)
     {
         // 0 - verify the canoe warrant
+        _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
             _domainSeparatorV4(),
             keccak256(
@@ -380,6 +403,7 @@ contract BaseAggregator is EIP712, Pausable {
         bool skipTransferFrom
     ) internal {
         // 0 - verify the canoe warrant
+        _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
             _domainSeparatorV4(),
             keccak256(
@@ -482,6 +506,7 @@ contract BaseAggregator is EIP712, Pausable {
         CanoeHelper.Warrant calldata warrant,
         bool skipTransferFrom
     ) internal {
+        _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
             _domainSeparatorV4(),
             keccak256(

@@ -96,6 +96,7 @@ export interface OkuRouterInterface extends Interface {
       | "unpause"
       | "updateSwapTargets"
       | "updateValidSigner"
+      | "usedWarrantNonces"
       | "validSigners"
       | "version"
       | "withdrawEth"
@@ -211,6 +212,10 @@ export interface OkuRouterInterface extends Interface {
     values: [AddressLike, boolean]
   ): string;
   encodeFunctionData(
+    functionFragment: "usedWarrantNonces",
+    values: [AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "validSigners",
     values: [AddressLike]
   ): string;
@@ -271,6 +276,10 @@ export interface OkuRouterInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "updateValidSigner",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "usedWarrantNonces",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -635,6 +644,12 @@ export interface OkuRouter extends BaseContract {
     "nonpayable"
   >;
 
+  usedWarrantNonces: TypedContractMethod<
+    [arg0: AddressLike, arg1: BigNumberish],
+    [boolean],
+    "view"
+  >;
+
   validSigners: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   version: TypedContractMethod<[], [string], "view">;
@@ -786,6 +801,13 @@ export interface OkuRouter extends BaseContract {
     [target: AddressLike, add: boolean],
     [void],
     "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "usedWarrantNonces"
+  ): TypedContractMethod<
+    [arg0: AddressLike, arg1: BigNumberish],
+    [boolean],
+    "view"
   >;
   getFunction(
     nameOrSignature: "validSigners"
