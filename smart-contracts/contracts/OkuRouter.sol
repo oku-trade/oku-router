@@ -2,13 +2,13 @@
 pragma solidity ^0.8.27;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "./routers/BaseAggregator.sol";
 import "./libraries/SafeTransferLib.sol";
 
 
 /// @title Oku swap aggregator contract
-contract OkuRouter is BaseAggregator, Ownable {
+contract OkuRouter is BaseAggregator, Ownable2Step {
     string public name;
     string public version;
 
@@ -93,7 +93,7 @@ contract OkuRouter is BaseAggregator, Ownable {
     /// @dev Unpauses all swap operations on the contract
     /// Only the owner can call this function
     /// Emits an Unpaused event from the Pausable contract
-    function unpause() external onlyOwner {
+    function unpause() external onlyOwner whenPaused{
         _unpause();
         emit ContractUnpaused(msg.sender);
     }

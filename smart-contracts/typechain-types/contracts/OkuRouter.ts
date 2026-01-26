@@ -80,6 +80,7 @@ export declare namespace PermitHelper {
 export interface OkuRouterInterface extends Interface {
   getFunction(
     nameOrSignature:
+      | "acceptOwnership"
       | "eip712Domain"
       | "fillQuoteEthToToken"
       | "fillQuoteTokenToEth"
@@ -90,6 +91,7 @@ export interface OkuRouterInterface extends Interface {
       | "owner"
       | "pause"
       | "paused"
+      | "pendingOwner"
       | "renounceOwnership"
       | "swapTargets"
       | "transferOwnership"
@@ -110,6 +112,7 @@ export interface OkuRouterInterface extends Interface {
       | "EIP712DomainChanged"
       | "EthWithdrawn"
       | "OrderFilled"
+      | "OwnershipTransferStarted"
       | "OwnershipTransferred"
       | "Paused"
       | "SwapTargetAdded"
@@ -120,6 +123,10 @@ export interface OkuRouterInterface extends Interface {
       | "ValidSignerRemoved"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "acceptOwnership",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "eip712Domain",
     values?: undefined
@@ -191,6 +198,10 @@ export interface OkuRouterInterface extends Interface {
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "pendingOwner",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
@@ -230,6 +241,10 @@ export interface OkuRouterInterface extends Interface {
   ): string;
 
   decodeFunctionResult(
+    functionFragment: "acceptOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "eip712Domain",
     data: BytesLike
   ): Result;
@@ -257,6 +272,10 @@ export interface OkuRouterInterface extends Interface {
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "pendingOwner",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
@@ -371,6 +390,19 @@ export namespace OrderFilledEvent {
     amountOut: bigint;
     feeAmount: bigint;
     target: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace OwnershipTransferStartedEvent {
+  export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
+  export type OutputTuple = [previousOwner: string, newOwner: string];
+  export interface OutputObject {
+    previousOwner: string;
+    newOwner: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -524,6 +556,8 @@ export interface OkuRouter extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  acceptOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
   eip712Domain: TypedContractMethod<
     [],
     [
@@ -620,6 +654,8 @@ export interface OkuRouter extends BaseContract {
 
   paused: TypedContractMethod<[], [boolean], "view">;
 
+  pendingOwner: TypedContractMethod<[], [string], "view">;
+
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
   swapTargets: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
@@ -670,6 +706,9 @@ export interface OkuRouter extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
+  getFunction(
+    nameOrSignature: "acceptOwnership"
+  ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "eip712Domain"
   ): TypedContractMethod<
@@ -777,6 +816,9 @@ export interface OkuRouter extends BaseContract {
     nameOrSignature: "paused"
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
+    nameOrSignature: "pendingOwner"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
@@ -864,6 +906,13 @@ export interface OkuRouter extends BaseContract {
     OrderFilledEvent.InputTuple,
     OrderFilledEvent.OutputTuple,
     OrderFilledEvent.OutputObject
+  >;
+  getEvent(
+    key: "OwnershipTransferStarted"
+  ): TypedContractEvent<
+    OwnershipTransferStartedEvent.InputTuple,
+    OwnershipTransferStartedEvent.OutputTuple,
+    OwnershipTransferStartedEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -976,6 +1025,17 @@ export interface OkuRouter extends BaseContract {
       OrderFilledEvent.InputTuple,
       OrderFilledEvent.OutputTuple,
       OrderFilledEvent.OutputObject
+    >;
+
+    "OwnershipTransferStarted(address,address)": TypedContractEvent<
+      OwnershipTransferStartedEvent.InputTuple,
+      OwnershipTransferStartedEvent.OutputTuple,
+      OwnershipTransferStartedEvent.OutputObject
+    >;
+    OwnershipTransferStarted: TypedContractEvent<
+      OwnershipTransferStartedEvent.InputTuple,
+      OwnershipTransferStartedEvent.OutputTuple,
+      OwnershipTransferStartedEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<

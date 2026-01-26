@@ -353,20 +353,34 @@ describe("Test Oku Specific Functions", function () {
                 // If the owner isn't the original one (e.g., from a prior test run), transfer it back.
                 const tempOwnerSigner = await ethers.getSigner(currentContractOwner) // Get signer for the current contract owner
                 await Rainbow.connect(tempOwnerSigner).transferOwnership(currentOwnerAddress)
+                await Rainbow.connect(owner).acceptOwnership()
             }
             expect(await Rainbow.owner()).to.equal(currentOwnerAddress) // Verify owner is reset correctly
         })
 
         it("Should allow current owner to transfer ownership", async () => {
+            // Step 1: Initiate transfer
             await expect(Rainbow.connect(owner).transferOwnership(newOwnerAddress))
+                .to.emit(Rainbow, "OwnershipTransferStarted")
+                .withArgs(currentOwnerAddress, newOwnerAddress)
+            expect(await Rainbow.owner()).to.equal(currentOwnerAddress) // Owner not changed yet
+            expect(await Rainbow.pendingOwner()).to.equal(newOwnerAddress) // Pending owner set
+
+            // Step 2: Accept transfer
+            await expect(Rainbow.connect(nonOwner).acceptOwnership())
                 .to.emit(Rainbow, "OwnershipTransferred")
                 .withArgs(currentOwnerAddress, newOwnerAddress)
             expect(await Rainbow.owner()).to.equal(newOwnerAddress)
+            expect(await Rainbow.pendingOwner()).to.equal(ZeroAddress) // Pending cleared
         })
 
-        it("Should prevent transferring ownership to the zero address", async () => {
+        it("Should allow setting zero address as pending owner (but cannot accept)", async () => {
+            // Ownable2Step allows setting zero address as pending (validation happens on accept)
             await expect(Rainbow.connect(owner).transferOwnership(ZeroAddress))
-                .to.be.revertedWithCustomError(Rainbow, "OwnableInvalidOwner")
+                .to.emit(Rainbow, "OwnershipTransferStarted")
+                .withArgs(currentOwnerAddress, ZeroAddress)
+            expect(await Rainbow.pendingOwner()).to.equal(ZeroAddress)
+            expect(await Rainbow.owner()).to.equal(currentOwnerAddress) // Owner unchanged
         })
 
         it("Should prevent non-owner from transferring ownership", async () => {
@@ -375,7 +389,12 @@ describe("Test Oku Specific Functions", function () {
         })
 
         it("New owner should be able to call owner-only functions", async () => {
-            await Rainbow.connect(owner).transferOwnership(newOwnerAddress) // Perform the ownership transfer
+            // Step 1: Initiate transfer
+            await Rainbow.connect(owner).transferOwnership(newOwnerAddress)
+            expect(await Rainbow.owner()).to.equal(currentOwnerAddress) // Owner not changed yet
+
+            // Step 2: Accept transfer
+            await Rainbow.connect(nonOwner).acceptOwnership()
             expect(await Rainbow.owner()).to.equal(newOwnerAddress) // Confirm transfer
 
             // Test an owner-only function (updateValidSigner) using the new owner (nonOwner signer)
@@ -386,7 +405,12 @@ describe("Test Oku Specific Functions", function () {
         })
 
         it("Old owner should NOT be able to call owner-only functions", async () => {
-            await Rainbow.connect(owner).transferOwnership(newOwnerAddress) // Perform the ownership transfer
+            // Step 1: Initiate transfer
+            await Rainbow.connect(owner).transferOwnership(newOwnerAddress)
+            expect(await Rainbow.owner()).to.equal(currentOwnerAddress) // Owner not changed yet
+
+            // Step 2: Accept transfer
+            await Rainbow.connect(nonOwner).acceptOwnership()
             expect(await Rainbow.owner()).to.equal(newOwnerAddress) // Confirm transfer
 
             // Test an owner-only function using the old owner (owner signer)

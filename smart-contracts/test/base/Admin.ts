@@ -248,31 +248,46 @@ describe("Admin", function () {
     ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount");
   });
 
-  it("Should revert if attempting to transfer ownership to ZERO_ADDRESS", async function () {
+  it("Should allow setting zero address as pending owner (but cannot accept)", async function () {
     const [owner] = signers;
-    await expect(
-      instance.connect(owner).transferOwnership(hre.ethers.ZeroAddress)
-    ).to.be.revertedWithCustomError(instance, "OwnableInvalidOwner");
+
+    const transferTx = instance.connect(owner).transferOwnership(hre.ethers.ZeroAddress);
+
+    await expect(transferTx)
+      .to.emit(instance, "OwnershipTransferStarted")
+      .withArgs(await owner.getAddress(), hre.ethers.ZeroAddress);
+
+    expect(await instance.pendingOwner()).to.equal(hre.ethers.ZeroAddress);
+    expect(await instance.owner()).to.equal(await owner.getAddress()); // Still old owner
   });
 
-  it("Should be able to transfer ownership", async function () {
+  it("Should be able to transfer ownership (two-step process)", async function () {
     const [owner, newOwner] = signers;
     const previousOwnerAddress = await owner.getAddress();
     const newOwnerAddress = await newOwner.getAddress();
 
+    // Step 1: Current owner initiates transfer
     const transferTx = instance.connect(owner).transferOwnership(newOwnerAddress);
-
     await expect(transferTx)
+      .to.emit(instance, "OwnershipTransferStarted")
+      .withArgs(previousOwnerAddress, newOwnerAddress);
+
+    expect(await instance.pendingOwner()).to.equal(newOwnerAddress);
+    expect(await instance.owner()).to.equal(previousOwnerAddress); // Not changed yet
+
+    // Step 2: New owner accepts ownership
+    const acceptTx = instance.connect(newOwner).acceptOwnership();
+    await expect(acceptTx)
       .to.emit(instance, "OwnershipTransferred")
       .withArgs(previousOwnerAddress, newOwnerAddress);
 
-    const currentOwner = await instance.owner();
-    expect(currentOwner).to.equal(newOwnerAddress);
+    expect(await instance.owner()).to.equal(newOwnerAddress);
+    expect(await instance.pendingOwner()).to.equal(hre.ethers.ZeroAddress); // Cleared
 
-    // IMPORTANT: Transfer ownership back for subsequent tests if they assume the deployer is the owner
+    // IMPORTANT: Transfer ownership back for subsequent tests (two-step)
     await instance.connect(newOwner).transferOwnership(previousOwnerAddress);
-    const finalOwner = await instance.owner();
-    expect(finalOwner).to.equal(previousOwnerAddress); // Verify it's back
+    await instance.connect(owner).acceptOwnership();
+    expect(await instance.owner()).to.equal(previousOwnerAddress); // Verify it's back
   });
 
   it("Should revert if attempting transferOwnership when sender is not the owner", async function () {
@@ -282,6 +297,112 @@ describe("Admin", function () {
     await expect(
       instance.connect(nonOwner).transferOwnership(newOwnerAddress)
     ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount");
+  });
+
+  describe("Ownable2Step Functionality", function () {
+
+    it("Should allow pending owner to accept ownership", async function () {
+      const [owner, newOwner] = signers;
+      const ownerAddress = await owner.getAddress();
+      const newOwnerAddress = await newOwner.getAddress();
+
+      await instance.connect(owner).transferOwnership(newOwnerAddress);
+
+      const acceptTx = instance.connect(newOwner).acceptOwnership();
+      await expect(acceptTx)
+        .to.emit(instance, "OwnershipTransferred")
+        .withArgs(ownerAddress, newOwnerAddress);
+
+      expect(await instance.owner()).to.equal(newOwnerAddress);
+
+      // Cleanup
+      await instance.connect(newOwner).transferOwnership(ownerAddress);
+      await instance.connect(owner).acceptOwnership();
+    });
+
+    it("Should revert if non-pending owner tries to accept", async function () {
+      const [owner, newOwner, otherAccount] = signers;
+      const newOwnerAddress = await newOwner.getAddress();
+      const otherAddress = await otherAccount.getAddress();
+
+      await instance.connect(owner).transferOwnership(newOwnerAddress);
+
+      await expect(
+        instance.connect(otherAccount).acceptOwnership()
+      ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount")
+        .withArgs(otherAddress);
+    });
+
+    it("Should allow owner to replace pending owner before acceptance", async function () {
+      const [owner, firstCandidate, secondCandidate] = signers;
+      const firstAddress = await firstCandidate.getAddress();
+      const secondAddress = await secondCandidate.getAddress();
+
+      await instance.connect(owner).transferOwnership(firstAddress);
+      expect(await instance.pendingOwner()).to.equal(firstAddress);
+
+      // Replace with second pending owner
+      await instance.connect(owner).transferOwnership(secondAddress);
+      expect(await instance.pendingOwner()).to.equal(secondAddress);
+
+      // First candidate can no longer accept
+      await expect(
+        instance.connect(firstCandidate).acceptOwnership()
+      ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount");
+
+      // Second candidate can accept
+      await instance.connect(secondCandidate).acceptOwnership();
+      expect(await instance.owner()).to.equal(secondAddress);
+
+      // Cleanup
+      await instance.connect(secondCandidate).transferOwnership(await owner.getAddress());
+      await instance.connect(owner).acceptOwnership();
+    });
+
+    it("Should clear pending owner after acceptance", async function () {
+      const [owner, newOwner] = signers;
+      const ownerAddress = await owner.getAddress();
+      const newOwnerAddress = await newOwner.getAddress();
+
+      await instance.connect(owner).transferOwnership(newOwnerAddress);
+      expect(await instance.pendingOwner()).to.equal(newOwnerAddress);
+
+      await instance.connect(newOwner).acceptOwnership();
+      expect(await instance.pendingOwner()).to.equal(hre.ethers.ZeroAddress);
+
+      // Cleanup
+      await instance.connect(newOwner).transferOwnership(ownerAddress);
+      await instance.connect(owner).acceptOwnership();
+    });
+
+    it("Should handle admin functions during pending transfer", async function () {
+      const [owner, newOwner] = signers;
+      const newOwnerAddress = await newOwner.getAddress();
+      const targetAddress = "0x1111111111111111111111111111111111111111";
+
+      // Initiate transfer
+      await instance.connect(owner).transferOwnership(newOwnerAddress);
+
+      // Current owner can still execute admin functions
+      await expect(
+        instance.connect(owner).updateSwapTargets(targetAddress, true)
+      ).to.not.be.reverted;
+
+      // Pending owner cannot execute admin functions yet
+      await expect(
+        instance.connect(newOwner).updateSwapTargets(targetAddress, false)
+      ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount");
+
+      // After acceptance, new owner can execute
+      await instance.connect(newOwner).acceptOwnership();
+      await expect(
+        instance.connect(newOwner).updateSwapTargets(targetAddress, false)
+      ).to.not.be.reverted;
+
+      // Cleanup
+      await instance.connect(newOwner).transferOwnership(await owner.getAddress());
+      await instance.connect(owner).acceptOwnership();
+    });
   });
 
   it('Should revert if an attacker attempts "Approval snatching" from a victim that previously approved an ERC20 token on OkuRouter', async function () {
