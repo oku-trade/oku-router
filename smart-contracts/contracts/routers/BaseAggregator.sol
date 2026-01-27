@@ -58,7 +58,9 @@ contract BaseAggregator is EIP712, Pausable {
     /// @dev Consumes a warrant nonce to prevent replay attacks
     /// @param warrant The warrant containing the nonce to consume
     /// @notice Skips nonce tracking when verifyingSigner is address(0) (warrant bypass mode)
-    function _consumeWarrantNonce(CanoeHelper.Warrant calldata warrant) internal {
+    function _consumeWarrantNonce(
+        CanoeHelper.Warrant calldata warrant
+    ) internal {
         // Optimization: Skip storage operations entirely when warrant is bypassed
         if (warrant.verifyingSigner == address(0)) {
             return;
@@ -127,6 +129,8 @@ contract BaseAggregator is EIP712, Pausable {
         onlyApprovedTarget(target)
         onlyApprovedSigner(warrant.verifyingSigner)
     {
+        require(msg.value > feeAmount, "INSUFFICIENT_ETH");
+
         // 0 - verify the canoe warrant
         _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
@@ -235,7 +239,7 @@ contract BaseAggregator is EIP712, Pausable {
             sellAmount,
             feeAmount,
             warrant,
-            false  // Tokens not yet transferred, must pull from user
+            false // Tokens not yet transferred, must pull from user
         );
     }
 
@@ -283,7 +287,8 @@ contract BaseAggregator is EIP712, Pausable {
 
         // 2 - Call fillQuoteTokenToToken
         // Skip transferFrom if Permit2 (tokens already transferred)
-        bool skipTransferFrom = (permitData.permitStyle == PermitHelper.PermitStyle.PERMIT_2);
+        bool skipTransferFrom = (permitData.permitStyle ==
+            PermitHelper.PermitStyle.PERMIT_2);
         _fillQuoteTokenToToken(
             sellTokenAddress,
             buyTokenAddress,
@@ -329,7 +334,7 @@ contract BaseAggregator is EIP712, Pausable {
             sellAmount,
             feePercentageBasisPoints,
             warrant,
-            false  // Tokens not yet transferred, must pull from user
+            false // Tokens not yet transferred, must pull from user
         );
     }
 
@@ -375,7 +380,8 @@ contract BaseAggregator is EIP712, Pausable {
 
         // 2 - Call fillQuoteTokenToEth
         // Skip transferFrom if Permit2 (tokens already transferred)
-        bool skipTransferFrom = (permitData.permitStyle == PermitHelper.PermitStyle.PERMIT_2);
+        bool skipTransferFrom = (permitData.permitStyle ==
+            PermitHelper.PermitStyle.PERMIT_2);
         _fillQuoteTokenToEth(
             sellTokenAddress,
             target,
@@ -575,7 +581,8 @@ contract BaseAggregator is EIP712, Pausable {
 
         require(initialOutputTokenAmount < finalOutputTokenAmount, "NO_TOKENS");
 
-        uint256 tokensReceived = finalOutputTokenAmount - initialOutputTokenAmount;
+        uint256 tokensReceived = finalOutputTokenAmount -
+            initialOutputTokenAmount;
 
         // 7 - Send tokens to the user
         SafeERC20.safeTransfer(
