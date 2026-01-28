@@ -54,7 +54,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         networkName: "op",
         chainId: 10,
         chainName: "optimism",
-        rainbowRouterAddress: "0xA90845CFc60488cCB917169EeDCF3577092Df29f",  // NEW DEPLOYMENT with approvalTarget support
+        rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",  // PROD deterministic deployment post audit
         deploymentBlock: 143955053, // Nov 18, 2025 - tx: 0x6c495af96a3af0848131a132951d635419a9558b30a391bdb7094575fd5413c5
         wethAddress: "0x4200000000000000000000000000000000000006",
         usdcAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
@@ -97,7 +97,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         networkName: "base",
         chainId: 8453,
         chainName: "base",
-        rainbowRouterAddress: "0x816cd361284003e722dbcc3597ca6e3bdb4d46dd",
+        rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",  // PROD deterministic deployment post audit
         deploymentBlock: 38624971,
         wethAddress: "0x4200000000000000000000000000000000000006",
         usdcAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base USDC
@@ -108,13 +108,13 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
             "icecreamswap",
             "openocean",
             // "propellerswap", // Not supported by backend on Base
-            // "enso",
-            // "odos",
-            // "oneinch",
+            "enso",
+            "odos",
+            "oneinch",
             // "velora",  // Commented - may need verification
             // "unison",  // Commented - may need verification
             // "luxor",   // Commented - may need verification
-            // "zeroex",  // Commented - may need verification
+            "zeroex",  // Commented - may need verification
         ],
         knownSwapTargets: [
             { address: "0x0000000000001fF3684f28c67538d4D072C22734", name: "AllowanceHolder", protocol: "0x" },
@@ -138,7 +138,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         networkName: "worldchain",
         chainId: 480,
         chainName: "worldchain",
-        rainbowRouterAddress: "0x2b53aec27d45a0021c514cdfd6496f99a5e0be21",
+        rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",  // PROD deterministic deployment post audit
         deploymentBlock: 22351271,
         wethAddress: "0x4200000000000000000000000000000000000006",
         usdcAddress: "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", // Native USDC on World Chain
@@ -155,6 +155,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
             { address: "0x8ac7bee993bb44dab564ea4bc9ea67bf9eb5e743", name: "AggregatorGuard", protocol: "icecreamswap" },
             { address: "0xc87de04e2ec1f4282dff2933a2d58199f688fc3d", name: "Settler", protocol: "0x" },
             { address: "0xf75584ef6673ad213a685a1b58cc0330b8ea22cf", name: "EnsoRouter", protocol: "enso" },
+            { address: "0x111111125421ca6dc452d289314280a0f8842a65", name: "1inch Router (TEST)", protocol: "oneinch" },
         ],
         ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
         rpcUrl: process.env.WORLDCHAIN_URL,
@@ -163,7 +164,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         networkName: "bsc",
         chainId: 56,
         chainName: "bsc",
-        rainbowRouterAddress: "0x31750d38d8d1f69af94407002b9322f5765d869a",
+        rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",  // PROD deterministic deployment post audit
         deploymentBlock: 70161721,
         wethAddress: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", // WBNB
         usdcAddress: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // BSC USDC
@@ -228,7 +229,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         networkName: "arbitrum",
         chainId: 42161,
         chainName: "arbitrum",
-        rainbowRouterAddress: "0xA89A26c4d81A2cca4d0670F77f0FC88362b72248",
+        rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",  // PROD deterministic deployment post audit
         deploymentBlock: 406509419,
         wethAddress: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // WETH on Arbitrum
         usdcAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // Native USDC

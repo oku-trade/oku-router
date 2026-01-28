@@ -3,6 +3,7 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import { HardhatUserConfig, task } from 'hardhat/config';
 import { config as dotEnvConfig } from "dotenv";
+import "./tasks/deploy";
 
 
 dotEnvConfig();
@@ -175,7 +176,11 @@ const config: HardhatUserConfig = {
           ? process.env.MAINNET_PRIVATE_KEY
           : zaddr
       ],
-      chainId: 56
+      chainId: 56,
+      timeout: 60000, // 60 second timeout
+      httpHeaders: {
+        "Content-Type": "application/json"
+      }
     },
     avax: {
       url: process.env.AVAX_URL ? process.env.AVAX_URL : zaddr,

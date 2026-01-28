@@ -69,7 +69,8 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
     })
 
     it("Deploy Rainbow Router", async () => {
-        Rainbow = await new OkuRouter__factory(signer).deploy(name, version)
+        const ownerAddress = await signer.getAddress();
+        Rainbow = await new OkuRouter__factory(signer).deploy(name, version, ownerAddress)
         expect(await Rainbow.getAddress()).to.be.properAddress
 
         // Whitelist all router addresses

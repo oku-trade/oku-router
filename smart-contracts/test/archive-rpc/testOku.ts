@@ -44,7 +44,8 @@ describe("Test Oku Specific Functions", function () {
         recipient = signers[3]
         recipientAddress = await recipient.getAddress()
 
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version)
+        const ownerAddress = await owner.getAddress();
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress)
 
         const usdcAddress = "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85" // Optimism USDC
         USDC = ERC20__factory.connect(usdcAddress, owner)

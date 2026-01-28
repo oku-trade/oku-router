@@ -40,7 +40,7 @@ contract OkuRouter is BaseAggregator, Ownable2Step {
     /// @dev Event emitted when the contract is unpaused
     event ContractUnpaused(address indexed account);
 
-    constructor(string memory _name, string memory _version) BaseAggregator(_name, _version) Ownable(msg.sender) {
+    constructor(string memory _name, string memory _version, address _owner) BaseAggregator(_name, _version) Ownable(_owner) {
         status = 1;
         name = _name;
         version = _version;
