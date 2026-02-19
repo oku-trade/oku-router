@@ -94,6 +94,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC2612Extension__factory>;
     getContractFactory(
+      name: "IOkuRouter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IOkuRouter__factory>;
+    getContractFactory(
       name: "IWETH",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IWETH__factory>;
@@ -157,6 +161,10 @@ declare module "hardhat/types/runtime" {
       name: "OkuRouter",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.OkuRouter__factory>;
+    getContractFactory(
+      name: "Permit2Proxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Permit2Proxy__factory>;
     getContractFactory(
       name: "BaseAggregator",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -263,6 +271,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC2612Extension>;
     getContractAt(
+      name: "IOkuRouter",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IOkuRouter>;
+    getContractAt(
       name: "IWETH",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -342,6 +355,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.OkuRouter>;
+    getContractAt(
+      name: "Permit2Proxy",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Permit2Proxy>;
     getContractAt(
       name: "BaseAggregator",
       address: string | ethers.Addressable,
@@ -429,6 +447,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC2612Extension>;
     deployContract(
+      name: "IOkuRouter",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IOkuRouter>;
+    deployContract(
       name: "IWETH",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IWETH>;
@@ -492,6 +514,10 @@ declare module "hardhat/types/runtime" {
       name: "OkuRouter",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.OkuRouter>;
+    deployContract(
+      name: "Permit2Proxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Permit2Proxy>;
     deployContract(
       name: "BaseAggregator",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -598,6 +624,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC2612Extension>;
     deployContract(
+      name: "IOkuRouter",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IOkuRouter>;
+    deployContract(
       name: "IWETH",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -677,6 +708,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.OkuRouter>;
+    deployContract(
+      name: "Permit2Proxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Permit2Proxy>;
     deployContract(
       name: "BaseAggregator",
       args: any[],

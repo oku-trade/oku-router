@@ -8,3 +8,4 @@ export type { libraries };
 import type * as routers from "./routers";
 export type { routers };
 export type { OkuRouter } from "./OkuRouter";
+export type { Permit2Proxy } from "./Permit2Proxy";

@@ -253,7 +253,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
             { address: "0x6a000f20005980200259b80c5102003040001068", name: "AugustusV6.2", protocol: "paraswap" },
             { address: "0xf332761c673b59B21fF6dfa8adA44d78c12dEF09", name: "DexRouter", protocol: "okx" },
             { address: "0x70cBb871E8f30Fc8Ce23609E9E0Ea87B6b222F58", name: "TokenApprove", protocol: "okx" },
-            { address: "0xA1d3462AFbFFe3BA45A5044FB899e6E219Ec842A", name: "IceCreamSwapV2Router", protocol: "icecreamswap" },
+            { address: "0x57f96440f1b1cad53b40a8924bd540b1279a491c", name: "IceCreamSwapV2Router", protocol: "icecreamswap" },
             { address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64", name: "OpenOceanExchangeV2", protocol: "openocean" },
         ],
         ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",

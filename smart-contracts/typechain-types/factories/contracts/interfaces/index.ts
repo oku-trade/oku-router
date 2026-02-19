@@ -7,4 +7,5 @@ export * as uniswapV3 from "./uniswapV3";
 export { IDAI__factory } from "./IDAI__factory";
 export { IERC2612__factory } from "./IERC2612__factory";
 export { IERC2612Extension__factory } from "./IERC2612Extension__factory";
+export { IOkuRouter__factory } from "./IOkuRouter__factory";
 export { IWETH__factory } from "./IWETH__factory";
