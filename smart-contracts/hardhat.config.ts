@@ -4,6 +4,7 @@ import "hardhat-deploy-ethers";
 import { HardhatUserConfig, task } from 'hardhat/config';
 import { config as dotEnvConfig } from "dotenv";
 import "./tasks/deploy";
+import "./tasks/deployPermit2Proxy";
 
 
 dotEnvConfig();

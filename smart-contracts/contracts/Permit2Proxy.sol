@@ -3,18 +3,17 @@ pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IOkuRouter.sol";
-import "./libraries/CanoeHelper.sol";
+import "./interfaces/uniswapV3/IPermit2.sol";
 
 /// @title Permit2Proxy
-/// @notice Stateless proxy that accepts tokens via Permit2 SignatureTransfer
-///         and forwards swaps through OkuRouter. Designed for environments
-///         (e.g. Safe smart wallets) where approve() is unavailable and only
-///         Permit2 with bytes signatures is supported.
+/// @notice Stateless proxy that pulls tokens via Permit2 SignatureTransfer,
+///         forwards arbitrary calldata to OkuRouter, and returns output to caller.
+///         Designed for Safe smart wallets that only support Permit2 with bytes signatures.
 contract Permit2Proxy {
     using SafeERC20 for IERC20;
 
     address public immutable okuRouter;
+    IPermit2 public constant permit2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
     uint256 private _status;
 
@@ -34,78 +33,55 @@ contract Permit2Proxy {
     /// @notice Accept ETH from OkuRouter during token-to-ETH swaps
     receive() external payable {}
 
-    /// @notice Proxy for OkuRouter.fillQuoteTokenToToken.
-    ///         Tokens must already be in this contract (delivered via Permit2).
-    function fillQuoteTokenToToken(
-        address sellTokenAddress,
-        address buyTokenAddress,
-        address payable target,
-        address approvalTarget,
-        bytes calldata swapCallData,
-        uint256 sellAmount,
-        uint256 feeAmount,
-        CanoeHelper.Warrant calldata warrant
+    /// @notice Pull tokens via Permit2, forward calldata to OkuRouter, return output to caller.
+    /// @param permit  Permit2 SignatureTransfer permit (token, amount, nonce, deadline)
+    /// @param signature  Permit2 bytes signature (EIP-1271 compatible)
+    /// @param buyToken  Output token address (address(0) for ETH)
+    /// @param routerCalldata  Raw calldata forwarded to OkuRouter
+    function execute(
+        IPermit2.PermitTransferFrom calldata permit,
+        bytes calldata signature,
+        address buyToken,
+        bytes calldata routerCalldata
     ) external payable nonReentrant {
-        require(
-            IERC20(sellTokenAddress).balanceOf(address(this)) >= sellAmount,
-            "INSUFFICIENT_TOKENS"
+        // 1. Pull tokens from msg.sender via Permit2
+        permit2.permitTransferFrom(
+            permit,
+            IPermit2.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: permit.permitted.amount
+            }),
+            msg.sender,
+            signature
         );
 
-        IERC20(sellTokenAddress).safeIncreaseAllowance(okuRouter, sellAmount);
+        // 2. Approve OkuRouter to pull sell tokens
+        IERC20(permit.permitted.token).safeIncreaseAllowance(okuRouter, permit.permitted.amount);
 
-        uint256 buyTokenBefore = IERC20(buyTokenAddress).balanceOf(address(this));
+        // 3. Record output balance before
+        uint256 outputBefore = (buyToken == address(0))
+            ? address(this).balance - msg.value
+            : IERC20(buyToken).balanceOf(address(this));
 
-        IOkuRouter(okuRouter).fillQuoteTokenToToken{value: msg.value}(
-            sellTokenAddress,
-            buyTokenAddress,
-            target,
-            approvalTarget,
-            swapCallData,
-            sellAmount,
-            feeAmount,
-            warrant
-        );
+        // 4. Forward call to OkuRouter
+        (bool success, bytes memory result) = okuRouter.call{value: msg.value}(routerCalldata);
+        if (!success) {
+            assembly {
+                revert(add(result, 32), mload(result))
+            }
+        }
 
-        uint256 tokensReceived = IERC20(buyTokenAddress).balanceOf(address(this)) - buyTokenBefore;
-        require(tokensReceived > 0, "NO_OUTPUT_TOKENS");
+        // 5. Forward output to caller
+        uint256 received = (buyToken == address(0))
+            ? address(this).balance - outputBefore
+            : IERC20(buyToken).balanceOf(address(this)) - outputBefore;
+        require(received > 0, "NO_OUTPUT");
 
-        IERC20(buyTokenAddress).safeTransfer(msg.sender, tokensReceived);
-    }
-
-    /// @notice Proxy for OkuRouter.fillQuoteTokenToEth.
-    ///         Tokens must already be in this contract (delivered via Permit2).
-    function fillQuoteTokenToEth(
-        address sellTokenAddress,
-        address payable target,
-        address approvalTarget,
-        bytes calldata swapCallData,
-        uint256 sellAmount,
-        uint256 feePercentageBasisPoints,
-        CanoeHelper.Warrant calldata warrant
-    ) external payable nonReentrant {
-        require(
-            IERC20(sellTokenAddress).balanceOf(address(this)) >= sellAmount,
-            "INSUFFICIENT_TOKENS"
-        );
-
-        IERC20(sellTokenAddress).safeIncreaseAllowance(okuRouter, sellAmount);
-
-        uint256 ethBefore = address(this).balance - msg.value;
-
-        IOkuRouter(okuRouter).fillQuoteTokenToEth{value: msg.value}(
-            sellTokenAddress,
-            target,
-            approvalTarget,
-            swapCallData,
-            sellAmount,
-            feePercentageBasisPoints,
-            warrant
-        );
-
-        uint256 ethReceived = address(this).balance - ethBefore;
-        require(ethReceived > 0, "NO_ETH_RECEIVED");
-
-        (bool success, ) = msg.sender.call{value: ethReceived}("");
-        require(success, "ETH_TRANSFER_FAILED");
+        if (buyToken == address(0)) {
+            (bool ok, ) = msg.sender.call{value: received}("");
+            require(ok, "ETH_TRANSFER_FAILED");
+        } else {
+            IERC20(buyToken).safeTransfer(msg.sender, received);
+        }
     }
 }

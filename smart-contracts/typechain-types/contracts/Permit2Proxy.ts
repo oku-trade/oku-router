@@ -21,74 +21,54 @@ import type {
   TypedContractMethod,
 } from "../common";
 
-export declare namespace CanoeHelper {
-  export type WarrantStruct = {
-    nonce: BigNumberish;
-    validBefore: BigNumberish;
-    validAfter: BigNumberish;
-    verifyingSigner: AddressLike;
-    signature: BytesLike;
+export declare namespace IPermit2 {
+  export type TokenPermissionsStruct = {
+    token: AddressLike;
+    amount: BigNumberish;
   };
 
-  export type WarrantStructOutput = [
+  export type TokenPermissionsStructOutput = [token: string, amount: bigint] & {
+    token: string;
+    amount: bigint;
+  };
+
+  export type PermitTransferFromStruct = {
+    permitted: IPermit2.TokenPermissionsStruct;
+    nonce: BigNumberish;
+    deadline: BigNumberish;
+  };
+
+  export type PermitTransferFromStructOutput = [
+    permitted: IPermit2.TokenPermissionsStructOutput,
     nonce: bigint,
-    validBefore: bigint,
-    validAfter: bigint,
-    verifyingSigner: string,
-    signature: string
+    deadline: bigint
   ] & {
+    permitted: IPermit2.TokenPermissionsStructOutput;
     nonce: bigint;
-    validBefore: bigint;
-    validAfter: bigint;
-    verifyingSigner: string;
-    signature: string;
+    deadline: bigint;
   };
 }
 
 export interface Permit2ProxyInterface extends Interface {
   getFunction(
-    nameOrSignature:
-      | "fillQuoteTokenToEth"
-      | "fillQuoteTokenToToken"
-      | "okuRouter"
+    nameOrSignature: "execute" | "okuRouter" | "permit2"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "fillQuoteTokenToEth",
+    functionFragment: "execute",
     values: [
-      AddressLike,
-      AddressLike,
-      AddressLike,
+      IPermit2.PermitTransferFromStruct,
       BytesLike,
-      BigNumberish,
-      BigNumberish,
-      CanoeHelper.WarrantStruct
-    ]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "fillQuoteTokenToToken",
-    values: [
       AddressLike,
-      AddressLike,
-      AddressLike,
-      AddressLike,
-      BytesLike,
-      BigNumberish,
-      BigNumberish,
-      CanoeHelper.WarrantStruct
+      BytesLike
     ]
   ): string;
   encodeFunctionData(functionFragment: "okuRouter", values?: undefined): string;
+  encodeFunctionData(functionFragment: "permit2", values?: undefined): string;
 
-  decodeFunctionResult(
-    functionFragment: "fillQuoteTokenToEth",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "fillQuoteTokenToToken",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "execute", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "okuRouter", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "permit2", data: BytesLike): Result;
 }
 
 export interface Permit2Proxy extends BaseContract {
@@ -134,30 +114,12 @@ export interface Permit2Proxy extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  fillQuoteTokenToEth: TypedContractMethod<
+  execute: TypedContractMethod<
     [
-      sellTokenAddress: AddressLike,
-      target: AddressLike,
-      approvalTarget: AddressLike,
-      swapCallData: BytesLike,
-      sellAmount: BigNumberish,
-      feePercentageBasisPoints: BigNumberish,
-      warrant: CanoeHelper.WarrantStruct
-    ],
-    [void],
-    "payable"
-  >;
-
-  fillQuoteTokenToToken: TypedContractMethod<
-    [
-      sellTokenAddress: AddressLike,
-      buyTokenAddress: AddressLike,
-      target: AddressLike,
-      approvalTarget: AddressLike,
-      swapCallData: BytesLike,
-      sellAmount: BigNumberish,
-      feeAmount: BigNumberish,
-      warrant: CanoeHelper.WarrantStruct
+      permit: IPermit2.PermitTransferFromStruct,
+      signature: BytesLike,
+      buyToken: AddressLike,
+      routerCalldata: BytesLike
     ],
     [void],
     "payable"
@@ -165,43 +127,29 @@ export interface Permit2Proxy extends BaseContract {
 
   okuRouter: TypedContractMethod<[], [string], "view">;
 
+  permit2: TypedContractMethod<[], [string], "view">;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
   getFunction(
-    nameOrSignature: "fillQuoteTokenToEth"
+    nameOrSignature: "execute"
   ): TypedContractMethod<
     [
-      sellTokenAddress: AddressLike,
-      target: AddressLike,
-      approvalTarget: AddressLike,
-      swapCallData: BytesLike,
-      sellAmount: BigNumberish,
-      feePercentageBasisPoints: BigNumberish,
-      warrant: CanoeHelper.WarrantStruct
-    ],
-    [void],
-    "payable"
-  >;
-  getFunction(
-    nameOrSignature: "fillQuoteTokenToToken"
-  ): TypedContractMethod<
-    [
-      sellTokenAddress: AddressLike,
-      buyTokenAddress: AddressLike,
-      target: AddressLike,
-      approvalTarget: AddressLike,
-      swapCallData: BytesLike,
-      sellAmount: BigNumberish,
-      feeAmount: BigNumberish,
-      warrant: CanoeHelper.WarrantStruct
+      permit: IPermit2.PermitTransferFromStruct,
+      signature: BytesLike,
+      buyToken: AddressLike,
+      routerCalldata: BytesLike
     ],
     [void],
     "payable"
   >;
   getFunction(
     nameOrSignature: "okuRouter"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "permit2"
   ): TypedContractMethod<[], [string], "view">;
 
   filters: {};
