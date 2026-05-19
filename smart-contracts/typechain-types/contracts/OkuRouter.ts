@@ -94,6 +94,7 @@ export interface OkuRouterInterface extends Interface {
       | "pendingOwner"
       | "renounceOwnership"
       | "swapTargets"
+      | "sweepAll"
       | "transferOwnership"
       | "unpause"
       | "updateSwapTargets"
@@ -101,8 +102,6 @@ export interface OkuRouterInterface extends Interface {
       | "usedWarrantNonces"
       | "validSigners"
       | "version"
-      | "withdrawEth"
-      | "withdrawToken"
   ): FunctionFragment;
 
   getEvent(
@@ -210,6 +209,10 @@ export interface OkuRouterInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "sweepAll",
+    values: [AddressLike[], boolean, AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
@@ -231,14 +234,6 @@ export interface OkuRouterInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "version", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "withdrawEth",
-    values: [AddressLike, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "withdrawToken",
-    values: [AddressLike, AddressLike, BigNumberish]
-  ): string;
 
   decodeFunctionResult(
     functionFragment: "acceptOwnership",
@@ -284,6 +279,7 @@ export interface OkuRouterInterface extends Interface {
     functionFragment: "swapTargets",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "sweepAll", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
     data: BytesLike
@@ -306,14 +302,6 @@ export interface OkuRouterInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "version", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "withdrawEth",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "withdrawToken",
-    data: BytesLike
-  ): Result;
 }
 
 export namespace ContractPausedEvent {
@@ -660,6 +648,12 @@ export interface OkuRouter extends BaseContract {
 
   swapTargets: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
+  sweepAll: TypedContractMethod<
+    [tokens: AddressLike[], includeEth: boolean, to: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
     [void],
@@ -689,18 +683,6 @@ export interface OkuRouter extends BaseContract {
   validSigners: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   version: TypedContractMethod<[], [string], "view">;
-
-  withdrawEth: TypedContractMethod<
-    [to: AddressLike, amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  withdrawToken: TypedContractMethod<
-    [token: AddressLike, to: AddressLike, amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -825,6 +807,13 @@ export interface OkuRouter extends BaseContract {
     nameOrSignature: "swapTargets"
   ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
   getFunction(
+    nameOrSignature: "sweepAll"
+  ): TypedContractMethod<
+    [tokens: AddressLike[], includeEth: boolean, to: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
   getFunction(
@@ -857,20 +846,6 @@ export interface OkuRouter extends BaseContract {
   getFunction(
     nameOrSignature: "version"
   ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "withdrawEth"
-  ): TypedContractMethod<
-    [to: AddressLike, amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "withdrawToken"
-  ): TypedContractMethod<
-    [token: AddressLike, to: AddressLike, amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
 
   getEvent(
     key: "ContractPaused"

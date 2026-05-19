@@ -94,10 +94,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC2612Extension__factory>;
     getContractFactory(
-      name: "IOkuRouter",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IOkuRouter__factory>;
-    getContractFactory(
       name: "IWETH",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IWETH__factory>;
@@ -271,11 +267,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC2612Extension>;
     getContractAt(
-      name: "IOkuRouter",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IOkuRouter>;
-    getContractAt(
       name: "IWETH",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -446,10 +437,6 @@ declare module "hardhat/types/runtime" {
       name: "IERC2612Extension",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC2612Extension>;
-    deployContract(
-      name: "IOkuRouter",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IOkuRouter>;
     deployContract(
       name: "IWETH",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -623,11 +610,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC2612Extension>;
-    deployContract(
-      name: "IOkuRouter",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IOkuRouter>;
     deployContract(
       name: "IWETH",
       args: any[],

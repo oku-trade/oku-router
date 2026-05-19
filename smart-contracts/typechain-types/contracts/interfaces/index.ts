@@ -10,5 +10,4 @@ export type { uniswapV3 };
 export type { IDAI } from "./IDAI";
 export type { IERC2612 } from "./IERC2612";
 export type { IERC2612Extension } from "./IERC2612Extension";
-export type { IOkuRouter } from "./IOkuRouter";
 export type { IWETH } from "./IWETH";

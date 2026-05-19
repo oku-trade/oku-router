@@ -61,7 +61,7 @@ describe("Admin", function () {
     signers = await hre.ethers.getSigners();
   });
 
-  it("Should be able to withdraw tokens", async function () {
+  it("Should be able to sweep a single token's full balance", async function () {
     // 1 - Send some tokens to the contract
     const amount = 10000000n;
     const [owner, , receiver] = signers; // Get owner and receiver signers
@@ -79,30 +79,27 @@ describe("Admin", function () {
     const wethBalanceInContractBeforeWithdraw = await weth.balanceOf(instanceAddress);
     expect(wethBalanceInContractBeforeWithdraw).to.equal(amount);
 
-    // 3 - Withdraw the tokens (owner makes the call)
-    const withdrawTokenTx = instance.connect(owner).withdrawToken(
-      wethAddress,
-      receiverAddress,
-      amount
+    const receiverBalanceBefore = await weth.balanceOf(receiverAddress);
+
+    // 3 - Sweep the tokens (owner makes the call)
+    const sweepTx = instance.connect(owner).sweepAll(
+      [wethAddress],
+      false,
+      receiverAddress
     );
 
     // 4 - Assert event emission
-    await expect(withdrawTokenTx)
+    await expect(sweepTx)
       .to.emit(instance, "TokenWithdrawn")
       .withArgs(
-        // Custom predicate for the first address argument (wethAddress)
         (emittedWethAddress: any) => {
-          // Basic type check and case-insensitive comparison
           return typeof emittedWethAddress === 'string' &&
             emittedWethAddress.toLowerCase() === wethAddress.toLowerCase();
         },
-        // Custom predicate for the second address argument (receiverAddress)
         (emittedReceiverAddress: any) => {
-          // Basic type check and case-insensitive comparison
           return typeof emittedReceiverAddress === 'string' &&
             emittedReceiverAddress.toLowerCase() === receiverAddress.toLowerCase();
         },
-        // Direct comparison for the third argument (amount)
         amount
       );
 
@@ -111,12 +108,42 @@ describe("Admin", function () {
 
     // 5 - Confirm the tokens were moved
     expect(wethBalanceInContractAfterWithdraw).to.equal(0n);
-    expect(wethBalanceInReceiver).to.equal(amount);
+    expect(wethBalanceInReceiver).to.equal(receiverBalanceBefore + amount);
   });
 
+  it("Should silently skip zero-balance tokens when sweeping", async function () {
+    const amount = 10000000n;
+    const [owner, , receiver] = signers;
 
-  it("Should revert if attempting to withdraw tokens when sender is not the owner", async function () {
-    // 1 - Send some tokens to the contract
+    const instanceAddress = await instance.getAddress();
+    const wethAddress = await weth.getAddress();
+    const receiverAddress = await receiver.getAddress();
+
+    // Pre-sweep cleanup so we know the contract has zero WETH to start.
+    const startingContractBalance = await weth.balanceOf(instanceAddress);
+    if (startingContractBalance > 0n) {
+      await instance.connect(owner).sweepAll([wethAddress], false, receiverAddress);
+    }
+    expect(await weth.balanceOf(instanceAddress)).to.equal(0n);
+
+    // Sweeping a zero-balance token should not revert and should NOT emit TokenWithdrawn.
+    const tx = instance.connect(owner).sweepAll([wethAddress], false, receiverAddress);
+    await expect(tx).to.not.emit(instance, "TokenWithdrawn");
+
+    // Now seed the contract and confirm a mixed call sweeps real balances and skips zero.
+    await weth.connect(owner).deposit({ value: amount });
+    await weth.connect(owner).transfer(instanceAddress, amount);
+
+    // Duplicate the token to also exercise the "second pass is a no-op" path.
+    await expect(
+      instance.connect(owner).sweepAll([wethAddress, wethAddress], false, receiverAddress)
+    )
+      .to.emit(instance, "TokenWithdrawn"); // first pass emits; second pass is a silent no-op.
+
+    expect(await weth.balanceOf(instanceAddress)).to.equal(0n);
+  });
+
+  it("Should revert sweepAll if sender is not the owner", async function () {
     const amount = 10000000n;
     const [owner, nonOwner, receiver] = signers;
 
@@ -127,18 +154,33 @@ describe("Admin", function () {
     await weth.connect(owner).deposit({ value: amount });
     await weth.connect(owner).transfer(instanceAddress, amount);
 
-    // 2 - Check that the router contract is holding some tokens
-    const wethBalanceInContractBeforeWithdraw = await weth.balanceOf(instanceAddress);
-    expect(wethBalanceInContractBeforeWithdraw).to.equal(amount);
-
-    // 3 - Attempt to withdraw the tokens using a non-owner account
     await expect(
-      instance.connect(nonOwner).withdrawToken(wethAddress, receiverAddress, amount)
+      instance.connect(nonOwner).sweepAll([wethAddress], false, receiverAddress)
     ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount");
+
+    // Cleanup
+    await instance.connect(owner).sweepAll([wethAddress], false, receiverAddress);
   });
 
-  it("Should be able to withdraw ETH", async function () {
-    // 1 - Send some ETH to the contract
+  it("Should revert sweepAll if `to` is the zero address", async function () {
+    const [owner] = signers;
+    const wethAddress = await weth.getAddress();
+
+    await expect(
+      instance.connect(owner).sweepAll([wethAddress], false, ZeroAddress)
+    ).to.be.revertedWith("ZERO_ADDRESS");
+  });
+
+  it("Should revert sweepAll when tokens is empty and includeEth is false", async function () {
+    const [owner, , receiver] = signers;
+    const receiverAddress = await receiver.getAddress();
+
+    await expect(
+      instance.connect(owner).sweepAll([], false, receiverAddress)
+    ).to.be.revertedWith("NOTHING_TO_SWEEP");
+  });
+
+  it("Should be able to sweep ETH via includeEth", async function () {
     const amount = 10000000n;
     const [owner, , receiver] = signers;
     const instanceAddress = await instance.getAddress();
@@ -147,48 +189,63 @@ describe("Admin", function () {
     // Send ETH from owner to the contract instance
     await owner.sendTransaction({ to: instanceAddress, value: amount });
 
-    // 2 - Check that the router contract is holding some ETH
     const startingEthBalanceInReceiver = await hre.ethers.provider.getBalance(receiverAddress);
     const ethBalanceInContractBeforeWithdraw = await hre.ethers.provider.getBalance(instanceAddress);
     expect(ethBalanceInContractBeforeWithdraw).to.equal(amount);
 
-    // 3 - Withdraw the ETH
-    const withdrawEthTx = instance.connect(owner).withdrawEth(receiverAddress, amount);
+    const sweepTx = instance.connect(owner).sweepAll([], true, receiverAddress);
 
-    // Assert event emission
-    await expect(withdrawEthTx)
+    await expect(sweepTx)
       .to.emit(instance, "EthWithdrawn")
       .withArgs(receiverAddress, amount);
 
     const ethBalanceInContractAfterWithdraw = await hre.ethers.provider.getBalance(instanceAddress);
     const ethBalanceInReceiver = await hre.ethers.provider.getBalance(receiverAddress);
 
-    // 4 - Confirm the ETH was moved
     expect(ethBalanceInContractAfterWithdraw).to.equal(0n);
-
-    // Calculate expected balance (ignoring gas costs for the withdrawal tx itself)
-    const finalReceiverExpectedBalance = startingEthBalanceInReceiver + amount;
-    expect(ethBalanceInReceiver).to.equal(finalReceiverExpectedBalance);
+    expect(ethBalanceInReceiver).to.equal(startingEthBalanceInReceiver + amount);
   });
 
-
-  it("Should revert if attempting to withdraw ETH when sender is not the owner", async function () {
-    // 1 - Send some ETH to the contract
-    const amount = 10000000n;
-    const [owner, nonOwner, receiver] = signers;
+  it("Should not emit EthWithdrawn when includeEth is true but ETH balance is zero", async function () {
+    const [owner, , receiver] = signers;
     const instanceAddress = await instance.getAddress();
     const receiverAddress = await receiver.getAddress();
 
-    await owner.sendTransaction({ to: instanceAddress, value: amount });
+    // Drain any residual ETH first.
+    if ((await hre.ethers.provider.getBalance(instanceAddress)) > 0n) {
+      await instance.connect(owner).sweepAll([], true, receiverAddress);
+    }
+    expect(await hre.ethers.provider.getBalance(instanceAddress)).to.equal(0n);
 
-    // 2 - Check that the router contract is holding some ETH
-    const ethBalanceInContractBeforeWithdraw = await hre.ethers.provider.getBalance(instanceAddress);
-    expect(ethBalanceInContractBeforeWithdraw).to.equal(amount);
-
-    // 3 - Attempt to withdraw the ETH using a non-owner account
     await expect(
-      instance.connect(nonOwner).withdrawEth(receiverAddress, amount)
-    ).to.be.revertedWithCustomError(instance, "OwnableUnauthorizedAccount");
+      instance.connect(owner).sweepAll([], true, receiverAddress)
+    ).to.not.emit(instance, "EthWithdrawn");
+  });
+
+  it("Should sweep multiple tokens and ETH in a single call", async function () {
+    const amount = 10000000n;
+    const ethAmount = 5000000n;
+    const [owner, , receiver] = signers;
+    const instanceAddress = await instance.getAddress();
+    const wethAddress = await weth.getAddress();
+    const receiverAddress = await receiver.getAddress();
+
+    // Seed contract with WETH and ETH.
+    await weth.connect(owner).deposit({ value: amount });
+    await weth.connect(owner).transfer(instanceAddress, amount);
+    await owner.sendTransaction({ to: instanceAddress, value: ethAmount });
+
+    const receiverWethBefore = await weth.balanceOf(receiverAddress);
+    const receiverEthBefore = await hre.ethers.provider.getBalance(receiverAddress);
+
+    const tx = instance.connect(owner).sweepAll([wethAddress], true, receiverAddress);
+    await expect(tx).to.emit(instance, "TokenWithdrawn");
+    await expect(tx).to.emit(instance, "EthWithdrawn").withArgs(receiverAddress, ethAmount);
+
+    expect(await weth.balanceOf(instanceAddress)).to.equal(0n);
+    expect(await hre.ethers.provider.getBalance(instanceAddress)).to.equal(0n);
+    expect(await weth.balanceOf(receiverAddress)).to.equal(receiverWethBefore + amount);
+    expect(await hre.ethers.provider.getBalance(receiverAddress)).to.equal(receiverEthBefore + ethAmount);
   });
 
   it("Should be able to add swap targets", async function () {
@@ -689,7 +746,7 @@ describe("Admin", function () {
       await instance.connect(owner).unpause();
     });
 
-    it("should allow withdrawToken when paused", async () => {
+    it("should allow sweepAll (tokens) when paused", async () => {
       const amount = 10000000n;
       const [owner, , receiver] = signers;
 
@@ -701,22 +758,28 @@ describe("Admin", function () {
       await weth.connect(owner).deposit({ value: amount });
       await weth.connect(owner).transfer(instanceAddress, amount);
 
+      const receiverBalanceBefore = await weth.balanceOf(receiverAddress);
+      const contractBalanceBefore = await weth.balanceOf(instanceAddress);
+
       // Pause
       await instance.connect(owner).pause();
 
-      // Withdraw should still work
+      // Sweep should still work
       await expect(
-        instance.connect(owner).withdrawToken(wethAddress, receiverAddress, amount)
+        instance.connect(owner).sweepAll([wethAddress], false, receiverAddress)
       ).to.not.be.reverted;
 
-      const receiverBalance = await weth.balanceOf(receiverAddress);
-      expect(receiverBalance).to.be.gte(amount);
+      // Contract is fully drained; receiver gained the entire contract balance.
+      expect(await weth.balanceOf(instanceAddress)).to.equal(0n);
+      expect(await weth.balanceOf(receiverAddress)).to.equal(
+        receiverBalanceBefore + contractBalanceBefore
+      );
 
       // Cleanup
       await instance.connect(owner).unpause();
     });
 
-    it("should allow withdrawEth when paused", async () => {
+    it("should allow sweepAll (ETH) when paused", async () => {
       const amount = 10000000n;
       const [owner, , receiver] = signers;
       const instanceAddress = await instance.getAddress();
@@ -730,9 +793,9 @@ describe("Admin", function () {
       // Pause
       await instance.connect(owner).pause();
 
-      // Withdraw should still work
+      // Sweep should still work
       await expect(
-        instance.connect(owner).withdrawEth(receiverAddress, amount)
+        instance.connect(owner).sweepAll([], true, receiverAddress)
       ).to.not.be.reverted;
 
       const finalReceiverBalance = await hre.ethers.provider.getBalance(receiverAddress);
