@@ -98,26 +98,40 @@ contract OkuRouter is BaseAggregator, Ownable2Step {
         emit ContractUnpaused(msg.sender);
     }
 
-    /// @dev method to withdraw ERC20 tokens (from the fees)
-    /// @param token address of the token to withdraw
-    /// @param to address that's receiving the tokens
-    /// @param amount amount of tokens to withdraw
-    function withdrawToken(
-        address token,
-        address to,
-        uint256 amount
+    /// @dev Sweep the full contract balance of multiple ERC20 tokens
+    /// (and optionally the full ETH balance) to a single receiver.
+    /// Reverts if both `tokens` is empty and `includeEth` is false to
+    /// prevent needless empty transactions. Tokens with a zero balance
+    /// are silently skipped so a single dust-free token does not block
+    /// the rest of the sweep.
+    /// @param tokens list of ERC20 token addresses to sweep
+    /// @param includeEth if true, also sweeps the entire ETH balance
+    /// @param to address receiving the swept funds
+    function sweepAll(
+        address[] calldata tokens,
+        bool includeEth,
+        address to
     ) external onlyOwner {
         require(to != address(0), "ZERO_ADDRESS");
-        SafeERC20.safeTransfer(IERC20(token), to, amount);
-        emit TokenWithdrawn(token, to, amount);
-    }
+        uint256 len = tokens.length;
+        require(len > 0 || includeEth, "NOTHING_TO_SWEEP");
 
-    /// @dev method to withdraw ETH (from the fees)
-    /// @param to address that's receiving the ETH
-    /// @param amount amount of ETH to withdraw
-    function withdrawEth(address to, uint256 amount) external onlyOwner {
-        require(to != address(0), "ZERO_ADDRESS");
-        SafeTransferLib.safeTransferETH(to, amount);
-        emit EthWithdrawn(to, amount);
+        for (uint256 i; i < len; ) {
+            address token = tokens[i];
+            uint256 bal = IERC20(token).balanceOf(address(this));
+            if (bal > 0) {
+                SafeERC20.safeTransfer(IERC20(token), to, bal);
+                emit TokenWithdrawn(token, to, bal);
+            }
+            unchecked { ++i; }
+        }
+
+        if (includeEth) {
+            uint256 ethBal = address(this).balance;
+            if (ethBal > 0) {
+                SafeTransferLib.safeTransferETH(to, ethBal);
+                emit EthWithdrawn(to, ethBal);
+            }
+        }
     }
 }

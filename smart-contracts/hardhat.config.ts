@@ -5,6 +5,7 @@ import { HardhatUserConfig, task } from 'hardhat/config';
 import { config as dotEnvConfig } from "dotenv";
 import "./tasks/deploy";
 import "./tasks/deployPermit2Proxy";
+import "./tasks/predictAll";
 
 
 dotEnvConfig();

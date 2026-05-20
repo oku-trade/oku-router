@@ -48,8 +48,6 @@ export type { IERC2612 } from "./contracts/interfaces/IERC2612";
 export { IERC2612__factory } from "./factories/contracts/interfaces/IERC2612__factory";
 export type { IERC2612Extension } from "./contracts/interfaces/IERC2612Extension";
 export { IERC2612Extension__factory } from "./factories/contracts/interfaces/IERC2612Extension__factory";
-export type { IOkuRouter } from "./contracts/interfaces/IOkuRouter";
-export { IOkuRouter__factory } from "./factories/contracts/interfaces/IOkuRouter__factory";
 export type { IWETH } from "./contracts/interfaces/IWETH";
 export { IWETH__factory } from "./factories/contracts/interfaces/IWETH__factory";
 export type { ERC20 } from "./contracts/interfaces/openzeppelin/ERC20";
