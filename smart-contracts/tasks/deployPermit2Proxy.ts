@@ -9,13 +9,10 @@ import {
   getPermit2ProxySalt,
 } from "../util/contractMeta";
 import {
-  getLatestEntry,
+  getCurrentEntry,
   recordDeployment,
 } from "../util/deploymentsRegistry";
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { sleep, withRetry } from "../util/rpcRetry";
 
 /**
  * Compute the predicted Permit2Proxy address for a given OkuRouter address.
@@ -23,6 +20,12 @@ function sleep(ms: number): Promise<void> {
  * Salt = keccak256("Permit2Proxy+<okuRouter address>"). This binds the
  * proxy's deterministic address to the router it forwards to, so a stale
  * proxy can never collide with a new one even if both are deployed.
+ *
+ * NOTE: deterministic deployment is *opt-in* (--deterministic). The
+ * default path is a plain nonce-based deploy because today's Permit2Proxy
+ * is only deployed on World Chain — there is no cross-chain parity to
+ * preserve, and CREATE2 buys us nothing on a single chain. Leaving the
+ * CREATE2 path in for future use only.
  */
 async function predictPermit2ProxyAddress(
   hre: HardhatRuntimeEnvironment,
@@ -40,9 +43,14 @@ async function predictPermit2ProxyAddress(
   return { address, initCode, salt };
 }
 
-task("deploy-permit2-proxy", "Deploy Permit2Proxy contract (deterministic, CREATE2)")
-  .setAction(async (_taskArgs, hre) => {
+task("deploy-permit2-proxy", "Deploy Permit2Proxy contract")
+  .addFlag(
+    "deterministic",
+    "Deploy via CREATE2 (Safe Singleton Factory). Default is a plain nonce-based deploy, which is appropriate for chains where we do not need cross-chain address parity (e.g. World Chain only).",
+  )
+  .setAction(async (taskArgs, hre) => {
     const networkName = hre.network.name;
+    const deterministic: boolean = !!taskArgs.deterministic;
 
     if (networkName === "hardhat" || networkName === "localhost") {
       throw new Error("Use a live network (e.g. --network worldchain)");
@@ -50,106 +58,142 @@ task("deploy-permit2-proxy", "Deploy Permit2Proxy contract (deterministic, CREAT
 
     const [signer] = await hre.ethers.getSigners();
     const signerAddress = await signer.getAddress();
-    console.log(`\nDeploying Permit2Proxy to ${networkName} as ${signerAddress}`);
+    console.log(
+      `\nDeploying Permit2Proxy to ${networkName} as ${signerAddress} ` +
+        `[${deterministic ? "CREATE2 / deterministic" : "nonce-based / non-deterministic"}]`,
+    );
 
-    // The proxy is bonded by bytecode to a specific OkuRouter address.
-    // We pull that address from the registry (via networkConfig) and
-    // refuse to deploy if it's missing or not on the current version --
-    // otherwise we'd be wiring a brand-new proxy to a deprecated router.
-    const config = getNetworkConfig(networkName);
-    const okuRouterAddress = config.rainbowRouterAddress;
-    if (!okuRouterAddress) {
-      throw new Error(
-        `No OkuRouter address configured for network: ${networkName}. Deploy OkuRouter first.`,
-      );
-    }
-
-    const routerEntry = getLatestEntry(networkName, "OkuRouter");
+    // The proxy is hard-bound by constructor arg to a specific OkuRouter
+    // address. Pull that directly from the on-disk registry (the source of
+    // truth for live addresses) and refuse to deploy if it's missing or
+    // pinned to a stale version -- otherwise we'd be wiring a brand-new
+    // proxy to a stale router.
+    //
+    // We also keep a getNetworkConfig() call here so the task fails loudly
+    // if someone tries to deploy to a chain we have no init parameters for.
+    getNetworkConfig(networkName);
+    const routerEntry = getCurrentEntry(networkName, "OkuRouter");
     if (!routerEntry) {
       throw new Error(
-        `No OkuRouter history entry in deployments/${networkName}.json. Deploy OkuRouter first.`,
+        `No OkuRouter address configured for network: ${networkName} ` +
+          `(deployments/${networkName}.json has no current.OkuRouter entry). ` +
+          `Deploy OkuRouter first.`,
       );
     }
+    const okuRouterAddress = routerEntry.address;
     if (routerEntry.version !== CONTRACT_VERSION) {
       throw new Error(
         `Refusing to bond Permit2Proxy to OkuRouter v${routerEntry.version}; current version is v${CONTRACT_VERSION}. ` +
           `Redeploy OkuRouter at v${CONTRACT_VERSION} first (or update CONTRACT_VERSION).`,
       );
     }
-    if (routerEntry.deprecated) {
-      throw new Error(
-        `Latest OkuRouter entry on ${networkName} is marked deprecated. ` +
-          `Redeploy OkuRouter at v${CONTRACT_VERSION} before deploying a new Permit2Proxy.`,
-      );
-    }
 
     console.log(`Bonding to OkuRouter v${CONTRACT_VERSION}: ${okuRouterAddress}`);
 
-    // Predict the deterministic address up front so the operator can
-    // sanity-check it before we send the deploy tx.
-    const { address: predictedAddress, initCode, salt } = await predictPermit2ProxyAddress(
-      hre,
-      okuRouterAddress,
-    );
-    console.log(`Predicted Permit2Proxy address: ${predictedAddress}`);
-
-    // Idempotency: if code already lives at the predicted address, treat
-    // the deploy as a no-op success. This matters for re-running the
-    // task after a partial failure (e.g. verification timed out).
-    const existingCode = await hre.ethers.provider.getCode(predictedAddress);
-    let contractAddress = predictedAddress;
+    let contractAddress: string;
     let blockNumber: number | null = null;
     let txHash: string | null = null;
     let reused = false;
 
-    if (existingCode !== "0x") {
-      console.log("✓ Permit2Proxy already deployed at predicted address; skipping CREATE2 tx.");
-      reused = true;
-    } else {
-      const factoryCode = await hre.ethers.provider.getCode(SAFE_SINGLETON_FACTORY);
-      if (factoryCode === "0x") {
-        throw new Error(
-          `Safe Singleton Factory not deployed on this chain at ${SAFE_SINGLETON_FACTORY}. ` +
-            `Permit2Proxy requires CREATE2 for deterministic addresses; deploy the factory first.`,
+    if (deterministic) {
+      // CREATE2 deploy path -- preserves cross-chain address parity, at
+      // the cost of requiring the Safe Singleton Factory at the canonical
+      // address on this chain.
+      const { address: predictedAddress, initCode, salt } =
+        await predictPermit2ProxyAddress(hre, okuRouterAddress);
+      console.log(`Predicted Permit2Proxy address: ${predictedAddress}`);
+
+      const existingCode = await withRetry(
+        () => hre.ethers.provider.getCode(predictedAddress),
+        `getCode(${predictedAddress})`,
+      );
+      contractAddress = predictedAddress;
+
+      if (existingCode !== "0x") {
+        console.log("✓ Permit2Proxy already deployed at predicted address; skipping CREATE2 tx.");
+        reused = true;
+      } else {
+        const factoryCode = await withRetry(
+          () => hre.ethers.provider.getCode(SAFE_SINGLETON_FACTORY),
+          `getCode(${SAFE_SINGLETON_FACTORY})`,
         );
-      }
+        if (factoryCode === "0x") {
+          throw new Error(
+            `Safe Singleton Factory not deployed on this chain at ${SAFE_SINGLETON_FACTORY}. ` +
+              `Permit2Proxy --deterministic requires CREATE2; deploy the factory first or omit --deterministic.`,
+          );
+        }
 
-      // Factory calldata: `salt ++ initCode`.
-      const deploymentData = hre.ethers.concat([salt, initCode]);
-      const tx = await signer.sendTransaction({
-        to: SAFE_SINGLETON_FACTORY,
-        data: deploymentData,
-        gasLimit: 5_000_000,
-      });
-      const receipt = await tx.wait();
-      if (!receipt) {
-        throw new Error("Transaction receipt is null");
-      }
+        const deploymentData = hre.ethers.concat([salt, initCode]);
+        // Retry submission and wait separately. See util/rpcRetry.ts.
+        const tx = await withRetry(
+          () =>
+            signer.sendTransaction({
+              to: SAFE_SINGLETON_FACTORY,
+              data: deploymentData,
+              gasLimit: 5_000_000,
+            }),
+          "sendTransaction(CREATE2 Permit2Proxy)",
+        );
+        const receipt = await withRetry(
+          () => tx.wait(),
+          `tx.wait(${tx.hash})`,
+        );
+        if (!receipt) {
+          throw new Error("Transaction receipt is null");
+        }
 
-      const deployedCode = await hre.ethers.provider.getCode(predictedAddress);
-      if (deployedCode === "0x") {
-        throw new Error("Deployment failed - no code at expected address");
-      }
+        const deployedCode = await withRetry(
+          () => hre.ethers.provider.getCode(predictedAddress),
+          `getCode(${predictedAddress}) post-deploy`,
+        );
+        if (deployedCode === "0x") {
+          throw new Error("CREATE2 deployment failed — no code at expected address");
+        }
 
-      blockNumber = receipt.blockNumber ?? null;
-      txHash = tx.hash;
+        blockNumber = receipt.blockNumber ?? null;
+        txHash = tx.hash;
+        console.log("✓ Permit2Proxy deployed to:", contractAddress);
+      }
+    } else {
+      // Default: plain nonce-based deploy. Address is non-deterministic
+      // across chains; that's intentional for chains where the proxy
+      // only needs to exist locally (e.g. World Chain).
+      console.log("Deploying via plain nonce-based CREATE (no CREATE2)...");
+      const contract = await withRetry(
+        () =>
+          new Permit2Proxy__factory(signer).deploy(okuRouterAddress, {
+            gasLimit: 3_000_000,
+          }),
+        "deploy(Permit2Proxy)",
+      );
+      const deployTx = contract.deploymentTransaction();
+      await withRetry(() => contract.waitForDeployment(), "waitForDeployment(Permit2Proxy)");
+      contractAddress = await contract.getAddress();
+      if (deployTx) {
+        const receipt = await withRetry(
+          () => deployTx.wait(),
+          `tx.wait(${deployTx.hash})`,
+        );
+        blockNumber = receipt?.blockNumber ?? null;
+        txHash = deployTx.hash;
+      }
       console.log("✓ Permit2Proxy deployed to:", contractAddress);
     }
 
-    // Auto-log to the registry before verification, so the address is
+    // Auto-log to the registry before verification so the address is
     // captured even if explorer verification fails.
+    //
+    // Permit2Proxy is not Ownable, so we do NOT record an `owner` field --
+    // the registry validator will reject it if we try. The bonded
+    // `okuRouter` address is the only metadata that matters for this
+    // contract (the version is implied by the router it points at).
     if (!reused) {
       try {
         const chainIdBig = (await hre.ethers.provider.getNetwork()).chainId;
-        recordDeployment(networkName, Number(chainIdBig), {
-          contract: "Permit2Proxy",
+        recordDeployment(networkName, Number(chainIdBig), "Permit2Proxy", {
           address: contractAddress,
-          deploymentBlock: blockNumber,
-          txHash,
-          deployer: signerAddress,
-          deployedAt: new Date().toISOString(),
           okuRouter: okuRouterAddress,
-          notes: `Deterministic deploy bonded to OkuRouter v${CONTRACT_VERSION}.`,
         });
         console.log(`✓ Logged deployment to deployments/${networkName}.json`);
       } catch (err: any) {
@@ -172,7 +216,7 @@ task("deploy-permit2-proxy", "Deploy Permit2Proxy contract (deterministic, CREAT
     }
 
     // Silence the import-not-used warning while keeping the factory
-    // import available for future enhancements (e.g. proxy-side admin txs).
+    // import available for future enhancements.
     void Permit2Proxy__factory;
 
     console.log("\nDeployment complete!");

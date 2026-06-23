@@ -1,32 +1,30 @@
 /**
  * networkConfig.ts
  *
- * Centralized network configuration for Oku Router deployments.
- * This file contains all network-specific addresses, supported routers,
- * and token configurations for supported chains:
+ * Static, per-chain initialization parameters for the Oku Router deployment
+ * tasks and test harness. This module is intentionally *only* about chain
+ * identity (chainId, RPC, WETH/USDC, owner, supported routers, known swap
+ * targets to whitelist). It does NOT carry live contract addresses.
  *
- * Deployed: Optimism, Base, Worldchain
+ * Live OkuRouter / Permit2Proxy addresses and deployment blocks are stored in
+ * the on-disk registry at `deployments/<networkName>.json` and accessed via
+ * `util/deploymentsRegistry.ts` (`getCurrentAddress(networkName, contract)`).
+ * Keeping the two surfaces separate prevents the drift we used to see when
+ * the same address lived as both a hardcoded literal here and a registry
+ * entry there.
  *
- * Pending deployment:
- * - L2s: BSC, Polygon, Arbitrum, Avalanche, Linea, Blast, Scroll, zkSync, Mantle, Gnosis
- * - Newer L2s: Unichain, Sonic, Plasma, Etherlink, BOB
- * - Alt L1s: Taiko, Celo, Monad, Sei, Rootstock, Filecoin, Boba, Telos, Nibiru
- * - Emerging: LightLink, Hemi, XDC, Redbelly, Lens, GOAT, Corn
- *
- * Supported Routers:
- * - 1inch (AggregationRouterV6): 0x111111125421ca6dc452d289314280a0f8842a65
- * - KyberSwap (MetaAggregationRouterV2): 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
- * - Paraswap (AugustusV6.2): 0x6a000f20005980200259b80c5102003040001068
- * - OpenOcean (ExchangeV2): 0x6352a56caadC4F1E25CD6c75970Fa768A3304e64 (zkSync: 0x36A1aCbbCAfca2468b85011DDD16E7Cb4d673230)
- * - Odos (RouterV2): Chain-specific addresses
- * - IceCreamSwap: Chain-specific V2 router addresses
- * - PropellerSwap/Tycho: Ethereum, Base, Unichain only
- * - 0x/Matcha: AllowanceHolder varies by hardfork (Cancun/Shanghai/London)
- * - OKX: Chain-specific DexRouter + TokenApprove addresses
- * - Enso, Unizen, Gluex: API-dependent (addresses fetched dynamically)
+ * Supported aggregator entry points (where deployed):
+ * - 1inch (AggregationRouterV6): 0x111111125421ca6dc452d289314280a0f8842a65 (same on every supported chain)
+ * - KyberSwap (MetaAggregationRouterV2): 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5 (same on every chain)
+ * - Paraswap (AugustusV6.2): 0x6a000f20005980200259b80c5102003040001068 (same on every chain)
+ * - OpenOcean (ExchangeV2): 0x6352a56caadC4F1E25CD6c75970Fa768A3304e64 (same on most chains; zkSync differs)
+ * - Odos: V3 router 0x0D05a7D3448512B78fa8A9e46c4872C88C4a0D05 same on every chain; V2 router differs per chain.
+ * - IceCreamSwap: chain-specific V2 router addresses.
+ * - PropellerSwap/Tycho: Ethereum, Base, Unichain only.
+ * - 0x/Matcha: AllowanceHolder is hardcodable per hardfork; Settler rotates per deployment (reverify quarterly).
+ * - OKX: chain-specific DexRouter + TokenApprove pair (both must be whitelisted).
+ * - Enso, Unizen, Gluex: API-dependent (addresses fetched dynamically).
  */
-
-import { readRegistry } from "./deploymentsRegistry";
 
 export interface SwapTarget {
   address: string;
@@ -34,23 +32,20 @@ export interface SwapTarget {
   protocol: string;
 }
 
+/**
+ * Static chain init parameters.
+ *
+ * IMPORTANT: this type intentionally does NOT carry any live contract addresses
+ * (OkuRouter, Permit2Proxy) or deployment blocks. Those are mutable state that
+ * belongs in the on-disk registry (`deployments/<networkName>.json`, accessed
+ * via `util/deploymentsRegistry.ts`). Mixing them in here historically caused
+ * drift between the two sources of truth. Read live addresses with
+ * `getCurrentAddress(networkName, "OkuRouter" | "Permit2Proxy")`.
+ */
 export interface NetworkConfig {
   networkName: string;
   chainId: number;
   chainName: string; // Backend chain name (e.g., "optimism", "base", "worldchain")
-  /**
-   * Current OkuRouter address on this chain.
-   *
-   * SOURCE OF TRUTH: deployments/<networkName>.json (`current.OkuRouter`).
-   * The literal values still embedded in this file below are pre-registry
-   * historical seeds; they are overwritten by the registry merge at the
-   * bottom of this module whenever a registry file is present. Treat the
-   * literals as a last-resort fallback only.
-   */
-  rainbowRouterAddress: string;
-  deploymentBlock: number; // Block number when the contract was deployed
-  /** Current Permit2Proxy address on this chain (only deployed where needed, e.g. World Chain). */
-  permit2ProxyAddress?: string;
   wethAddress: string;
   usdcAddress?: string; // Optional - some networks may not have USDC
   nativeSymbol: string; // "ETH" for most networks
@@ -67,8 +62,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "op",
     chainId: 10,
     chainName: "optimism",
-    rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b", // PROD deterministic deployment post audit
-    deploymentBlock: 143955053, // Nov 18, 2025 - tx: 0x6c495af96a3af0848131a132951d635419a9558b30a391bdb7094575fd5413c5
     wethAddress: "0x4200000000000000000000000000000000000006",
     usdcAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
     nativeSymbol: "ETH",
@@ -161,11 +154,10 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       },
-      {
-        address: "0xBb5e1777A331ED93E07cF043363e48d320eb96c4",
-        name: "IceCreamSwapV2Router",
-        protocol: "icecreamswap",
-      },
+      // NOTE: removed `IceCreamSwapV2Router 0xBb5e1777A331ED93E07cF043363e48d320eb96c4` —
+      // that address has no code on Optimism (it's Base's IceCreamSwap router that was
+      // pasted in by mistake). The legitimate Optimism icecreamswap entry is the
+      // AggregatorGuard 0xa575...c4a above.
       {
         address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
         name: "UniversalRouter",
@@ -179,8 +171,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "base",
     chainId: 8453,
     chainName: "base",
-    rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b", // PROD deterministic deployment post audit
-    deploymentBlock: 38624971,
     wethAddress: "0x4200000000000000000000000000000000000006",
     usdcAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // Base USDC
     nativeSymbol: "ETH",
@@ -264,11 +254,9 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "TychoRouter",
         protocol: "propellerswap",
       },
-      {
-        address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
-        name: "UniversalRouter",
-        protocol: "uniswap",
-      },
+      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
+      // that address has no code on Base. Base's actual Uniswap UniversalRouter is
+      // 0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad above.
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.BASE_URL,
@@ -277,8 +265,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "worldchain",
     chainId: 480,
     chainName: "worldchain",
-    rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b", // PROD deterministic deployment post audit
-    deploymentBlock: 22351271,
     wethAddress: "0x4200000000000000000000000000000000000006",
     usdcAddress: "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", // Native USDC on World Chain
     nativeSymbol: "ETH",
@@ -295,11 +281,18 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "AllowanceHolder",
         protocol: "0x",
       },
+      // FLAG: 0x8ac7bee9...e743 is currently labeled as icecreamswap's AggregatorGuard,
+      // but Uniswap's official deploy-addresses publishes the same address as
+      // `UniversalRouterV2` on World Chain. Verify which protocol our backend actually
+      // routes to this address before changing the label; both could be correct if the
+      // contract serves a dual role, but more likely one of the two labels is wrong.
       {
         address: "0x8ac7bee993bb44dab564ea4bc9ea67bf9eb5e743",
         name: "AggregatorGuard",
         protocol: "icecreamswap",
       },
+      // NOTE: 0x Settler addresses are rotated by 0x periodically; reverify quarterly
+      // against `transaction.to` returned by the 0x swap API.
       {
         address: "0xc87de04e2ec1f4282dff2933a2d58199f688fc3d",
         name: "Settler",
@@ -310,16 +303,15 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "EnsoRouter",
         protocol: "enso",
       },
-      {
-        address: "0x111111125421ca6dc452d289314280a0f8842a65",
-        name: "1inch Router (TEST)",
-        protocol: "oneinch",
-      },
-      {
-        address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
-        name: "UniversalRouter",
-        protocol: "uniswap",
-      },
+      // NOTE: removed `1inch Router (TEST) 0x111111125421ca6dc452d289314280a0f8842a65` —
+      // no code at that address on World Chain, the label was flagged TEST, and 1inch
+      // does not officially support World Chain.
+      //
+      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
+      // no code at that address on World Chain. The legitimate Uniswap router on
+      // World Chain is the entry below (per Uniswap's deploy-addresses,
+      // 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D is `UniversalRouterV1_2_V2Support`,
+      // mislabeled here as "Router02" but the address is correct).
       {
         address: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
         name: "Router02",
@@ -333,8 +325,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "bsc",
     chainId: 56,
     chainName: "bsc",
-    rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b", // PROD deterministic deployment post audit
-    deploymentBlock: 70161721,
     wethAddress: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", // WBNB
     usdcAddress: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", // BSC USDC
     nativeSymbol: "BNB",
@@ -400,11 +390,9 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       },
-      {
-        address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
-        name: "UniversalRouter",
-        protocol: "uniswap",
-      },
+      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
+      // no code at that address on BSC, and `uniswap` is not in this chain's
+      // supportedRouters list either.
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.BSC_URL,
@@ -413,8 +401,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "polygon",
     chainId: 137,
     chainName: "polygon",
-    rainbowRouterAddress: "0xA89A26c4d81A2cca4d0670F77f0FC88362b72248",
-    deploymentBlock: 79796004,
     wethAddress: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270", // WMATIC
     usdcAddress: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // Native USDC
     nativeSymbol: "MATIC",
@@ -459,11 +445,9 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       },
-      {
-        address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
-        name: "UniversalRouter",
-        protocol: "uniswap",
-      },
+      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
+      // no code at that address on Polygon, and `uniswap` is not in this chain's
+      // supportedRouters list either.
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.POLYGON_URL,
@@ -472,8 +456,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "arbitrum",
     chainId: 42161,
     chainName: "arbitrum",
-    rainbowRouterAddress: "0x822CFA9749d16Fb4B4F2B0515924cec69512893b", // PROD deterministic deployment post audit
-    deploymentBlock: 406509419,
     wethAddress: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // WETH on Arbitrum
     usdcAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // Native USDC
     nativeSymbol: "ETH",
@@ -534,11 +516,9 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       },
-      {
-        address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
-        name: "UniversalRouter",
-        protocol: "uniswap",
-      },
+      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
+      // no code at that address on Arbitrum, and `uniswap` is not in this chain's
+      // supportedRouters list either.
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.ARB_URL,
@@ -548,8 +528,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "taiko",
     chainId: 167000,
     chainName: "taiko",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0xA51894664A773981C6C112C43ce576f315d5b1B6", // WETH on Taiko
     usdcAddress: "0x07d83526730c7438048D55A4fc0b850e2aaB6f0b", // USDC on Taiko
     nativeSymbol: "ETH",
@@ -572,8 +550,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "celo",
     chainId: 42220,
     chainName: "celo",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x471EcE3750Da237f93B8E339c536989b8978a438", // CELO (native wrapped)
     usdcAddress: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C", // Native USDC on Celo
     nativeSymbol: "CELO",
@@ -598,8 +574,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "avax",
     chainId: 43114,
     chainName: "avalanche",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", // WAVAX
     usdcAddress: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", // Native USDC on Avalanche
     nativeSymbol: "AVAX",
@@ -673,8 +647,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "linea",
     chainId: 59144,
     chainName: "linea",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f", // WETH on Linea
     usdcAddress: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff", // USDC on Linea
     nativeSymbol: "ETH",
@@ -726,8 +698,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "blast",
     chainId: 81457,
     chainName: "blast",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x4300000000000000000000000000000000000004", // WETH on Blast
     usdcAddress: "0x4300000000000000000000000000000000000003", // USDB (Blast native stablecoin)
     nativeSymbol: "ETH",
@@ -762,8 +732,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "scroll",
     chainId: 534352,
     chainName: "scroll",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x5300000000000000000000000000000000000004", // WETH on Scroll
     usdcAddress: "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4", // USDC on Scroll
     nativeSymbol: "ETH",
@@ -810,8 +778,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "zksync",
     chainId: 324,
     chainName: "zksync",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x8Ebe4A94740515945ad826238Fc4D56c6B8b0e60", // WETH on zkSync Era
     usdcAddress: "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4", // USDC on zkSync Era
     nativeSymbol: "ETH",
@@ -846,8 +812,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "monad",
     chainId: 143, // Monad mainnet chainId
     chainName: "monad",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WMON - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "MON",
@@ -863,8 +827,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "sei",
     chainId: 1329,
     chainName: "sei",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WSEI - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "SEI",
@@ -880,8 +842,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "rootstock",
     chainId: 30,
     chainName: "rootstock",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x967f8799aF07DF1534d48A95a5C9FEBE92c53ae0", // WRBTC
     usdcAddress: "", // Bridged USDC - To be confirmed
     nativeSymbol: "RBTC",
@@ -901,8 +861,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "filecoin",
     chainId: 314,
     chainName: "filecoin",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x60E1773636CF5E4A227d9AC24F20fEca034ee25A", // WFIL
     usdcAddress: "", // To be confirmed
     nativeSymbol: "FIL",
@@ -918,8 +876,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "boba",
     chainId: 288,
     chainName: "boba",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000", // WETH on Boba
     usdcAddress: "0x66a2A913e447d6b4BF33EFbec43aAeF87890FBbc", // USDC on Boba
     nativeSymbol: "ETH",
@@ -939,8 +895,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "telos",
     chainId: 40,
     chainName: "telos",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0xD102cE6A4dB07D247fcc28F366A623Df0938CA9E", // WTLOS
     usdcAddress: "", // To be confirmed
     nativeSymbol: "TLOS",
@@ -965,8 +919,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "lightlink",
     chainId: 1890,
     chainName: "lightlink",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "ETH",
@@ -986,8 +938,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "hemi",
     chainId: 43111,
     chainName: "hemi",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "ETH",
@@ -1003,8 +953,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "xdc",
     chainId: 50,
     chainName: "xdc",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x951857744785E80e2De051c32EE7b25f9c458C42", // WXDC
     usdcAddress: "0x2a8e898b6242355c290e1f4fc966b8788729a4d4", // USDC.e (Bridged)
     nativeSymbol: "XDC",
@@ -1024,8 +972,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "unichain",
     chainId: 130,
     chainName: "unichain",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x4200000000000000000000000000000000000006", // WETH on Unichain (OP Stack standard)
     usdcAddress: "0x078D782b760474a361dDA0AF3839290b0EF57AD6", // Native USDC on Unichain
     nativeSymbol: "ETH",
@@ -1060,8 +1006,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "sonic",
     chainId: 146,
     chainName: "sonic",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38", // Wrapped S (wS)
     usdcAddress: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", // USDC on Sonic
     nativeSymbol: "S",
@@ -1091,8 +1035,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "redbelly",
     chainId: 151,
     chainName: "redbelly",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WRBNT - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "RBNT",
@@ -1108,8 +1050,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "lens",
     chainId: 232,
     chainName: "lens",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WETH - To be confirmed (zkSync-based)
     usdcAddress: "", // To be confirmed
     nativeSymbol: "GHO",
@@ -1125,8 +1065,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "goat",
     chainId: 2345,
     chainName: "goat",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WBTC - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "BTC",
@@ -1142,8 +1080,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "mantle",
     chainId: 5000,
     chainName: "mantle",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8", // WMNT
     usdcAddress: "0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9", // USDC on Mantle
     nativeSymbol: "MNT",
@@ -1189,8 +1125,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "nibiru",
     chainId: 6900,
     chainName: "nibiru",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WNIBI - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "NIBI",
@@ -1206,8 +1140,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "plasma",
     chainId: 9745,
     chainName: "plasma",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WXPL - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "XPL",
@@ -1232,8 +1164,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "etherlink",
     chainId: 42793,
     chainName: "etherlink",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WXTZ - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "XTZ",
@@ -1253,8 +1183,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "bob",
     chainId: 60808,
     chainName: "bob",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0x4200000000000000000000000000000000000006", // WETH on BOB (OP Stack standard)
     usdcAddress: "", // USDC - To be confirmed (CCIP upgraded)
     nativeSymbol: "ETH",
@@ -1274,8 +1202,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "corn",
     chainId: 21000000, // Corn Maizenet chainId
     chainName: "corn",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "", // WBTCN - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "BTCN",
@@ -1291,8 +1217,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     networkName: "gnosis",
     chainId: 100,
     chainName: "gnosis",
-    rainbowRouterAddress: "", // To be deployed
-    deploymentBlock: 0,
     wethAddress: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d", // WXDAI
     usdcAddress: "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83", // USDC on Gnosis
     nativeSymbol: "XDAI",
@@ -1364,41 +1288,4 @@ export function isRouterSupported(
 // Get all supported network names
 export function getSupportedNetworks(): string[] {
   return Object.keys(NETWORK_CONFIGS);
-}
-
-// ============================================================================
-// Registry merge
-// ============================================================================
-//
-// On module load, walk every entry in NETWORK_CONFIGS and overwrite its
-// rainbowRouterAddress / deploymentBlock / permit2ProxyAddress with values
-// from deployments/<networkName>.json when that file exists.
-//
-// This makes the JSON registry the authoritative source for "what's
-// currently live" without forcing every consumer to migrate to an async
-// API. The hard-coded literals above remain as a last-resort fallback so
-// that the file is still self-contained if a registry entry is missing.
-//
-// Synchronous I/O is fine here: networkConfig.ts is loaded once at startup
-// by the deploy tasks and by the test suite, not on a hot path.
-// ============================================================================
-for (const [networkName, config] of Object.entries(NETWORK_CONFIGS)) {
-  const reg = readRegistry(networkName, config.chainId);
-
-  const currentRouter = reg.current.OkuRouter;
-  if (currentRouter) {
-    config.rainbowRouterAddress = currentRouter;
-    // Pull the matching history entry to refresh deploymentBlock.
-    const live = reg.history.find(
-      (h) => h.contract === "OkuRouter" && h.address === currentRouter && !h.deprecated,
-    );
-    if (live && typeof live.deploymentBlock === "number") {
-      config.deploymentBlock = live.deploymentBlock;
-    }
-  }
-
-  const currentProxy = reg.current.Permit2Proxy;
-  if (currentProxy) {
-    config.permit2ProxyAddress = currentProxy;
-  }
 }

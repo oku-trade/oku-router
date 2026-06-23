@@ -4,5 +4,6 @@
 export * as interfaces from "./interfaces";
 export * as libraries from "./libraries";
 export * as routers from "./routers";
+export * as test from "./test";
 export { OkuRouter__factory } from "./OkuRouter__factory";
 export { Permit2Proxy__factory } from "./Permit2Proxy__factory";

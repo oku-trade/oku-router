@@ -24,7 +24,7 @@ import {
   getOkuRouterSalt,
   getPermit2ProxySalt,
 } from "../util/contractMeta";
-import { getNetworkConfig } from "../util/networkConfig";
+import { getCurrentAddress } from "../util/deploymentsRegistry";
 
 async function main() {
   const { ethers } = hre;
@@ -90,15 +90,11 @@ async function main() {
   );
 
   // ---- Permit2Proxy prediction (only if we have an OkuRouter address) ----
-  // We try the registry first (gives us the *currently live* router); if
-  // that's missing we fall back to the predicted address above.
-  let bondedRouter: string | null = null;
-  try {
-    const cfg = getNetworkConfig(networkName);
-    if (cfg.rainbowRouterAddress) bondedRouter = cfg.rainbowRouterAddress;
-  } catch {
-    // No config for this network; that's fine.
-  }
+  // Try the registry first (gives us the *currently live* router); if that's
+  // missing, fall back to the predicted router address computed above so the
+  // operator still sees what the proxy WOULD bind to once the router is live.
+  let bondedRouter: string | null =
+    getCurrentAddress(networkName, "OkuRouter") ?? null;
   if (!bondedRouter) bondedRouter = routerAddress;
 
   const Proxy = await ethers.getContractFactory("Permit2Proxy");

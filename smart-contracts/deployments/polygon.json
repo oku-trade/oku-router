@@ -2,19 +2,10 @@
   "networkName": "polygon",
   "chainId": 137,
   "current": {
-    "OkuRouter": "0xA89A26c4d81A2cca4d0670F77f0FC88362b72248"
-  },
-  "history": [
-    {
-      "contract": "OkuRouter",
-      "version": "1.0",
-      "address": "0xA89A26c4d81A2cca4d0670F77f0FC88362b72248",
-      "deploymentBlock": 79796004,
-      "txHash": null,
-      "deployer": null,
-      "deployedAt": null,
-      "deprecated": false,
-      "notes": "NON-deterministic v1.0 deployment (predates Safe Singleton Factory rollout on this chain). Will be replaced by v1.1 at the deterministic address."
+    "OkuRouter": {
+      "address": "0x25132a6F4f0A993d62e57D0510df1395729125ad",
+      "version": "1.1",
+      "owner": "0x3CB68a6762041aA05E762814A8791CA9d98E79A0"
     }
-  ]
+  }
 }

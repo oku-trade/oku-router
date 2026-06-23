@@ -12,6 +12,7 @@ import {
   computeCreate2Address,
 } from "../util/contractMeta";
 import { recordDeployment } from "../util/deploymentsRegistry";
+import { sleep, withRetry } from "../util/rpcRetry";
 
 // Address used to impersonate the deployer on local Hardhat forks.
 const userAddr = "0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89";
@@ -69,14 +70,22 @@ async function deployDeterministic(
   const { address, initCode, salt } = await predictOkuRouterAddress(hre, owner);
 
   // Idempotency check: if something already lives at the predicted
-  // address, treat it as a successful deploy and skip the tx.
-  const existingCode = await hre.ethers.provider.getCode(address);
+  // address, treat it as a successful deploy and skip the tx. Wrapped in
+  // withRetry because rate-limited public RPCs (e.g. zan.top, alchemy
+  // public tier) occasionally 429 on getCode reads under load.
+  const existingCode = await withRetry(
+    () => hre.ethers.provider.getCode(address),
+    `getCode(${address})`,
+  );
   if (existingCode !== "0x") {
     console.log("✓ Contract already deployed at:", address);
     return { address, blockNumber: null, txHash: null, reused: true };
   }
 
-  const factoryCode = await hre.ethers.provider.getCode(SAFE_SINGLETON_FACTORY);
+  const factoryCode = await withRetry(
+    () => hre.ethers.provider.getCode(SAFE_SINGLETON_FACTORY),
+    `getCode(${SAFE_SINGLETON_FACTORY})`,
+  );
   if (factoryCode === "0x") {
     throw new Error(
       `Safe Singleton Factory not deployed on this chain at ${SAFE_SINGLETON_FACTORY}. ` +
@@ -87,20 +96,32 @@ async function deployDeterministic(
 
   // The factory's calldata convention is `salt ++ initCode`. It returns
   // the deployed address on success and reverts otherwise.
+  //
+  // We retry the *submission* (eth_sendRawTransaction can 429 on public
+  // RPCs) but NOT the wait — once a tx is broadcast we don't want a
+  // second copy on chain. If the receipt poll itself 429s, we retry it
+  // separately because that's a pure read.
   const deploymentData = hre.ethers.concat([salt, initCode]);
   console.log("Deploying via Safe Singleton Factory (CREATE2)...");
-  const tx = await signer.sendTransaction({
-    to: SAFE_SINGLETON_FACTORY,
-    data: deploymentData,
-    gasLimit: 5_000_000,
-  });
-  const receipt = await tx.wait();
+  const tx = await withRetry(
+    () =>
+      signer.sendTransaction({
+        to: SAFE_SINGLETON_FACTORY,
+        data: deploymentData,
+        gasLimit: 5_000_000,
+      }),
+    "sendTransaction(CREATE2)",
+  );
+  const receipt = await withRetry(() => tx.wait(), `tx.wait(${tx.hash})`);
   if (!receipt) {
     throw new Error("Transaction receipt is null");
   }
 
   // Defensive: confirm CREATE2 actually placed code at the predicted slot.
-  const deployedCode = await hre.ethers.provider.getCode(address);
+  const deployedCode = await withRetry(
+    () => hre.ethers.provider.getCode(address),
+    `getCode(${address}) post-deploy`,
+  );
   if (deployedCode === "0x") {
     throw new Error("Deployment failed - no code at expected address");
   }
@@ -114,9 +135,7 @@ async function deployDeterministic(
   };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+
 
 task("deploy", "Deploy OkuRouter contract")
   .addFlag("deterministic", "Use deterministic deployment via CREATE2")
@@ -225,20 +244,27 @@ task("deploy", "Deploy OkuRouter contract")
     // wiring so that even if a later admin call fails, the deployment
     // itself is captured. The registry is the source of truth that
     // networkConfig.ts reads on startup.
+    //
+    // IMPORTANT: this branch is intentionally gated by `mainnet` because
+    // the local-fork code path above hard-rewrites `networkName` to
+    // "worldchain" (line ~160) even when hre.network.name was
+    // "hardhat"/"localhost". Without the `mainnet` guard we would
+    // overwrite the production worldchain registry with a local-fork
+    // address. Do NOT remove that guard.
     if (mainnet && !reused) {
       try {
         const chainIdBig = (await hre.ethers.provider.getNetwork()).chainId;
-        recordDeployment(networkName, Number(chainIdBig), {
-          contract: "OkuRouter",
-          version: CONTRACT_VERSION,
+        // `ownerAddress` is the constructor `_owner` arg, which Ownable2Step
+        // installs as the initial owner. If a subsequent transferOwnership /
+        // acceptOwnership cycle has already happened on this chain by the
+        // time we get here, this record will be stale until manually
+        // refreshed -- standard practice is to redeploy then transfer in
+        // separate steps, and to commit a follow-up edit to this JSON after
+        // the multisig accepts ownership.
+        recordDeployment(networkName, Number(chainIdBig), "OkuRouter", {
           address: contractAddress,
-          deploymentBlock: blockNumber,
-          txHash,
-          deployer: ownerAddress,
-          deployedAt: new Date().toISOString(),
-          notes: deterministicMode
-            ? `Deterministic deploy via Safe Singleton Factory.`
-            : `Non-deterministic deploy (CREATE / nonce-based).`,
+          version: CONTRACT_VERSION,
+          owner: ownerAddress,
         });
         console.log(`✓ Logged deployment to deployments/${networkName}.json`);
       } catch (err: any) {
@@ -264,7 +290,10 @@ task("deploy", "Deploy OkuRouter contract")
       const targets = config.knownSwapTargets;
       const targetsToAdd: typeof targets = [];
       for (const target of targets) {
-        const isRegistered = await contract.swapTargets(target.address);
+        const isRegistered = await withRetry(
+          () => contract.swapTargets(target.address),
+          `swapTargets(${target.address})`,
+        );
         if (!isRegistered) {
           targetsToAdd.push(target);
         }
@@ -275,10 +304,18 @@ task("deploy", "Deploy OkuRouter contract")
         for (let i = 0; i < targetsToAdd.length; i++) {
           const target = targetsToAdd[i];
           console.log(`  ✓ ${target.name} (${target.protocol}): ${target.address}`);
-          const updateTx = await contract.updateSwapTargets(target.address, true, {
-            gasLimit: 100_000,
-          });
-          await updateTx.wait();
+          // Wrap submission + wait separately so a 429 on either side
+          // doesn't double-submit the tx. updateSwapTargets is idempotent
+          // anyway (writes a bool), so a retried second copy on chain
+          // would be harmless — but we still avoid wasting gas on dupes.
+          const updateTx = await withRetry(
+            () =>
+              contract.updateSwapTargets(target.address, true, {
+                gasLimit: 100_000,
+              }),
+            `updateSwapTargets(${target.address})`,
+          );
+          await withRetry(() => updateTx.wait(), `tx.wait(${updateTx.hash})`);
           if (mainnet && i < targetsToAdd.length - 1) {
             await sleep(2000);
           }
@@ -289,12 +326,19 @@ task("deploy", "Deploy OkuRouter contract")
     }
 
     const zeroAddress = hre.ethers.ZeroAddress;
-    const isZeroAddressSigner = await contract.validSigners(zeroAddress);
+    const isZeroAddressSigner = await withRetry(
+      () => contract.validSigners(zeroAddress),
+      `validSigners(${zeroAddress})`,
+    );
     if (!isZeroAddressSigner) {
-      const validSignerTx = await contract.updateValidSigner(zeroAddress, true, {
-        gasLimit: 5_000_000,
-      });
-      await validSignerTx.wait();
+      const validSignerTx = await withRetry(
+        () =>
+          contract.updateValidSigner(zeroAddress, true, {
+            gasLimit: 5_000_000,
+          }),
+        `updateValidSigner(${zeroAddress})`,
+      );
+      await withRetry(() => validSignerTx.wait(), `tx.wait(${validSignerTx.hash})`);
       console.log("✓ Zero address approved as valid signer");
     } else {
       console.log("✓ Zero address already approved as valid signer");

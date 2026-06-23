@@ -18,14 +18,20 @@ contract OkuRouter is BaseAggregator, Ownable2Step {
     /// @dev Event emitted when a swap target gets removed
     event SwapTargetRemoved(address indexed target);
 
-    /// @dev Event emitted when token fees are withdrawn
+    /// @dev Emitted when a non-zero ERC20 balance is swept out as fees by
+    ///      `sweepAll`. Zero-balance tokens passed to `sweepAll` are silently
+    ///      skipped and do NOT emit this event, so indexers do not have to
+    ///      filter out no-op entries.
     event TokenWithdrawn(
         address indexed token,
         address indexed target,
         uint256 amount
     );
 
-    /// @dev Event emitted when ETH fees are withdrawn
+    /// @dev Emitted when a non-zero ETH balance is swept out as fees by
+    ///      `sweepAll` (i.e. `includeEth = true` AND `address(this).balance > 0`).
+    ///      A call with `includeEth = true` against a zero ETH balance is a
+    ///      silent no-op and does NOT emit this event.
     event EthWithdrawn(address indexed target, uint256 amount);
 
     /// @dev Event emitted when a valid signer gets added

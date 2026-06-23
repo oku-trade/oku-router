@@ -74,7 +74,6 @@ const CONFIG = {
   // Network settings (DO NOT change these)
   chain: "optimism",
   chainId: 10,
-  rainbowRouterAddress: "0x80dCD2C737cAFE9f86559bBCed9938eFfB7f7D1A",
   userWalletAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
 
   // Supported tokens
@@ -91,6 +90,12 @@ const CONFIG = {
   delayBetweenTests: 3000,
 };
 ```
+
+> **Note:** the live OkuRouter address is no longer specified here. It is read
+> at runtime from `deployments/<networkName>.json` via
+> `getCurrentAddress(networkName, "OkuRouter")` (see
+> `util/deploymentsRegistry.ts`). To point the test scripts at a different
+> deployment, update that registry file rather than this `CONFIG` block.
 
 ## Legacy Script
 

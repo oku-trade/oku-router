@@ -6,6 +6,7 @@ import { IERC20__factory } from "../typechain-types/factories/contracts/interfac
 import { IERC20 } from "../typechain-types/contracts/interfaces/openzeppelin";
 import axios from "axios";
 import { NETWORK_CONFIGS } from "./networkConfig";
+import { getCurrentAddress } from "./deploymentsRegistry";
 
 
 //response types
@@ -681,9 +682,15 @@ export const getNetworkConfig = (networkName: string): NetworkConfig => {
         };
     }
 
-    // Map centralized config to local NetworkConfig format
+    // Map centralized config to local NetworkConfig format. The live OkuRouter
+    // address comes from the on-disk registry (`deployments/<network>.json`);
+    // if no deployment exists yet, fall back to the zero address so callers can
+    // still drive the test harness against a freshly deployed router they'll
+    // attach below.
+    const liveRouter =
+        getCurrentAddress(networkName, "OkuRouter") ?? ZERO_ADDRESS;
     return {
-        rainbowAddress: centralConfig.rainbowRouterAddress,
+        rainbowAddress: liveRouter,
         ownerAddr: centralConfig.ownerAddress,
         usdcAddress: centralConfig.usdcAddress || "0x0000000000000000000000000000000000000000",
         wethAddress: centralConfig.wethAddress,

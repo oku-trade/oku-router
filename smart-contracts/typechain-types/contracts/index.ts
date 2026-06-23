@@ -7,5 +7,7 @@ import type * as libraries from "./libraries";
 export type { libraries };
 import type * as routers from "./routers";
 export type { routers };
+import type * as test from "./test";
+export type { test };
 export type { OkuRouter } from "./OkuRouter";
 export type { Permit2Proxy } from "./Permit2Proxy";

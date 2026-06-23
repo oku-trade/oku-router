@@ -2,31 +2,14 @@
   "networkName": "worldchain",
   "chainId": 480,
   "current": {
-    "OkuRouter": "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",
-    "Permit2Proxy": "TODO_FILL_IN_OLD_PERMIT2PROXY_ADDRESS"
-  },
-  "history": [
-    {
-      "contract": "OkuRouter",
-      "version": "1.0",
-      "address": "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",
-      "deploymentBlock": 22351271,
-      "txHash": null,
-      "deployer": null,
-      "deployedAt": null,
-      "deprecated": false,
-      "notes": "Audited deployment. Will be replaced by v1.1 (sweepAll). On redeploy this entry flips to deprecated: true automatically."
+    "OkuRouter": {
+      "address": "0x25132a6F4f0A993d62e57D0510df1395729125ad",
+      "version": "1.1",
+      "owner": "0xa6e8772af29b29B9202a073f8E36f447689BEef6"
     },
-    {
-      "contract": "Permit2Proxy",
-      "address": "TODO_FILL_IN_OLD_PERMIT2PROXY_ADDRESS",
-      "deploymentBlock": null,
-      "txHash": null,
-      "deployer": null,
-      "deployedAt": null,
-      "deprecated": false,
-      "okuRouter": "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",
-      "notes": "Existing Permit2Proxy bound to v1.0 OkuRouter. Replace TODO_FILL_IN_OLD_PERMIT2PROXY_ADDRESS with the real on-chain address. Will be replaced by a new proxy bound to the v1.1 OkuRouter."
+    "Permit2Proxy": {
+      "address": "0x43830FE2074eaD6562586b512D87aa6af840a688",
+      "okuRouter": "0x25132a6F4f0A993d62e57D0510df1395729125ad"
     }
-  ]
+  }
 }

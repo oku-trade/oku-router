@@ -26,8 +26,9 @@ export const CONTRACT_NAME = "Oku Router";
  * Deployment version.
  *
  * - "1.0" was the originally-audited deployment with `withdrawToken` and
- *   `withdrawEth`. Those entries live in deployments/<network>.json under
- *   `history` with `deprecated: true`.
+ *   `withdrawEth`. It is no longer live anywhere; the deployments/<network>.json
+ *   files track only the currently-live contract per chain, so v1.0 addresses
+ *   only survive in git history.
  * - "1.1" replaces them with `sweepAll(tokens, includeEth, to)`. Same
  *   audited shape otherwise.
  */

@@ -40,6 +40,15 @@ interface IPermit2 {
         address
     ) external view returns (uint160, uint48, uint48);
 
+    /// @notice AllowanceTransfer single-transfer entry point. NOT to be
+    ///         confused with `permitTransferFrom` below: this call relies
+    ///         on a pre-existing Permit2 allowance (set via Permit2.approve
+    ///         or Permit2.permit), whereas `permitTransferFrom` verifies a
+    ///         one-shot signature.
+    /// @dev    Decrements `allowance[from][token][msg.sender]` by `amount`
+    ///         and reverts if the allowance is insufficient or expired.
+    ///         Used by the `executeAllowance` entry point on Permit2Proxy
+    ///         to support MiniKit v2 / World App.
     function transferFrom(
         address from,
         address to,

@@ -31,6 +31,7 @@ import {
   canoeParams,
 } from "../../util/canoeHelper";
 import { NETWORK_CONFIGS, NetworkConfig } from "../../util/networkConfig";
+import { getCurrentAddress } from "../../util/deploymentsRegistry";
 import { IERC20__factory, OkuRouter__factory } from "../../typechain-types";
 import { Signer } from "ethers";
 import { OkuRouter } from "../../typechain-types";
@@ -230,6 +231,12 @@ interface TestResult {
 interface TestSetup {
   testSigner: Signer;
   Rainbow: OkuRouter;
+  /**
+   * The live OkuRouter address on this chain, pulled from the on-disk
+   * registry (`deployments/<networkName>.json`) once at startup. Cached on
+   * the setup struct so downstream call sites don't have to re-resolve it.
+   */
+  routerAddress: string;
   USDC: IERC20 | null;
   WETH: IERC20 | null;
   config: NetworkConfig;
@@ -310,10 +317,11 @@ function getTokenConfig(tokenType: string, config: NetworkConfig): TokenConfig {
 }
 
 /**
- * Validate that the network config has required fields for testing
+ * Validate that the network config has required fields for testing.
+ * `routerAddress` is resolved from the on-disk registry by the caller.
  */
-function validateConfig(config: NetworkConfig): void {
-  if (!config.rainbowRouterAddress) {
+function validateConfig(config: NetworkConfig, routerAddress: string | undefined): void {
+  if (!routerAddress) {
     throw new Error(`Rainbow Router not deployed on ${config.chainName}. Deploy first.`);
   }
   if (!config.wethAddress) {
@@ -328,18 +336,24 @@ function validateConfig(config: NetworkConfig): void {
 }
 
 /**
- * Setup test environment - connect to contracts
+ * Setup test environment - connect to contracts.
+ *
+ * `routerAddress` is passed in by the caller after resolving it from the
+ * on-disk registry; we do not re-read it here.
  */
-async function setupTestEnvironment(config: NetworkConfig): Promise<TestSetup> {
+async function setupTestEnvironment(
+  config: NetworkConfig,
+  routerAddress: string,
+): Promise<TestSetup> {
   const signers = await hre.ethers.getSigners();
   const testSigner = signers[0];
   const testAddress = await testSigner.getAddress();
 
   console.log(`\n🔧 Test Setup`);
   console.log(`  Signer: ${testAddress}`);
-  console.log(`  Rainbow Router: ${config.rainbowRouterAddress}`);
+  console.log(`  Rainbow Router: ${routerAddress}`);
 
-  const Rainbow = OkuRouter__factory.connect(config.rainbowRouterAddress, testSigner);
+  const Rainbow = OkuRouter__factory.connect(routerAddress, testSigner);
 
   // Connect to tokens if addresses are configured
   const USDC = config.usdcAddress
@@ -360,6 +374,7 @@ async function setupTestEnvironment(config: NetworkConfig): Promise<TestSetup> {
   return {
     testSigner,
     Rainbow,
+    routerAddress,
     USDC,
     WETH,
     config,
@@ -375,7 +390,7 @@ async function testRouter(
   setup: TestSetup,
   networkKey: string,
 ): Promise<TestResult> {
-  const { testSigner, Rainbow, USDC, WETH, config } = setup;
+  const { testSigner, Rainbow, routerAddress, USDC, WETH, config } = setup;
   const testAddress = await testSigner.getAddress();
 
   const inToken = getTokenConfig(phase.inToken, config);
@@ -395,7 +410,7 @@ async function testRouter(
 
   const params: canoeParams = {
     chain: config.chainName,
-    account: config.rainbowRouterAddress,
+    account: routerAddress,
     isExactIn: true,
     inTokenAddress: inToken.address,
     outTokenAddress: outToken.address,
@@ -506,7 +521,7 @@ async function testRouter(
     }
 
     // Normal path - transaction goes through Rainbow Router
-    if (trade.to.toLowerCase() !== config.rainbowRouterAddress.toLowerCase()) {
+    if (trade.to.toLowerCase() !== routerAddress.toLowerCase()) {
       throw new Error(`Expected Rainbow Router, got ${trade.to}`);
     }
 
@@ -535,7 +550,7 @@ async function testRouter(
     if (!inToken.isNative && inTokenContract) {
       const tokenApprovalTarget = usingPermit2
         ? PERMIT2_ADDRESS
-        : config.rainbowRouterAddress;
+        : routerAddress;
 
       await handleERC20Approval(
         testSigner,
@@ -801,23 +816,29 @@ async function main() {
     process.exit(1);
   }
 
+  // Resolve the live OkuRouter address from the on-disk registry. This is
+  // the authoritative source for "what's deployed right now" — networkConfig
+  // intentionally no longer carries this field.
+  const routerAddress = getCurrentAddress(configKey, "OkuRouter");
+
   console.log(`\n🚀 Testing Routers on ${config.chainName.toUpperCase()}`);
   console.log(`${"=".repeat(60)}`);
   console.log(`Network: ${config.chainName} (chainId: ${config.chainId})`);
-  console.log(`Rainbow Router: ${config.rainbowRouterAddress}`);
+  console.log(`Rainbow Router: ${routerAddress ?? "(not deployed)"}`);
   console.log(`Routers to test: ${config.supportedRouters.length}`);
   console.log(`Trade phases: ${TRADE_PHASES.length}`);
 
   // Validate config
   try {
-    validateConfig(config);
+    validateConfig(config, routerAddress);
   } catch (error: any) {
     console.error(`\n❌ Configuration Error: ${error.message}`);
     process.exit(1);
   }
 
-  // Setup test environment
-  const setup = await setupTestEnvironment(config);
+  // Setup test environment. validateConfig() above ensures routerAddress is
+  // non-undefined before we reach this point.
+  const setup = await setupTestEnvironment(config, routerAddress!);
 
   // Run tests
   const results: TestResult[] = [];

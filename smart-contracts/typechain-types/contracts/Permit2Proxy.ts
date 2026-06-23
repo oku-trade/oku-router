@@ -51,7 +51,7 @@ export declare namespace IPermit2 {
 
 export interface Permit2ProxyInterface extends Interface {
   getFunction(
-    nameOrSignature: "execute" | "okuRouter" | "permit2"
+    nameOrSignature: "execute" | "executeAllowance" | "okuRouter" | "permit2"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -63,10 +63,18 @@ export interface Permit2ProxyInterface extends Interface {
       BytesLike
     ]
   ): string;
+  encodeFunctionData(
+    functionFragment: "executeAllowance",
+    values: [AddressLike, BigNumberish, AddressLike, BytesLike]
+  ): string;
   encodeFunctionData(functionFragment: "okuRouter", values?: undefined): string;
   encodeFunctionData(functionFragment: "permit2", values?: undefined): string;
 
   decodeFunctionResult(functionFragment: "execute", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "executeAllowance",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "okuRouter", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "permit2", data: BytesLike): Result;
 }
@@ -125,6 +133,17 @@ export interface Permit2Proxy extends BaseContract {
     "payable"
   >;
 
+  executeAllowance: TypedContractMethod<
+    [
+      sellToken: AddressLike,
+      sellAmount: BigNumberish,
+      buyToken: AddressLike,
+      routerCalldata: BytesLike
+    ],
+    [void],
+    "payable"
+  >;
+
   okuRouter: TypedContractMethod<[], [string], "view">;
 
   permit2: TypedContractMethod<[], [string], "view">;
@@ -139,6 +158,18 @@ export interface Permit2Proxy extends BaseContract {
     [
       permit: IPermit2.PermitTransferFromStruct,
       signature: BytesLike,
+      buyToken: AddressLike,
+      routerCalldata: BytesLike
+    ],
+    [void],
+    "payable"
+  >;
+  getFunction(
+    nameOrSignature: "executeAllowance"
+  ): TypedContractMethod<
+    [
+      sellToken: AddressLike,
+      sellAmount: BigNumberish,
       buyToken: AddressLike,
       routerCalldata: BytesLike
     ],

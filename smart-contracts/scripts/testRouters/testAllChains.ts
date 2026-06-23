@@ -11,6 +11,7 @@
  */
 
 import { NETWORK_CONFIGS } from "../../util/networkConfig";
+import { getCurrentAddress } from "../../util/deploymentsRegistry";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { config as dotEnvConfig } from "dotenv";
@@ -88,15 +89,19 @@ async function main() {
   console.log(`\n🚀 Testing All Deployed Oku Routers`);
   console.log(`${"=".repeat(80)}\n`);
 
-  // Filter for deployed chains with valid RPC URLs
+  // Filter for deployed chains with valid RPC URLs. "Deployed" is now
+  // determined by the on-disk registry (deployments/<network>.json) rather
+  // than a hardcoded field on the static NetworkConfig.
   const deployedChains = Object.entries(NETWORK_CONFIGS)
-    .filter(([_, config]) => config.rainbowRouterAddress && config.rainbowRouterAddress !== "")
     .map(([networkName, config]) => ({
       networkName,
       chainName: config.chainName,
-      address: config.rainbowRouterAddress,
-      hasRpc: isRpcConfigured(networkName)
-    }));
+      address: getCurrentAddress(networkName, "OkuRouter"),
+      hasRpc: isRpcConfigured(networkName),
+    }))
+    .filter((c): c is { networkName: string; chainName: string; address: string; hasRpc: boolean } =>
+      !!c.address,
+    );
 
   const chainsWithRpc = deployedChains.filter(c => c.hasRpc);
   const chainsWithoutRpc = deployedChains.filter(c => !c.hasRpc);

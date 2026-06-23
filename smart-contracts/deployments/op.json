@@ -2,19 +2,10 @@
   "networkName": "op",
   "chainId": 10,
   "current": {
-    "OkuRouter": "0x822CFA9749d16Fb4B4F2B0515924cec69512893b"
-  },
-  "history": [
-    {
-      "contract": "OkuRouter",
-      "version": "1.0",
-      "address": "0x822CFA9749d16Fb4B4F2B0515924cec69512893b",
-      "deploymentBlock": 143955053,
-      "txHash": "0x6c495af96a3af0848131a132951d635419a9558b30a391bdb7094575fd5413c5",
-      "deployer": null,
-      "deployedAt": "2025-11-18T00:00:00Z",
-      "deprecated": false,
-      "notes": "Audited deployment. Will be replaced by v1.1 (sweepAll). On redeploy this entry flips to deprecated: true automatically."
+    "OkuRouter": {
+      "address": "0x25132a6F4f0A993d62e57D0510df1395729125ad",
+      "version": "1.1",
+      "owner": "0x3CB68a6762041aA05E762814A8791CA9d98E79A0"
     }
-  ]
+  }
 }
