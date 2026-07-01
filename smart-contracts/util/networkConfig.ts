@@ -163,6 +163,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "UniversalRouter",
         protocol: "uniswap",
       },
+      {
+        address: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.OP_URL,
@@ -254,9 +259,17 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "TychoRouter",
         protocol: "propellerswap",
       },
+      {
+        address: "0x2626664c2603336E57B271c5C0b26F421741e481",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
       // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
       // that address has no code on Base. Base's actual Uniswap UniversalRouter is
-      // 0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad above.
+      // 0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad above (v1_2; current UR per
+      // Uniswap docs is 0x6fF5693b99212Da76ad316178A184AB56D299b43, intentionally
+      // not added here per user instruction — only SwapRouter02 is being added in
+      // this pass).
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.BASE_URL,
@@ -315,6 +328,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       {
         address: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
         name: "Router02",
+        protocol: "uniswap",
+      },
+      {
+        address: "0x091AD9e2e6e5eD44c1c66dB50e49A601F9f36cF6",
+        name: "SwapRouter02",
         protocol: "uniswap",
       },
     ],
@@ -390,6 +408,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       },
+      {
+        address: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
       // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
       // no code at that address on BSC, and `uniswap` is not in this chain's
       // supportedRouters list either.
@@ -444,6 +467,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+        name: "SwapRouter02",
+        protocol: "uniswap",
       },
       // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
       // no code at that address on Polygon, and `uniswap` is not in this chain's
@@ -516,6 +544,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       },
+      {
+        address: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
       // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
       // no code at that address on Arbitrum, and `uniswap` is not in this chain's
       // supportedRouters list either.
@@ -565,6 +598,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0x5615CDAb10dc425a742d643d949a7F474C01abc4",
+        name: "SwapRouter02",
+        protocol: "uniswap",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -637,6 +675,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       {
         address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
         name: "UniversalRouter",
+        protocol: "uniswap",
+      },
+      {
+        address: "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE",
+        name: "SwapRouter02",
         protocol: "uniswap",
       },
     ],
@@ -724,6 +767,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "UniversalRouter",
         protocol: "uniswap",
       },
+      {
+        address: "0x549FEB8c9bd4c12Ad2AB27022dA12492aC452B66",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.BLAST_URL,
@@ -804,6 +852,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       }, // zkSync-specific address
+      {
+        address: "0x99c56385daBCE3E81d8499d0b8d0257aBC07E8A3",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.ZKSYNC_URL,
@@ -997,6 +1050,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0xFfA5ec2e444e4285108e4a17b82dA495c178427B",
         name: "TychoRouter",
         protocol: "propellerswap",
+      },
+      {
+        address: "0x73855d06de49d0fe4a9c42636ba96c62da12ff9c",
+        name: "SwapRouter02",
+        protocol: "uniswap",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
