@@ -77,6 +77,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "okx", // Now supported with transfer proxy!
       "zeroex", // Now supported with transfer proxy!
       "openocean",
+      "usor",
     ],
     knownSwapTargets: [
       {
@@ -100,8 +101,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "kyberswap",
       },
       {
-        address: "0x68d6b739d2020067d1e2f713b999da97e4d54812",
-        name: "TokenApprove",
+        address: "0xDd5E9B947c99Aa60bab00ca4631Dce63b49983E7",
+        name: "OkxRouter",
         protocol: "okx",
       },
       {
@@ -123,11 +124,6 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0xad1d43efcf92133a9a0f33e5936f5ca10f2b012e",
         name: "TransparentUpgradeableProxy",
         protocol: "unizen",
-      },
-      {
-        address: "0xc44c6550a3b13116f6fd593e1ec963d5ae78c4c8",
-        name: "DexRouter",
-        protocol: "okx",
       },
       {
         address: "0xca423977156bb05b13a2ba3b76bc5419e2fe9680",
@@ -154,14 +150,15 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
       },
-      // NOTE: removed `IceCreamSwapV2Router 0xBb5e1777A331ED93E07cF043363e48d320eb96c4` —
-      // that address has no code on Optimism (it's Base's IceCreamSwap router that was
-      // pasted in by mistake). The legitimate Optimism icecreamswap entry is the
-      // AggregatorGuard 0xa575...c4a above.
+      {
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
       {
         address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
-        name: "UniversalRouter",
-        protocol: "uniswap",
+        name: "UsorRouter",
+        protocol: "usor",
       },
       {
         address: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
@@ -188,10 +185,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "enso",
       "odos",
       "oneinch",
-      // "velora",  // Commented - may need verification
-      // "unison",  // Commented - may need verification
-      // "luxor",   // Commented - may need verification
-      "zeroex", // Commented - may need verification
+      "okx",
+      "paraswap",
+      "fabric",
+      "usor",
+      "zeroex",
     ],
     knownSwapTargets: [
       {
@@ -215,9 +213,9 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "odos",
       },
       {
-        address: "0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad",
-        name: "UniversalRouter",
-        protocol: "uniswap",
+        address: "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD",
+        name: "UsorRouter",
+        protocol: "usor",
       },
       {
         address: "0x6131b5fae19ea4f9d964eac0408e4408b66337b5",
@@ -250,9 +248,19 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "enso",
       },
       {
-        address: "0xBb5e1777A331ED93E07cF043363e48d320eb96c4",
-        name: "IceCreamSwapV2Router",
-        protocol: "icecreamswap",
+        address: "0xC8F6b8Ba0DC0f175B568B99440B0867F69A29265",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0x7c137a37742437d2212b7bd873ed135b5c4c61da",
+        name: "FabricRouter",
+        protocol: "fabric",
+      },
+      {
+        address: "0x7747F8D2a76BD6345Cc29622a946A929647F2359",
+        name: "Settler",
+        protocol: "0x",
       },
       {
         address: "0xea3207778e39EB02D72C9D3c4Eac7E224ac5d369",
@@ -285,8 +293,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     supportedRouters: [
       "icecreamswap",
       "enso",
-      // "kyberswap",  // Not supported on worldchain per API
-      // "lusor"  // Commented - may need verification
+      "usor",
+      "zeroex",
     ],
     knownSwapTargets: [
       {
@@ -294,41 +302,25 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "AllowanceHolder",
         protocol: "0x",
       },
-      // FLAG: 0x8ac7bee9...e743 is currently labeled as icecreamswap's AggregatorGuard,
-      // but Uniswap's official deploy-addresses publishes the same address as
-      // `UniversalRouterV2` on World Chain. Verify which protocol our backend actually
-      // routes to this address before changing the label; both could be correct if the
-      // contract serves a dual role, but more likely one of the two labels is wrong.
       {
-        address: "0x8ac7bee993bb44dab564ea4bc9ea67bf9eb5e743",
-        name: "AggregatorGuard",
-        protocol: "icecreamswap",
-      },
-      // NOTE: 0x Settler addresses are rotated by 0x periodically; reverify quarterly
-      // against `transaction.to` returned by the 0x swap API.
-      {
-        address: "0xc87de04e2ec1f4282dff2933a2d58199f688fc3d",
+        address: "0x1072a0A713A23a2Da9BAB99E9CD68187970E89a4",
         name: "Settler",
         protocol: "0x",
       },
       {
-        address: "0xf75584ef6673ad213a685a1b58cc0330b8ea22cf",
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf",
         name: "EnsoRouter",
         protocol: "enso",
       },
-      // NOTE: removed `1inch Router (TEST) 0x111111125421ca6dc452d289314280a0f8842a65` —
-      // no code at that address on World Chain, the label was flagged TEST, and 1inch
-      // does not officially support World Chain.
-      //
-      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
-      // no code at that address on World Chain. The legitimate Uniswap router on
-      // World Chain is the entry below (per Uniswap's deploy-addresses,
-      // 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D is `UniversalRouterV1_2_V2Support`,
-      // mislabeled here as "Router02" but the address is correct).
       {
         address: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        name: "Router02",
-        protocol: "uniswap",
+        name: "UsorRouter",
+        protocol: "usor",
       },
       {
         address: "0x091AD9e2e6e5eD44c1c66dB50e49A601F9f36cF6",
@@ -356,11 +348,18 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "okx",
       "icecreamswap",
       "openocean",
+      "enso",
+      "usor",
     ],
     knownSwapTargets: [
       {
         address: "0x0000000000001fF3684f28c67538d4D072C22734",
         name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0xc2eff1F1cE35d395408A34Ad881dBCD978F40b89",
+        name: "Settler",
         protocol: "0x",
       },
       {
@@ -389,18 +388,13 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "paraswap",
       },
       {
-        address: "0xd547Eafde2410e63300Fc5308CceA0b356E7b5d8",
-        name: "OKXDexRouter",
+        address: "0x62cceF0b4545166f721cAa9fEe13c1d3767E27dc",
+        name: "OkxRouter",
         protocol: "okx",
       },
       {
-        address: "0xB403c6c93446eD1453CAa51d69A492053e008240",
-        name: "IceCreamSwapV2Router",
-        protocol: "icecreamswap",
-      },
-      {
         address: "0x1a3304cBef66de00FbE1548CC4C6585aD22FbCFf",
-        name: "IceCreamSwapAggregator",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
       },
       {
@@ -409,13 +403,20 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "openocean",
       },
       {
+        address: "0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0x4Dae2f939ACf50408e13d58534Ff8c2776d45265",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
+      {
         address: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
         name: "SwapRouter02",
         protocol: "uniswap",
       },
-      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
-      // no code at that address on BSC, and `uniswap` is not in this chain's
-      // supportedRouters list either.
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.BSC_URL,
@@ -436,11 +437,19 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "zeroex",
       "okx",
       "openocean",
+      "enso",
+      "icecreamswap",
+      "usor",
     ],
     knownSwapTargets: [
       {
         address: "0x0000000000001fF3684f28c67538d4D072C22734",
         name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0x7150ea07D00d8E5a46bcC809f1c9FDf5cb5f8E81",
+        name: "Settler",
         protocol: "0x",
       },
       {
@@ -464,18 +473,35 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "paraswap",
       },
       {
+        address: "0xF6E1B4b201e220FC3741bd7a75675ffEA25c02AD",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0x99bA7d569EA69671B399A7cC488b687515F7EC23",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0xec7BE89e9d109e7e3Fec59c222CF297125FEFda2",
+        name: "UsorRouter",
+        protocol: "usor",
       },
       {
         address: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
         name: "SwapRouter02",
         protocol: "uniswap",
       },
-      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
-      // no code at that address on Polygon, and `uniswap` is not in this chain's
-      // supportedRouters list either.
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.POLYGON_URL,
@@ -497,11 +523,19 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "okx",
       "icecreamswap",
       "openocean",
+      "enso",
+      "fabric",
+      "usor",
     ],
     knownSwapTargets: [
       {
         address: "0x0000000000001fF3684f28c67538d4D072C22734",
         name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0xfeEA2A79D7d3d36753C8917AF744D71f13C9b02a",
+        name: "Settler",
         protocol: "0x",
       },
       {
@@ -525,18 +559,13 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "paraswap",
       },
       {
-        address: "0xf332761c673b59B21fF6dfa8adA44d78c12dEF09",
-        name: "DexRouter",
+        address: "0x7CF6b330b437E9fb432B1400DE17B03357Cf049A",
+        name: "OkxRouter",
         protocol: "okx",
       },
       {
-        address: "0x70cBb871E8f30Fc8Ce23609E9E0Ea87B6b222F58",
-        name: "TokenApprove",
-        protocol: "okx",
-      },
-      {
-        address: "0x57f96440f1b1cad53b40a8924bd540b1279a491c",
-        name: "IceCreamSwapV2Router",
+        address: "0x57f96440f1b1cAD53B40A8924BD540b1279A491c",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
       },
       {
@@ -545,13 +574,25 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "openocean",
       },
       {
+        address: "0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0x3a7f029e3ad003ab5aa78ccf101b1b543eaed6f9",
+        name: "FabricRouter",
+        protocol: "fabric",
+      },
+      {
+        address: "0x5E325eDA8064b456f4781070C0738d849c824258",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
+      {
         address: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
         name: "SwapRouter02",
         protocol: "uniswap",
       },
-      // NOTE: removed `UniversalRouter 0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8` —
-      // no code at that address on Arbitrum, and `uniswap` is not in this chain's
-      // supportedRouters list either.
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.ARB_URL,
@@ -620,16 +661,22 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "oneinch",
       "odos",
       "kyberswap",
-      "paraswap",
       "zeroex",
       "okx",
       "icecreamswap",
       "openocean",
+      "enso",
+      "usor",
     ],
     knownSwapTargets: [
       {
         address: "0x0000000000001fF3684f28c67538d4D072C22734",
         name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0x6De411A14aEaafB3f23697A4472a4D4ed275Ac0f",
+        name: "Settler",
         protocol: "0x",
       },
       {
@@ -648,23 +695,13 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "kyberswap",
       },
       {
-        address: "0x6a000f20005980200259b80c5102003040001068",
-        name: "AugustusV6.2",
-        protocol: "paraswap",
-      },
-      {
-        address: "0x1daC23e41Fc8ce857E86fD8C1AE5b6121C67D96d",
-        name: "DexRouter",
+        address: "0xa94Fcf9fc56a864f8DE51e6315aee5863AD63C91",
+        name: "OkxRouter",
         protocol: "okx",
       },
       {
-        address: "0x40aA958dd87FC8305b97f2BA922CDdCa374bcD7f",
-        name: "TokenApprove",
-        protocol: "okx",
-      },
-      {
-        address: "0x3FFc2315A992b01dc4B3f79C8EEa1921091Ee24f",
-        name: "IceCreamSwapV2Router",
+        address: "0xa575f37e869e6887564F87c07e2885e08D542C4a",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
       },
       {
@@ -673,9 +710,14 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "openocean",
       },
       {
-        address: "0xCb1355ff08Ab38bBCE60111F1bb2B784bE25D7e8",
-        name: "UniversalRouter",
-        protocol: "uniswap",
+        address: "0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0x4Dae2f939ACf50408e13d58534Ff8c2776d45265",
+        name: "UsorRouter",
+        protocol: "usor",
       },
       {
         address: "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE",
@@ -701,13 +743,21 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "zeroex",
       "icecreamswap",
       "openocean",
+      "enso",
+      "okx",
+      "usor",
     ],
     knownSwapTargets: [
       {
-        address: "0x000000000000175a8b9bC6d539B3708EEd92EA6c",
+        address: "0x0000000000001ff3684f28c67538d4d072c22734",
         name: "AllowanceHolder",
         protocol: "0x",
-      }, // London hardfork address
+      },
+      {
+        address: "0x1816eA2150e74Eb3068A4e3809E461Cc6977A7D7",
+        name: "Settler",
+        protocol: "0x",
+      },
       {
         address: "0x111111125421ca6dc452d289314280a0f8842a65",
         name: "AggregationRouterV6",
@@ -724,14 +774,29 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         protocol: "kyberswap",
       },
       {
-        address: "0xa575f37e869e6887564f87c07e2885e08d542c4a",
-        name: "IceCreamSwapV2Router",
+        address: "0x2fF506ed9729580EF8Bf04429614beB1baE5F76D",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
       },
       {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0xA146d46823f3F594B785200102Be5385CAfCE9B5",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0x2E1Dee213BA8d7af0934C49a23187BabEACa8764",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0xd7c7d7f18dd5388d5217c9696c7e799fcd75c6bd",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -870,9 +935,56 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     nativeSymbol: "MON",
     create2FactoryAddress: "", // Safe Singleton Factory not yet deployed on Monad
     supportedRouters: [
-      // New chain - router support to be verified
+      "enso",
+      "icecreamswap",
+      "kyberswap",
+      "okx",
+      "openocean",
+      "usor",
+      "zeroex",
     ],
-    knownSwapTargets: [],
+    knownSwapTargets: [
+      {
+        address: "0x0000000000001ff3684f28c67538d4d072c22734",
+        name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0xfb78Fcae443eB423b59B8C186518c5dF94416344",
+        name: "Settler",
+        protocol: "0x",
+      },
+      {
+        address: "0xCfBAa9Cfce952Ca4F4069874fF1Df8c05e37a3c7",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+        name: "MetaAggregationRouterV2",
+        protocol: "kyberswap",
+      },
+      {
+        address: "0x7A7AD9aa93cd0A2D0255326E5Fb145CEc14997FF",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
+        name: "OpenOceanExchangeV2",
+        protocol: "openocean",
+      },
+      {
+        address: "0x75FC67473A91335B5b8F8821277262a13B38c9b3",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
+    ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.MONAD_URL,
   },
@@ -885,9 +997,33 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     nativeSymbol: "SEI",
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     supportedRouters: [
-      // SEI EVM router support to be verified
+      "enso",
+      "icecreamswap",
+      "openocean",
+      "usor",
     ],
-    knownSwapTargets: [],
+    knownSwapTargets: [
+      {
+        address: "0x300b3D30aaBf46b05983284f0297D966E92bbeB2",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
+        name: "OpenOceanExchangeV2",
+        protocol: "openocean",
+      },
+      {
+        address: "0xa683c66045ad16abb1bCE5ad46A64d95f9A25785",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
+    ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.SEI_URL,
   },
@@ -899,12 +1035,22 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // Bridged USDC - To be confirmed
     nativeSymbol: "RBTC",
     create2FactoryAddress: "", // Safe Singleton Factory not available on Rootstock
-    supportedRouters: ["openocean"],
+    supportedRouters: ["openocean", "icecreamswap", "usor"],
     knownSwapTargets: [
       {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0x63d3C7Ab37ca36A2A0A338076C163fF60c72527c",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x244f68e77357f86a8522323eBF80b5FC2F814d3E",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -918,10 +1064,14 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // To be confirmed
     nativeSymbol: "FIL",
     create2FactoryAddress: "", // Safe Singleton Factory not available on Filecoin
-    supportedRouters: [
-      // Router support to be verified
+    supportedRouters: ["usor"],
+    knownSwapTargets: [
+      {
+        address: "0x83702C6356A1028A900F83d446D189a31646a16b",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
     ],
-    knownSwapTargets: [],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.FILECOIN_URL,
   },
@@ -933,12 +1083,17 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "0x66a2A913e447d6b4BF33EFbec43aAeF87890FBbc", // USDC on Boba
     nativeSymbol: "ETH",
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
-    supportedRouters: ["icecreamswap"],
+    supportedRouters: ["icecreamswap", "usor"],
     knownSwapTargets: [
       {
-        address: "0x698a912F8CA34Df9b46E6Ea4A2B2DB0B7151b083",
-        name: "IceCreamSwapV2Router",
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
+      },
+      {
+        address: "0x4ba622997559f9b5ac68751d7fc3deecc23a0e88",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -995,10 +1150,19 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // To be confirmed
     nativeSymbol: "ETH",
     create2FactoryAddress: "", // Safe Singleton Factory not available on Hemi
-    supportedRouters: [
-      // Router support to be verified
+    supportedRouters: ["icecreamswap", "usor"],
+    knownSwapTargets: [
+      {
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x533c7A53389e0538AB6aE1D7798D6C1213eAc28B",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
     ],
-    knownSwapTargets: [],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.HEMI_URL,
   },
@@ -1010,12 +1174,17 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "0x2a8e898b6242355c290e1f4fc966b8788729a4d4", // USDC.e (Bridged)
     nativeSymbol: "XDC",
     create2FactoryAddress: "", // Safe Singleton Factory not available on XDC
-    supportedRouters: ["icecreamswap"],
+    supportedRouters: ["icecreamswap", "usor"],
     knownSwapTargets: [
       {
-        address: "0xBb5e1777A331ED93E07cF043363e48d320eb96c4",
-        name: "IceCreamSwapV2Router",
+        address: "0x0EE6f0900990b23A2a96a6F41EB56693c9076031",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
+      },
+      {
+        address: "0x738fD6d10bCc05c230388B4027CAd37f82fe2AF2",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -1029,8 +1198,29 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "0x078D782b760474a361dDA0AF3839290b0EF57AD6", // Native USDC on Unichain
     nativeSymbol: "ETH",
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
-    supportedRouters: ["odos", "kyberswap", "openocean", "propellerswap"],
+    supportedRouters: [
+      "odos",
+      "kyberswap",
+      "openocean",
+      "propellerswap",
+      "enso",
+      "icecreamswap",
+      "okx",
+      "paraswap",
+      "usor",
+      "zeroex",
+    ],
     knownSwapTargets: [
+      {
+        address: "0x0000000000001ff3684f28c67538d4d072c22734",
+        name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0x972655fACb8Df3CdF40395E4262f874f81674D46",
+        name: "Settler",
+        protocol: "0x",
+      },
       {
         address: "0x6409722F3a1C4486A3b1FE566cBDd5e9D946A1f3",
         name: "OdosRouterV2",
@@ -1050,6 +1240,31 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0xFfA5ec2e444e4285108e4a17b82dA495c178427B",
         name: "TychoRouter",
         protocol: "propellerswap",
+      },
+      {
+        address: "0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0x3FFc2315A992b01dc4B3f79C8EEa1921091Ee24f",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x6733Eb2E75B1625F1Fe5f18aD2cB2BaBDA510d19",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0x6a000f20005980200259b80c5102003040001068",
+        name: "AugustusV6.2",
+        protocol: "paraswap",
+      },
+      {
+        address: "0xef740bf23acae26f6492b10de645d6b98dc8eaf3",
+        name: "UsorRouter",
+        protocol: "usor",
       },
       {
         address: "0x73855d06de49d0fe4a9c42636ba96c62da12ff9c",
@@ -1097,10 +1312,14 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // To be confirmed
     nativeSymbol: "RBNT",
     create2FactoryAddress: "", // Safe Singleton Factory not available on Redbelly
-    supportedRouters: [
-      // Router support to be verified
+    supportedRouters: ["usor"],
+    knownSwapTargets: [
+      {
+        address: "0x1b35fbA9357fD9bda7ed0429C8BbAbe1e8CC88fc",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
     ],
-    knownSwapTargets: [],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.REDBELLY_URL,
   },
@@ -1127,10 +1346,19 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // To be confirmed
     nativeSymbol: "BTC",
     create2FactoryAddress: "", // Safe Singleton Factory not available on GOAT
-    supportedRouters: [
-      // Router support to be verified
+    supportedRouters: ["icecreamswap", "usor"],
+    knownSwapTargets: [
+      {
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x738fD6d10bCc05c230388B4027CAd37f82fe2AF2",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
     ],
-    knownSwapTargets: [],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.GOAT_URL,
   },
@@ -1144,36 +1372,47 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     supportedRouters: [
       "odos",
-      "kyberswap",
       "zeroex",
       "icecreamswap",
       "openocean",
+      "okx",
+      "usor",
     ],
     knownSwapTargets: [
       {
-        address: "0x0000000000005E88410CcDFaDe4a5EfaE4b49562",
+        address: "0x0000000000005e88410ccdfade4a5efae4b49562",
         name: "AllowanceHolder",
         protocol: "0x",
-      }, // Shanghai hardfork
+      },
+      {
+        address: "0xe3fBE7889A51d62AcD4E056d756F6eA04a3d8D2d",
+        name: "Settler",
+        protocol: "0x",
+      },
       {
         address: "0xD9F4e85489aDCD0bAF0Cd63b4231c6af58c26745",
         name: "OdosRouterV2",
         protocol: "odos",
       },
       {
-        address: "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
-        name: "MetaAggregationRouterV2",
-        protocol: "kyberswap",
-      },
-      {
-        address: "0xb4FE60CD05A3e68668007Cee83DDFD9A50A45B36",
-        name: "IceCreamSwapV2Router",
+        address: "0x3FFc2315A992b01dc4B3f79C8EEa1921091Ee24f",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
       },
       {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0xcF76984119C7f6ae56fAfE680d39C08278b7eCF4",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0x447B8E40B0CdA8e55F405C86bC635D02d0540aB8",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -1187,10 +1426,14 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // To be confirmed
     nativeSymbol: "NIBI",
     create2FactoryAddress: "", // Safe Singleton Factory not available on Nibiru
-    supportedRouters: [
-      // Router support to be verified
+    supportedRouters: ["usor"],
+    knownSwapTargets: [
+      {
+        address: "0xA7E6cB0A6B1BE8b779022A6aFcb097cF0d3Ff4A2",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
     ],
-    knownSwapTargets: [],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.NIBIRU_URL,
   },
@@ -1202,8 +1445,26 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // To be confirmed
     nativeSymbol: "XPL",
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
-    supportedRouters: ["kyberswap", "openocean"],
+    supportedRouters: [
+      "kyberswap",
+      "openocean",
+      "enso",
+      "icecreamswap",
+      "okx",
+      "usor",
+      "zeroex",
+    ],
     knownSwapTargets: [
+      {
+        address: "0x0000000000001ff3684f28c67538d4d072c22734",
+        name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0x7F2194E8d4D5B5F889b17aeCe891F89Da74F5384",
+        name: "Settler",
+        protocol: "0x",
+      },
       {
         address: "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
         name: "MetaAggregationRouterV2",
@@ -1213,6 +1474,26 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0xCfBAa9Cfce952Ca4F4069874fF1Df8c05e37a3c7",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x19D345f95A80cc136d898f41b490E023cFF78658",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0x1b35fbA9357fD9bda7ed0429C8BbAbe1e8CC88fc",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -1226,12 +1507,22 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // To be confirmed
     nativeSymbol: "XTZ",
     create2FactoryAddress: "", // Safe Singleton Factory not available on Etherlink
-    supportedRouters: ["kyberswap"],
+    supportedRouters: ["kyberswap", "threeroute", "usor"],
     knownSwapTargets: [
       {
         address: "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
         name: "MetaAggregationRouterV2",
         protocol: "kyberswap",
+      },
+      {
+        address: "0x1B62C2CEf163E3120E512F71F6e6E99058c80F6E",
+        name: "ThreeRouteRouter",
+        protocol: "threeroute",
+      },
+      {
+        address: "0x9db70E29712Cc8Af10c2B597BaDA6784544FF407",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -1245,12 +1536,17 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "", // USDC - To be confirmed (CCIP upgraded)
     nativeSymbol: "ETH",
     create2FactoryAddress: "", // Safe Singleton Factory not available on BOB
-    supportedRouters: ["icecreamswap"],
+    supportedRouters: ["icecreamswap", "usor"],
     knownSwapTargets: [
       {
-        address: "0x698a912F8CA34Df9b46E6Ea4A2B2DB0B7151b083",
-        name: "IceCreamSwapV2Router",
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
         protocol: "icecreamswap",
+      },
+      {
+        address: "0x346239972d1fa486FC4a521031BC81bFB7D6e8a4",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -1279,7 +1575,14 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     usdcAddress: "0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83", // USDC on Gnosis
     nativeSymbol: "XDAI",
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
-    supportedRouters: ["oneinch", "paraswap", "openocean"],
+    supportedRouters: [
+      "oneinch",
+      "paraswap",
+      "openocean",
+      "enso",
+      "icecreamswap",
+      "usor",
+    ],
     knownSwapTargets: [
       {
         address: "0x111111125421ca6dc452d289314280a0f8842a65",
@@ -1295,6 +1598,21 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "OpenOceanExchangeV2",
         protocol: "openocean",
+      },
+      {
+        address: "0xF75584eF6673aD213a685a1B58Cc0330B8eA22Cf",
+        name: "EnsoRouter",
+        protocol: "enso",
+      },
+      {
+        address: "0xC87De04e2EC1F4282dFF2933A2D58199f688fC3d",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x75FC67473A91335B5b8F8821277262a13B38c9b3",
+        name: "UsorRouter",
+        protocol: "usor",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
