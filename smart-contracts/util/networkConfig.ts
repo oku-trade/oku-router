@@ -1063,7 +1063,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wethAddress: "0x60E1773636CF5E4A227d9AC24F20fEca034ee25A", // WFIL
     usdcAddress: "", // To be confirmed
     nativeSymbol: "FIL",
-    create2FactoryAddress: "", // Safe Singleton Factory not available on Filecoin
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     supportedRouters: ["usor"],
     knownSwapTargets: [
       {
@@ -1106,7 +1106,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wethAddress: "0xD102cE6A4dB07D247fcc28F366A623Df0938CA9E", // WTLOS
     usdcAddress: "", // To be confirmed
     nativeSymbol: "TLOS",
-    create2FactoryAddress: "", // Safe Singleton Factory not available on Telos
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     supportedRouters: ["icecreamswap", "openocean"],
     knownSwapTargets: [
       {
@@ -1149,7 +1149,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wethAddress: "", // To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "ETH",
-    create2FactoryAddress: "", // Safe Singleton Factory not available on Hemi
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     supportedRouters: ["icecreamswap", "usor"],
     knownSwapTargets: [
       {
@@ -1311,7 +1311,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wethAddress: "", // WRBNT - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "RBNT",
-    create2FactoryAddress: "", // Safe Singleton Factory not available on Redbelly
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     supportedRouters: ["usor"],
     knownSwapTargets: [
       {
@@ -1425,7 +1425,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wethAddress: "", // WNIBI - To be confirmed
     usdcAddress: "", // To be confirmed
     nativeSymbol: "NIBI",
-    create2FactoryAddress: "", // Safe Singleton Factory not available on Nibiru
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     supportedRouters: ["usor"],
     knownSwapTargets: [
       {
@@ -1617,6 +1617,30 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     rpcUrl: process.env.GNOSIS_URL,
+  },
+  gensyn: {
+    networkName: "gensyn",
+    chainId: 685689,
+    chainName: "gensyn",
+    wethAddress: "", // To be confirmed
+    usdcAddress: "", // To be confirmed
+    nativeSymbol: "ETH",
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+    supportedRouters: ["icecreamswap", "usor"],
+    knownSwapTargets: [
+      {
+        address: "0x9E6d21E759A7A288b80eef94E4737D313D31c13f",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x447B8E40B0CdA8e55F405C86bC635D02d0540aB8",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
+    ],
+    ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    rpcUrl: process.env.GENSYN_URL,
   },
 };
 

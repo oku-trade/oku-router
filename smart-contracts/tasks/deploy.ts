@@ -102,13 +102,34 @@ async function deployDeterministic(
   // second copy on chain. If the receipt poll itself 429s, we retry it
   // separately because that's a pure read.
   const deploymentData = hre.ethers.concat([salt, initCode]);
-  console.log("Deploying via Safe Singleton Factory (CREATE2)...");
+
+  // Estimate gas for the CREATE2 deploy. Some chains (e.g. Filecoin) charge
+  // for on-chain message storage and require a gasLimit well above the EVM
+  // execution cost. We estimate + 30% buffer, with a floor of 5M.
+  const signerAddress = await signer.getAddress();
+  let gasLimit: bigint;
+  try {
+    const est = await withRetry(
+      () => hre.ethers.provider.estimateGas({
+        from: signerAddress,
+        to: SAFE_SINGLETON_FACTORY,
+        data: deploymentData,
+      }),
+      "estimateGas(CREATE2)",
+    );
+    gasLimit = est * 130n / 100n; // 30% buffer
+    if (gasLimit < 5_000_000n) gasLimit = 5_000_000n;
+  } catch {
+    gasLimit = 5_000_000n; // fallback
+  }
+
+  console.log(`Deploying via Safe Singleton Factory (CREATE2, gasLimit: ${gasLimit})...`);
   const tx = await withRetry(
     () =>
       signer.sendTransaction({
         to: SAFE_SINGLETON_FACTORY,
         data: deploymentData,
-        gasLimit: 5_000_000,
+        gasLimit,
       }),
     "sendTransaction(CREATE2)",
   );
@@ -310,9 +331,7 @@ task("deploy", "Deploy OkuRouter contract")
           // would be harmless — but we still avoid wasting gas on dupes.
           const updateTx = await withRetry(
             () =>
-              contract.updateSwapTargets(target.address, true, {
-                gasLimit: 100_000,
-              }),
+              contract.updateSwapTargets(target.address, true),
             `updateSwapTargets(${target.address})`,
           );
           await withRetry(() => updateTx.wait(), `tx.wait(${updateTx.hash})`);
@@ -333,9 +352,7 @@ task("deploy", "Deploy OkuRouter contract")
     if (!isZeroAddressSigner) {
       const validSignerTx = await withRetry(
         () =>
-          contract.updateValidSigner(zeroAddress, true, {
-            gasLimit: 5_000_000,
-          }),
+          contract.updateValidSigner(zeroAddress, true),
         `updateValidSigner(${zeroAddress})`,
       );
       await withRetry(() => validSignerTx.wait(), `tx.wait(${validSignerTx.hash})`);
