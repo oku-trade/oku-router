@@ -118,7 +118,6 @@ async function deployDeterministic(
       "estimateGas(CREATE2)",
     );
     gasLimit = est * 130n / 100n; // 30% buffer
-    if (gasLimit < 5_000_000n) gasLimit = 5_000_000n;
   } catch {
     gasLimit = 5_000_000n; // fallback
   }
