@@ -87,6 +87,7 @@ export interface BaseAggregatorInterface extends Interface {
       | "fillQuoteTokenToToken"
       | "fillQuoteTokenToTokenWithPermit"
       | "paused"
+      | "permit2"
       | "swapTargets"
       | "usedWarrantNonces"
       | "validSigners"
@@ -167,6 +168,7 @@ export interface BaseAggregatorInterface extends Interface {
     ]
   ): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
+  encodeFunctionData(functionFragment: "permit2", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "swapTargets",
     values: [AddressLike]
@@ -205,6 +207,7 @@ export interface BaseAggregatorInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "permit2", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "swapTargets",
     data: BytesLike
@@ -420,6 +423,8 @@ export interface BaseAggregator extends BaseContract {
 
   paused: TypedContractMethod<[], [boolean], "view">;
 
+  permit2: TypedContractMethod<[], [string], "view">;
+
   swapTargets: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   usedWarrantNonces: TypedContractMethod<
@@ -531,6 +536,9 @@ export interface BaseAggregator extends BaseContract {
   getFunction(
     nameOrSignature: "paused"
   ): TypedContractMethod<[], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "permit2"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "swapTargets"
   ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;

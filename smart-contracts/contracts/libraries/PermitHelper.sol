@@ -7,8 +7,6 @@ import "../interfaces/uniswapV3/IPermit2.sol";
 /// @title PermitHelper
 /// @dev Helper methods for using ERC20 Permit (ERC2612, DAI, or Permit2)
 library PermitHelper {
-    /// @dev Canonical Permit2 contract address (same across all chains)
-    address constant PERMIT2_ADDRESS = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     enum PermitStyle {
         DAI,
         EIP, //2612 / 2616
@@ -32,11 +30,13 @@ library PermitHelper {
     /// @param tokenAddress address of the token that will be permitted/transferred
     /// @param holder address that holds the tokens to be permitted
     /// @param spender address that will receive the tokens (for Permit2) or be granted allowance (for DAI/EIP-2612)
+    /// @param permit2Address address of the Permit2 contract on this chain
     function permit(
         Permit memory permitData,
         address tokenAddress,
         address holder,
-        address spender
+        address spender,
+        address permit2Address
     ) internal {
         if (permitData.permitStyle == PermitStyle.DAI) {
             IDAI(tokenAddress).permit(
@@ -52,7 +52,7 @@ library PermitHelper {
         } else if (permitData.permitStyle == PermitStyle.PERMIT_2) {
             // Permit2 uses SignatureTransfer: signature authorizes immediate transfer
             // This is different from DAI/EIP-2612 which only grant allowances
-            IPermit2 permit2 = IPermit2(PERMIT2_ADDRESS);
+            IPermit2 permit2 = IPermit2(permit2Address);
 
             // Build the permit transfer struct
             IPermit2.PermitTransferFrom memory permitTransferFrom = IPermit2.PermitTransferFrom({

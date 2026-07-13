@@ -207,7 +207,18 @@ const config: HardhatUserConfig = {
           browserURL: "https://filecoin.blockscout.com"
         }
       },
+      {
+        network: "robinhood",
+        chainId: 4663,
+        urls: {
+          apiURL: "https://robinhoodchain.blockscout.com/api",
+          browserURL: "https://robinhoodchain.blockscout.com"
+        }
+      }
     ]
+  },
+  sourcify: {
+    enabled: true,
   },
   gasReporter: {
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
@@ -408,6 +419,11 @@ const config: HardhatUserConfig = {
       url: rpcUrl(process.env.GENSYN_URL, "gensyn-mainnet"),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
       chainId: 685689,
+    },
+    robinhood: {
+      url: "https://rpc.mainnet.chain.robinhood.com",
+      accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
+      chainId: 4663,
     },
   },
   solidity: {

@@ -12,6 +12,9 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// @title Rainbow base aggregator contract
 contract BaseAggregator is EIP712, Pausable {
+    /// @dev Permit2 contract address for this chain (set once at deploy time)
+    address public immutable permit2;
+
     /// @dev Used to prevent re-entrancy
     uint256 internal status;
 
@@ -105,8 +108,11 @@ contract BaseAggregator is EIP712, Pausable {
 
     constructor(
         string memory _name,
-        string memory _version
-    ) EIP712(_name, _version) {}
+        string memory _version,
+        address _permit2
+    ) EIP712(_name, _version) {
+        permit2 = _permit2;
+    }
 
     /** EXTERNAL **/
 
@@ -282,7 +288,8 @@ contract BaseAggregator is EIP712, Pausable {
             permitData,
             sellTokenAddress,
             msg.sender,
-            address(this)
+            address(this),
+            permit2
         );
 
         // 2 - Call fillQuoteTokenToToken
@@ -375,7 +382,8 @@ contract BaseAggregator is EIP712, Pausable {
             permitData,
             sellTokenAddress,
             msg.sender,
-            address(this)
+            address(this),
+            permit2
         );
 
         // 2 - Call fillQuoteTokenToEth

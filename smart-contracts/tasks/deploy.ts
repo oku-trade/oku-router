@@ -32,12 +32,14 @@ const gfxOwner = "0x00a0bB9dfD2db3a6E447147426aB2D1B5Ac356d5";
 async function predictOkuRouterAddress(
   hre: HardhatRuntimeEnvironment,
   owner: string,
+  permit2Address: string,
 ): Promise<{ address: string; initCode: string; salt: string }> {
   const OkuRouter = await hre.ethers.getContractFactory("OkuRouter");
   const deployTx = await OkuRouter.getDeployTransaction(
     CONTRACT_NAME,
     CONTRACT_VERSION,
     owner,
+    permit2Address,
   );
   const initCode = deployTx.data;
   if (!initCode) {
@@ -66,8 +68,9 @@ async function deployDeterministic(
   hre: HardhatRuntimeEnvironment,
   signer: Signer,
   owner: string,
+  permit2Address: string,
 ): Promise<{ address: string; blockNumber: number | null; txHash: string | null; reused: boolean }> {
-  const { address, initCode, salt } = await predictOkuRouterAddress(hre, owner);
+  const { address, initCode, salt } = await predictOkuRouterAddress(hre, owner, permit2Address);
 
   // Idempotency check: if something already lives at the predicted
   // address, treat it as a successful deploy and skip the tx. Wrapped in
@@ -217,6 +220,23 @@ task("deploy", "Deploy OkuRouter contract")
     console.log(`Contract: ${CONTRACT_NAME} v${CONTRACT_VERSION}`);
     console.log(`Owner (constructor): ${ownerAddress}`);
 
+    // Resolve permit2 address from network config. This is a required
+    // constructor arg since v1.2 — every chain has its own Permit2 deployment.
+    let config;
+    try {
+      config = getNetworkConfig(networkName);
+    } catch (e) {
+      // No config found — will be checked below
+    }
+    const permit2Address = config?.permit2Address;
+    if (!permit2Address) {
+      throw new Error(
+        `No permit2Address configured for network "${networkName}". ` +
+          `Add it to NETWORK_CONFIGS in util/networkConfig.ts before deploying.`,
+      );
+    }
+    console.log(`Permit2: ${permit2Address}`);
+
     let contractAddress: string;
     let blockNumber: number | null = null;
     let txHash: string | null = null;
@@ -225,7 +245,7 @@ task("deploy", "Deploy OkuRouter contract")
 
     try {
       if (deterministicMode) {
-        const result = await deployDeterministic(hre, signer, ownerAddress);
+        const result = await deployDeterministic(hre, signer, ownerAddress, permit2Address);
         contractAddress = result.address;
         blockNumber = result.blockNumber;
         txHash = result.txHash;
@@ -238,7 +258,7 @@ task("deploy", "Deploy OkuRouter contract")
         // rely on cross-chain parity in this path.
         contract = await new OkuRouter__factory()
           .connect(signer)
-          .deploy(CONTRACT_NAME, CONTRACT_VERSION, ownerAddress, { gasLimit: 5_000_000 });
+          .deploy(CONTRACT_NAME, CONTRACT_VERSION, ownerAddress, permit2Address, { gasLimit: 5_000_000 });
         const deployTx = contract.deploymentTransaction();
         await contract.waitForDeployment();
         contractAddress = await contract.getAddress();
@@ -296,16 +316,7 @@ task("deploy", "Deploy OkuRouter contract")
       console.log(`ℹ Skipping registry write: address ${contractAddress} already had code on-chain.`);
     }
 
-    // Pull network config (swap targets, signers) AFTER recording the
-    // deployment, since networkConfig.ts will now resolve the new address
-    // from the registry we just wrote.
-    let config;
-    try {
-      config = getNetworkConfig(networkName);
-    } catch (e) {
-      // No config found, skip
-    }
-
+    // Use config (already resolved above) for swap target wiring.
     if (config && config.knownSwapTargets.length > 0) {
       const targets = config.knownSwapTargets;
       const targetsToAdd: typeof targets = [];
@@ -365,7 +376,7 @@ task("deploy", "Deploy OkuRouter contract")
       try {
         await hre.run("verify:verify", {
           address: contractAddress,
-          constructorArguments: [CONTRACT_NAME, CONTRACT_VERSION, ownerAddress],
+          constructorArguments: [CONTRACT_NAME, CONTRACT_VERSION, ownerAddress, permit2Address],
         });
       } catch (err: any) {
         // Verification is best-effort; the deployment is already recorded.

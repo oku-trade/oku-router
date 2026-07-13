@@ -31,8 +31,13 @@ export const CONTRACT_NAME = "Oku Router";
  *   only survive in git history.
  * - "1.1" replaces them with `sweepAll(tokens, includeEth, to)`. Same
  *   audited shape otherwise.
+ * - "1.2" makes the Permit2 address a constructor argument (stored as an
+ *   immutable) instead of a hardcoded constant. This allows correct Permit2
+ *   usage on chains with non-canonical deployments. Because the constructor
+ *   args now vary per chain (different Permit2 addresses), the CREATE2
+ *   address will differ across chains that use different Permit2 contracts.
  */
-export const CONTRACT_VERSION = "1.1";
+export const CONTRACT_VERSION = "1.2";
 
 /**
  * Safe Singleton Factory — canonical CREATE2 deployer present on all major

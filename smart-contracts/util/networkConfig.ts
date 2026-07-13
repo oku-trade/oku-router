@@ -52,6 +52,8 @@ export interface NetworkConfig {
   supportedRouters: string[]; // Backend router names
   knownSwapTargets: SwapTarget[]; // Known swap target contracts to whitelist on deployment
   ownerAddress: string; // Rainbow Router owner address
+  permit2Address: string; // Permit2 contract address for this chain
+  canonicalPermit2: boolean; // true if this chain uses the canonical Uniswap Permit2 (0x000000000022D473030F116dDEE9F6B43aC78BA3)
   rpcUrl?: string; // Optional RPC URL from env
   create2FactoryAddress?: string; // Safe Singleton Factory address for deterministic deployments (empty = not available)
 }
@@ -172,6 +174,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.OP_URL,
   },
   base: {
@@ -290,6 +294,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.BASE_URL,
   },
   worldchain: {
@@ -339,6 +345,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.WORLDCHAIN_URL,
   },
   bsc: {
@@ -434,6 +442,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.BSC_URL,
   },
   polygon: {
@@ -524,6 +534,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.POLYGON_URL,
   },
   arbitrum: {
@@ -620,6 +632,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.ARB_URL,
   },
   // ==================== NEW CHAINS ====================
@@ -648,6 +662,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x1b35fbA9357fD9bda7ed0429C8BbAbe1e8CC88fc",
+    canonicalPermit2: false,
     rpcUrl: process.env.TAIKO_URL,
   },
   celo: {
@@ -677,6 +693,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.CELO_URL,
   },
   avax: {
@@ -761,6 +779,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.AVAX_URL,
   },
   linea: {
@@ -845,6 +865,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.LINEA_URL,
   },
   blast: {
@@ -889,6 +911,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.BLAST_URL,
   },
   scroll: {
@@ -944,6 +968,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x83986Ff655A54ee061F6B7F476B92f4Fed111B93",
+    canonicalPermit2: false,
     rpcUrl: process.env.SCROLL_URL,
   },
   // ==================== ADDITIONAL CHAINS ====================
@@ -989,6 +1015,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x0000000000225e31d15943971f47ad3022f714fa",
+    canonicalPermit2: false,
     rpcUrl: process.env.ZKSYNC_URL,
   },
   monad: {
@@ -1061,6 +1089,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.MONAD_URL,
   },
   sei: {
@@ -1105,6 +1135,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.SEI_URL,
   },
   rootstock: {
@@ -1139,6 +1171,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xFcf5986450E4A014fFE7ad4Ae24921B589D039b5",
+    canonicalPermit2: false,
     rpcUrl: process.env.ROOTSTOCK_URL,
   },
   filecoin: {
@@ -1163,6 +1197,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xb81363578d377F8DA3902e9e705FD60198a9cEc2",
+    canonicalPermit2: false,
     rpcUrl: process.env.FILECOIN_URL,
   },
   boba: {
@@ -1192,6 +1228,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xF80c91442D3EF66632958C0d395667075FC82fB0",
+    canonicalPermit2: false,
     rpcUrl: process.env.BOBA_URL,
   },
   telos: {
@@ -1221,6 +1259,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.TELOS_URL,
   },
   lightlink: {
@@ -1245,6 +1285,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x807F4E281B7A3B324825C64ca53c69F0b418dE40",
+    canonicalPermit2: false,
     rpcUrl: process.env.LIGHTLINK_URL,
   },
   hemi: {
@@ -1274,6 +1316,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.HEMI_URL,
   },
   xdc: {
@@ -1303,6 +1347,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.XDC_URL,
   },
   unichain: {
@@ -1393,6 +1439,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.UNICHAIN_URL,
   },
   sonic: {
@@ -1432,6 +1480,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.SONIC_URL,
   },
   redbelly: {
@@ -1456,6 +1506,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xdD489C75be1039ec7d843A6aC2Fd658350B067Cf",
+    canonicalPermit2: false,
     rpcUrl: process.env.REDBELLY_URL,
   },
   lens: {
@@ -1477,6 +1529,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x0000000000225e31d15943971f47ad3022f714fa",
+    canonicalPermit2: false,
     rpcUrl: process.env.LENS_URL,
   },
   goat: {
@@ -1506,6 +1560,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.GOAT_URL,
   },
   mantle: {
@@ -1572,6 +1628,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x5d6b0f5335ec95cD2aB7E52f2A0750dd86502435",
+    canonicalPermit2: false,
     rpcUrl: process.env.MANTLE_URL,
   },
   nibiru: {
@@ -1596,6 +1654,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.NIBIRU_URL,
   },
   plasma: {
@@ -1668,6 +1728,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.PLASMA_URL,
   },
   etherlink: {
@@ -1702,6 +1764,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.ETHERLINK_URL,
   },
   bob: {
@@ -1731,6 +1795,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xCbe9Be2C87b24b063A21369b6AB0Aa9f149c598F",
+    canonicalPermit2: false,
     rpcUrl: process.env.BOB_URL,
   },
   corn: {
@@ -1752,6 +1818,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0xB952578f3520EE8Ea45b7914994dcf4702cEe578",
+    canonicalPermit2: false,
     rpcUrl: process.env.CORN_URL,
   },
   gnosis: {
@@ -1808,6 +1876,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.GNOSIS_URL,
   },
   gensyn: {
@@ -1837,7 +1907,22 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
     rpcUrl: process.env.GENSYN_URL,
+  },
+  robinhood: {
+    networkName: "robinhood",
+    chainId: 4663,
+    chainName: "robinhood",
+    wethAddress: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
+    nativeSymbol: "ETH",
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+    supportedRouters: [],
+    knownSwapTargets: [],
+    ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
+    permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    canonicalPermit2: true,
   },
 };
 

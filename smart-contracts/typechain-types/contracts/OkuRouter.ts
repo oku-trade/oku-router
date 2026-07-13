@@ -92,6 +92,7 @@ export interface OkuRouterInterface extends Interface {
       | "pause"
       | "paused"
       | "pendingOwner"
+      | "permit2"
       | "renounceOwnership"
       | "swapTargets"
       | "sweepAll"
@@ -200,6 +201,7 @@ export interface OkuRouterInterface extends Interface {
     functionFragment: "pendingOwner",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "permit2", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
@@ -271,6 +273,7 @@ export interface OkuRouterInterface extends Interface {
     functionFragment: "pendingOwner",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "permit2", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
@@ -644,6 +647,8 @@ export interface OkuRouter extends BaseContract {
 
   pendingOwner: TypedContractMethod<[], [string], "view">;
 
+  permit2: TypedContractMethod<[], [string], "view">;
+
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
   swapTargets: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
@@ -799,6 +804,9 @@ export interface OkuRouter extends BaseContract {
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
     nameOrSignature: "pendingOwner"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "permit2"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "renounceOwnership"
