@@ -102,6 +102,7 @@ describe("Permit Signature", function () {
             txData,
             usdcAmount,
             0n,
+            ZeroAddress,
             permitData,
             warrant
         )
@@ -196,6 +197,7 @@ describe("Permit Signature", function () {
             targetAddress,
             swapCallData,
             feeAmount,
+            ZeroAddress,
             warrant,
             {
                 value: wethAmountToSend // Send ETH with the call
@@ -286,6 +288,7 @@ describe("Permit Signature", function () {
             swapCallData,
             usdcAmount,
             feeAmount,
+            ZeroAddress,
             permitData,
             warrant
         )
@@ -380,6 +383,7 @@ describe("Permit Signature", function () {
             swapCallData,
             usdcAmount,
             feeAmount,
+            ZeroAddress,
             permitData,
             warrant
         )

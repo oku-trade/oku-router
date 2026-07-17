@@ -162,6 +162,7 @@ describe("OkuRouter Aggregators", function () {
         quote.to || ZeroAddress,
         quote.data || Sources.Aggregator0x,
         quote.fee,
+        ZeroAddress,
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -272,9 +273,11 @@ describe("OkuRouter Aggregators", function () {
         swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEthWithPermit(
           quote.sellTokenAddress,
           quote.to || ZeroAddress,
+          quote.to || ZeroAddress, // approvalTarget
           quote.data || Sources.Aggregator0x, // Provide a default value
           quote.sellAmount,
           quote.feePercentageBasisPoints,
+          ZeroAddress,
           permitSignature,
           warrant,
           {
@@ -286,9 +289,11 @@ describe("OkuRouter Aggregators", function () {
         swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEth(
           quote.sellTokenAddress,
           quote.to || ZeroAddress,
+          quote.to || ZeroAddress, // approvalTarget
           quote.data || Sources.Aggregator0x,
           quote.sellAmount,
           quote.feePercentageBasisPoints,
+          ZeroAddress,
           {
             verifyingSigner: ZeroAddress,
             nonce: 0n,
@@ -410,9 +415,11 @@ describe("OkuRouter Aggregators", function () {
         quote.sellTokenAddress,
         quote.buyTokenAddress,
         quote.to || ZeroAddress, // Provide a default value
+        quote.to || ZeroAddress, // approvalTarget
         quote.data || Sources.Aggregator0x, // Provide a default value
         quote.sellAmount,
         quote.fee,
+        ZeroAddress,
         permitSignature,
         warrant,
         {

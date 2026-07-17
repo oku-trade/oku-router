@@ -115,6 +115,7 @@ export interface OkuRouterInterface extends Interface {
       | "OwnershipTransferStarted"
       | "OwnershipTransferred"
       | "Paused"
+      | "RecipientOverridden"
       | "SwapTargetAdded"
       | "SwapTargetRemoved"
       | "TokenWithdrawn"
@@ -138,6 +139,7 @@ export interface OkuRouterInterface extends Interface {
       AddressLike,
       BytesLike,
       BigNumberish,
+      AddressLike,
       CanoeHelper.WarrantStruct
     ]
   ): string;
@@ -150,6 +152,7 @@ export interface OkuRouterInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       CanoeHelper.WarrantStruct
     ]
   ): string;
@@ -162,6 +165,7 @@ export interface OkuRouterInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       PermitHelper.PermitStruct,
       CanoeHelper.WarrantStruct
     ]
@@ -176,6 +180,7 @@ export interface OkuRouterInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       CanoeHelper.WarrantStruct
     ]
   ): string;
@@ -189,6 +194,7 @@ export interface OkuRouterInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       PermitHelper.PermitStruct,
       CanoeHelper.WarrantStruct
     ]
@@ -357,6 +363,7 @@ export namespace EthWithdrawnEvent {
 export namespace OrderFilledEvent {
   export type InputTuple = [
     sender: AddressLike,
+    recipient: AddressLike,
     tokenIn: AddressLike,
     tokenOut: AddressLike,
     amountIn: BigNumberish,
@@ -366,6 +373,7 @@ export namespace OrderFilledEvent {
   ];
   export type OutputTuple = [
     sender: string,
+    recipient: string,
     tokenIn: string,
     tokenOut: string,
     amountIn: bigint,
@@ -375,6 +383,7 @@ export namespace OrderFilledEvent {
   ];
   export interface OutputObject {
     sender: string;
+    recipient: string;
     tokenIn: string;
     tokenOut: string;
     amountIn: bigint;
@@ -419,6 +428,28 @@ export namespace PausedEvent {
   export type OutputTuple = [account: string];
   export interface OutputObject {
     account: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RecipientOverriddenEvent {
+  export type InputTuple = [
+    requestedRecipient: AddressLike,
+    resolvedRecipient: AddressLike,
+    reason: string
+  ];
+  export type OutputTuple = [
+    requestedRecipient: string,
+    resolvedRecipient: string,
+    reason: string
+  ];
+  export interface OutputObject {
+    requestedRecipient: string;
+    resolvedRecipient: string;
+    reason: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -571,6 +602,7 @@ export interface OkuRouter extends BaseContract {
       target: AddressLike,
       swapCallData: BytesLike,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -585,6 +617,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -599,6 +632,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
@@ -615,6 +649,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -630,6 +665,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
@@ -721,6 +757,7 @@ export interface OkuRouter extends BaseContract {
       target: AddressLike,
       swapCallData: BytesLike,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -736,6 +773,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -751,6 +789,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
@@ -768,6 +807,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -784,6 +824,7 @@ export interface OkuRouter extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
@@ -912,6 +953,13 @@ export interface OkuRouter extends BaseContract {
     PausedEvent.OutputObject
   >;
   getEvent(
+    key: "RecipientOverridden"
+  ): TypedContractEvent<
+    RecipientOverriddenEvent.InputTuple,
+    RecipientOverriddenEvent.OutputTuple,
+    RecipientOverriddenEvent.OutputObject
+  >;
+  getEvent(
     key: "SwapTargetAdded"
   ): TypedContractEvent<
     SwapTargetAddedEvent.InputTuple,
@@ -999,7 +1047,7 @@ export interface OkuRouter extends BaseContract {
       EthWithdrawnEvent.OutputObject
     >;
 
-    "OrderFilled(address,address,address,uint256,uint256,uint256,address)": TypedContractEvent<
+    "OrderFilled(address,address,address,address,uint256,uint256,uint256,address)": TypedContractEvent<
       OrderFilledEvent.InputTuple,
       OrderFilledEvent.OutputTuple,
       OrderFilledEvent.OutputObject
@@ -1041,6 +1089,17 @@ export interface OkuRouter extends BaseContract {
       PausedEvent.InputTuple,
       PausedEvent.OutputTuple,
       PausedEvent.OutputObject
+    >;
+
+    "RecipientOverridden(address,address,string)": TypedContractEvent<
+      RecipientOverriddenEvent.InputTuple,
+      RecipientOverriddenEvent.OutputTuple,
+      RecipientOverriddenEvent.OutputObject
+    >;
+    RecipientOverridden: TypedContractEvent<
+      RecipientOverriddenEvent.InputTuple,
+      RecipientOverriddenEvent.OutputTuple,
+      RecipientOverriddenEvent.OutputObject
     >;
 
     "SwapTargetAdded(address)": TypedContractEvent<

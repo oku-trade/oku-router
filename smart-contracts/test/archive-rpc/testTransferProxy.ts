@@ -193,6 +193,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
                 okxSwapCalldata,
                 usdcAmount,
                 0n,
+                ZeroAddress,
                 warrant
             )
         } catch (error: any) {
@@ -249,6 +250,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
                 okxSwapCalldata,
                 usdcAmount,
                 0n,
+                ZeroAddress,
                 warrant
             )
         } catch (error: any) {
@@ -282,6 +284,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
                 "0x",
                 usdcAmount,
                 0n,
+                ZeroAddress,
                 warrant
             )
         } catch (error: any) {
@@ -343,6 +346,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
                 okxSwapCalldata,
                 usdcAmount,
                 0n,
+                ZeroAddress,
                 warrant
             )
         } catch (error: any) {
@@ -383,6 +387,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
                 "0x",
                 usdcAmount,
                 0n,
+                ZeroAddress,
                 warrant
             )
         } catch (error: any) {
@@ -414,6 +419,7 @@ describe("Transfer Proxy Pattern with Warrant Validation", function () {
                 "0x",
                 usdcAmount,
                 0n,
+                ZeroAddress,
                 warrant
             )
         } catch (error: any) {

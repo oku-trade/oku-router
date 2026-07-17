@@ -1918,8 +1918,50 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wethAddress: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
     nativeSymbol: "ETH",
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
-    supportedRouters: [],
-    knownSwapTargets: [],
+    supportedRouters: [
+      "icecreamswap",
+      "kyberswap",
+      "okx",
+      "usor",
+      "zeroex",
+    ],
+    knownSwapTargets: [
+      {
+        address: "0x603206D6105217DD972E4Ab30676A220CA393346",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+        name: "MetaAggregationRouterV2",
+        protocol: "kyberswap",
+      },
+      {
+        address: "0xE58b3089dF6667fBf99b75595a1671BaF6797D6d",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0x8876789976dEcBfCbBbe364623C63652db8C0904",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
+      {
+        address: "0x0000000000001ff3684f28c67538d4d072c22734",
+        name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0xe72688f7d25d7318b9a81f21edda640ca948c83b",
+        name: "Settler",
+        protocol: "0x",
+      },
+      {
+        address: "0xCaf681a66D020601342297493863E78C959E5cb2",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
+    ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
     canonicalPermit2: true,

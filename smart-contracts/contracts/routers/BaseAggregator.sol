@@ -30,6 +30,7 @@ contract BaseAggregator is EIP712, Pausable {
     /// @dev Emitted when an order is filled
     event OrderFilled(
         address indexed sender,
+        address indexed recipient,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
@@ -38,8 +39,16 @@ contract BaseAggregator is EIP712, Pausable {
         address target
     );
 
+    /// @dev Emitted when a requested recipient is overridden to msg.sender due to validation
+    event RecipientOverridden(
+        address indexed requestedRecipient,
+        address indexed resolvedRecipient,
+        string reason
+    );
+
     /// @dev Internal helper to emit OrderFilled event (reduces stack depth in callers)
     function _emitOrderFilled(
+        address recipient,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
@@ -49,6 +58,7 @@ contract BaseAggregator is EIP712, Pausable {
     ) internal {
         emit OrderFilled(
             msg.sender,
+            recipient,
             tokenIn,
             tokenOut,
             amountIn,
@@ -56,6 +66,38 @@ contract BaseAggregator is EIP712, Pausable {
             feeAmount,
             target
         );
+    }
+
+    /// @dev Resolves the recipient address, defaulting to msg.sender for invalid values.
+    /// Emits RecipientOverridden when the requested recipient is silently overridden.
+    /// @param recipient The requested recipient address
+    /// @param target The swap target (DEX aggregator)
+    /// @param approvalTarget The approval target (may differ from target)
+    /// @return The resolved recipient address
+    function _resolveRecipient(
+        address recipient,
+        address target,
+        address approvalTarget
+    ) internal returns (address) {
+        if (recipient == address(0)) {
+            return msg.sender;
+        }
+        if (recipient == msg.sender) {
+            return msg.sender;
+        }
+        if (recipient == address(this)) {
+            emit RecipientOverridden(recipient, msg.sender, "RECIPIENT_IS_THIS");
+            return msg.sender;
+        }
+        if (recipient == target) {
+            emit RecipientOverridden(recipient, msg.sender, "RECIPIENT_IS_TARGET");
+            return msg.sender;
+        }
+        if (recipient == approvalTarget) {
+            emit RecipientOverridden(recipient, msg.sender, "RECIPIENT_IS_APPROVAL_TARGET");
+            return msg.sender;
+        }
+        return recipient;
     }
 
     /// @dev Consumes a warrant nonce to prevent replay attacks
@@ -120,12 +162,14 @@ contract BaseAggregator is EIP712, Pausable {
     /// @param target the address of the aggregator contract that will exec the swap
     /// @param swapCallData the calldata that will be passed to the aggregator contract
     /// @param feeAmount the amount of ETH that we will take as a fee
+    /// @param recipient the address that should receive the output tokens (address(0) defaults to msg.sender)
     ///
     function fillQuoteEthToToken(
         address buyTokenAddress,
         address payable target,
         bytes calldata swapCallData,
         uint256 feeAmount,
+        address recipient,
         CanoeHelper.Warrant calldata warrant
     )
         external
@@ -137,7 +181,16 @@ contract BaseAggregator is EIP712, Pausable {
     {
         require(msg.value > feeAmount, "INSUFFICIENT_ETH");
 
-        // 0 - verify the canoe warrant
+        // 0 - Resolve recipient
+        address resolvedRecipient = _resolveRecipient(recipient, target, address(0));
+
+        // 0.1 - Enforce warrant when sending to a different recipient
+        require(
+            resolvedRecipient == msg.sender || warrant.verifyingSigner != address(0),
+            "WARRANT_REQUIRED_FOR_RECIPIENT"
+        );
+
+        // 0.2 - verify the canoe warrant
         _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
             _domainSeparatorV4(),
@@ -146,7 +199,8 @@ contract BaseAggregator is EIP712, Pausable {
                     buyTokenAddress,
                     target,
                     keccak256(swapCallData),
-                    feeAmount
+                    feeAmount,
+                    recipient
                 )
             ),
             warrant
@@ -167,13 +221,13 @@ contract BaseAggregator is EIP712, Pausable {
 
         // Get the revert message of the call and revert with it if the call failed
         if (!success) {
-            assembly {
+            assembly ("memory-safe") {
                 let returndata_size := mload(res)
                 revert(add(32, res), returndata_size)
             }
         }
 
-        // 3 - Make sure we received the tokens, send to user, and emit event
+        // 3 - Make sure we received the tokens, send to recipient, and emit event
         {
             uint256 finalTokenBalance = IERC20(buyTokenAddress).balanceOf(
                 address(this)
@@ -181,15 +235,16 @@ contract BaseAggregator is EIP712, Pausable {
             require(initialTokenBalance < finalTokenBalance, "NO_TOKENS");
             uint256 tokensReceived = finalTokenBalance - initialTokenBalance;
 
-            // 4 - Send the received tokens back to the user
+            // 4 - Send the received tokens to the resolved recipient
             SafeERC20.safeTransfer(
                 IERC20(buyTokenAddress),
-                msg.sender,
+                resolvedRecipient,
                 tokensReceived
             );
 
             // 5 - Emit OrderFilled event
             _emitOrderFilled(
+                resolvedRecipient,
                 address(0),
                 buyTokenAddress,
                 msg.value,
@@ -218,6 +273,7 @@ contract BaseAggregator is EIP712, Pausable {
     /// @param swapCallData the calldata that will be passed to the aggregator contract
     /// @param sellAmount the amount of tokens that the user is selling
     /// @param feeAmount the amount of the tokens to sell that we will take as a fee
+    /// @param recipient the address that should receive the output tokens (address(0) defaults to msg.sender)
     function fillQuoteTokenToToken(
         address sellTokenAddress,
         address buyTokenAddress,
@@ -226,6 +282,7 @@ contract BaseAggregator is EIP712, Pausable {
         bytes calldata swapCallData,
         uint256 sellAmount,
         uint256 feeAmount,
+        address recipient,
         CanoeHelper.Warrant calldata warrant
     )
         external
@@ -244,6 +301,7 @@ contract BaseAggregator is EIP712, Pausable {
             swapCallData,
             sellAmount,
             feeAmount,
+            recipient,
             warrant,
             false // Tokens not yet transferred, must pull from user
         );
@@ -258,6 +316,7 @@ contract BaseAggregator is EIP712, Pausable {
     /// @param swapCallData the calldata that will be passed to the aggregator contract
     /// @param sellAmount the amount of tokens that the user is selling
     /// @param feeAmount the amount of the tokens to sell that we will take as a fee
+    /// @param recipient the address that should receive the output tokens (address(0) defaults to msg.sender)
     /// @param permitData struct containing the value, nonce, deadline, v, r and s values of the permit data
     function fillQuoteTokenToTokenWithPermit(
         address sellTokenAddress,
@@ -267,6 +326,7 @@ contract BaseAggregator is EIP712, Pausable {
         bytes calldata swapCallData,
         uint256 sellAmount,
         uint256 feeAmount,
+        address recipient,
         PermitHelper.Permit calldata permitData,
         CanoeHelper.Warrant calldata warrant
     )
@@ -304,6 +364,7 @@ contract BaseAggregator is EIP712, Pausable {
             swapCallData,
             sellAmount,
             feeAmount,
+            recipient,
             warrant,
             skipTransferFrom
         );
@@ -316,6 +377,7 @@ contract BaseAggregator is EIP712, Pausable {
     /// @param swapCallData the calldata that will be passed to the aggregator contract
     /// @param sellAmount the amount of tokens that the user is selling
     /// @param feePercentageBasisPoints the amount of ETH that we will take as a fee in 1e18 basis points (basis points with 4 decimals plus 14 extra decimals of precision)
+    /// @param recipient the address that should receive the output ETH (address(0) defaults to msg.sender)
     function fillQuoteTokenToEth(
         address sellTokenAddress,
         address payable target,
@@ -323,6 +385,7 @@ contract BaseAggregator is EIP712, Pausable {
         bytes calldata swapCallData,
         uint256 sellAmount,
         uint256 feePercentageBasisPoints,
+        address recipient,
         CanoeHelper.Warrant calldata warrant
     )
         external
@@ -340,6 +403,7 @@ contract BaseAggregator is EIP712, Pausable {
             swapCallData,
             sellAmount,
             feePercentageBasisPoints,
+            recipient,
             warrant,
             false // Tokens not yet transferred, must pull from user
         );
@@ -353,6 +417,7 @@ contract BaseAggregator is EIP712, Pausable {
     /// @param swapCallData the calldata that will be passed to the aggregator contract
     /// @param sellAmount the amount of tokens that the user is selling
     /// @param feePercentageBasisPoints the amount of ETH that we will take as a fee in 1e18 basis points (basis points with 4 decimals plus 14 extra decimals of precision)
+    /// @param recipient the address that should receive the output ETH (address(0) defaults to msg.sender)
     /// @param permitData struct containing the amount, nonce, deadline, v, r and s values of the permit data
     function fillQuoteTokenToEthWithPermit(
         address sellTokenAddress,
@@ -361,6 +426,7 @@ contract BaseAggregator is EIP712, Pausable {
         bytes calldata swapCallData,
         uint256 sellAmount,
         uint256 feePercentageBasisPoints,
+        address recipient,
         PermitHelper.Permit calldata permitData,
         CanoeHelper.Warrant calldata warrant
     )
@@ -397,6 +463,7 @@ contract BaseAggregator is EIP712, Pausable {
             swapCallData,
             sellAmount,
             feePercentageBasisPoints,
+            recipient,
             warrant,
             skipTransferFrom
         );
@@ -405,6 +472,7 @@ contract BaseAggregator is EIP712, Pausable {
     /** INTERNAL **/
 
     /// @dev internal method that executes ERC20 to ETH token swaps with the ability to take a fee from the output
+    /// @param recipient the address that should receive the output ETH (address(0) defaults to msg.sender)
     /// @param skipTransferFrom if true, assumes tokens are already in contract (e.g., from Permit2's permitTransferFrom)
     function _fillQuoteTokenToEth(
         address sellTokenAddress,
@@ -413,10 +481,20 @@ contract BaseAggregator is EIP712, Pausable {
         bytes calldata swapCallData,
         uint256 sellAmount,
         uint256 feePercentageBasisPoints,
+        address recipient,
         CanoeHelper.Warrant calldata warrant,
         bool skipTransferFrom
     ) internal {
-        // 0 - verify the canoe warrant
+        // 0 - Resolve recipient
+        address resolvedRecipient = _resolveRecipient(recipient, target, approvalTarget);
+
+        // 0.1 - Enforce warrant when sending to a different recipient
+        require(
+            resolvedRecipient == msg.sender || warrant.verifyingSigner != address(0),
+            "WARRANT_REQUIRED_FOR_RECIPIENT"
+        );
+
+        // 0.2 - verify the canoe warrant
         _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
             _domainSeparatorV4(),
@@ -427,7 +505,8 @@ contract BaseAggregator is EIP712, Pausable {
                     approvalTarget,
                     keccak256(swapCallData),
                     sellAmount,
-                    feePercentageBasisPoints
+                    feePercentageBasisPoints,
+                    recipient
                 )
             ),
             warrant
@@ -463,7 +542,7 @@ contract BaseAggregator is EIP712, Pausable {
 
         // Get the revert message of the call and revert with it if the call failed
         if (!success) {
-            assembly {
+            assembly ("memory-safe") {
                 let returndata_size := mload(res)
                 revert(add(32, res), returndata_size)
             }
@@ -476,7 +555,7 @@ contract BaseAggregator is EIP712, Pausable {
         );
         require(allowance == 0, "ALLOWANCE_NOT_ZERO");
 
-        // 6 - Subtract the fees and send the rest to the user
+        // 6 - Subtract the fees and send the rest to the resolved recipient
         // Fees will be held in this contract
         uint256 finalEthAmount = address(this).balance;
         uint256 ethDiff = finalEthAmount - initialEthAmount;
@@ -489,15 +568,16 @@ contract BaseAggregator is EIP712, Pausable {
         if (feePercentageBasisPoints > 0) {
             fees = (ethDiff * feePercentageBasisPoints) / 1e18;
             amountToUser = ethDiff - fees;
-            SafeTransferLib.safeTransferETH(msg.sender, amountToUser);
+            SafeTransferLib.safeTransferETH(resolvedRecipient, amountToUser);
             // when there's no fee, 1inch sends the funds directly to the user
             // we check to prevent sending 0 ETH in that case
         } else if (ethDiff > 0) {
-            SafeTransferLib.safeTransferETH(msg.sender, ethDiff);
+            SafeTransferLib.safeTransferETH(resolvedRecipient, ethDiff);
         }
 
         // 7 - Emit OrderFilled event
         _emitOrderFilled(
+            resolvedRecipient,
             sellTokenAddress,
             address(0),
             sellAmount,
@@ -508,6 +588,7 @@ contract BaseAggregator is EIP712, Pausable {
     }
 
     /// @dev internal method that executes ERC20 to ERC20 token swaps with the ability to take a fee from the input
+    /// @param recipient the address that should receive the output tokens (address(0) defaults to msg.sender)
     /// @param skipTransferFrom if true, assumes tokens are already in contract (e.g., from Permit2's permitTransferFrom)
     function _fillQuoteTokenToToken(
         address sellTokenAddress,
@@ -517,9 +598,20 @@ contract BaseAggregator is EIP712, Pausable {
         bytes calldata swapCallData,
         uint256 sellAmount,
         uint256 feeAmount,
+        address recipient,
         CanoeHelper.Warrant calldata warrant,
         bool skipTransferFrom
     ) internal {
+        // 0 - Resolve recipient
+        address resolvedRecipient = _resolveRecipient(recipient, target, approvalTarget);
+
+        // 0.1 - Enforce warrant when sending to a different recipient
+        require(
+            resolvedRecipient == msg.sender || warrant.verifyingSigner != address(0),
+            "WARRANT_REQUIRED_FOR_RECIPIENT"
+        );
+
+        // 0.2 - verify the canoe warrant
         _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
             _domainSeparatorV4(),
@@ -531,7 +623,8 @@ contract BaseAggregator is EIP712, Pausable {
                     approvalTarget,
                     keccak256(swapCallData),
                     sellAmount,
-                    feeAmount
+                    feeAmount,
+                    recipient
                 )
             ),
             warrant
@@ -569,7 +662,7 @@ contract BaseAggregator is EIP712, Pausable {
 
         // Get the revert message of the call and revert with it if the call failed
         if (!success) {
-            assembly {
+            assembly ("memory-safe") {
                 let returndata_size := mload(res)
                 revert(add(32, res), returndata_size)
             }
@@ -592,15 +685,16 @@ contract BaseAggregator is EIP712, Pausable {
         uint256 tokensReceived = finalOutputTokenAmount -
             initialOutputTokenAmount;
 
-        // 7 - Send tokens to the user
+        // 7 - Send tokens to the resolved recipient
         SafeERC20.safeTransfer(
             IERC20(buyTokenAddress),
-            msg.sender,
+            resolvedRecipient,
             tokensReceived
         );
 
         // 8 - Emit OrderFilled event
         _emitOrderFilled(
+            resolvedRecipient,
             sellTokenAddress,
             buyTokenAddress,
             sellAmount,

@@ -539,6 +539,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )
@@ -552,6 +553,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )
@@ -578,6 +580,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )
@@ -590,6 +593,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )

@@ -172,6 +172,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    ZeroAddress,
                     zeroWarrant,
                 ]
             );
@@ -229,6 +230,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     feeAmount,
+                    ZeroAddress,
                     zeroWarrant,
                 ]
             );
@@ -301,6 +303,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    ZeroAddress,
                     zeroWarrant,
                 ]
             );
@@ -343,6 +346,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    ZeroAddress,
                     zeroWarrant,
                 ]
             );
