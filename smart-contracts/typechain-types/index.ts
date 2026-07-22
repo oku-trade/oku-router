@@ -84,3 +84,5 @@ export type { BaseAggregator } from "./contracts/routers/BaseAggregator";
 export { BaseAggregator__factory } from "./factories/contracts/routers/BaseAggregator__factory";
 export type { MockERC20 } from "./contracts/test/MockERC20";
 export { MockERC20__factory } from "./factories/contracts/test/MockERC20__factory";
+export type { MockSwapTarget } from "./contracts/test/MockSwapTarget";
+export { MockSwapTarget__factory } from "./factories/contracts/test/MockSwapTarget__factory";
