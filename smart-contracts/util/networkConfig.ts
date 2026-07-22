@@ -23,6 +23,8 @@
  * - PropellerSwap/Tycho: Ethereum, Base, Unichain only.
  * - 0x/Matcha: AllowanceHolder is hardcodable per hardfork; Settler rotates per deployment (reverify quarterly).
  * - OKX: chain-specific DexRouter + TokenApprove pair (both must be whitelisted).
+ * - Binance: 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5 (same on every supported chain).
+ * - Native: chain-specific router addresses.
  * - Enso, Unizen, Gluex: API-dependent (addresses fetched dynamically).
  */
 
@@ -80,6 +82,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "zeroex", // Now supported with transfer proxy!
       "openocean",
       "usor",
+      "binance",
     ],
     knownSwapTargets: [
       {
@@ -172,6 +175,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OkxApproval",
         protocol: "okx",
       },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
@@ -199,6 +207,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "fabric",
       "usor",
       "zeroex",
+      "binance",
+      "native",
     ],
     knownSwapTargets: [
       {
@@ -292,6 +302,16 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OkxApproval",
         protocol: "okx",
       },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
+      },
+      {
+        address: "0xaEC634d949df14Be76dC317504C7b9a6a8A5f576",
+        name: "NativeRouter",
+        protocol: "native",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
@@ -368,6 +388,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "openocean",
       "enso",
       "usor",
+      "binance",
     ],
     knownSwapTargets: [
       {
@@ -440,6 +461,16 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OkxApproval",
         protocol: "okx",
       },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
+      },
+      {
+        address: "0xF064b069Ed18Eb5c61159247C55C5af79B28a968",
+        name: "NativeRouter",
+        protocol: "native",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
@@ -465,6 +496,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "enso",
       "icecreamswap",
       "usor",
+      "binance",
     ],
     knownSwapTargets: [
       {
@@ -532,6 +564,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OkxApproval",
         protocol: "okx",
       },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
@@ -558,6 +595,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "enso",
       "fabric",
       "usor",
+      "binance",
+      "native",
     ],
     knownSwapTargets: [
       {
@@ -629,6 +668,16 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0x70cBb871E8f30Fc8Ce23609E9E0Ea87B6b222F58",
         name: "OkxApproval",
         protocol: "okx",
+      },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
+      },
+      {
+        address: "0x0FC85a171bD0b53BF0bBace74F04B66170Ae3eAb",
+        name: "NativeRouter",
+        protocol: "native",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -801,6 +850,7 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "enso",
       "okx",
       "usor",
+      "binance",
     ],
     knownSwapTargets: [
       {
@@ -862,6 +912,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0x57df6092665eb6058DE53939612413ff4B09114E",
         name: "OkxApproval",
         protocol: "okx",
+      },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -1035,6 +1090,8 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
       "openocean",
       "usor",
       "zeroex",
+      "binance",
+      "native",
     ],
     knownSwapTargets: [
       {
@@ -1086,6 +1143,16 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         address: "0xf534A8a1CAD0543Cd6438f7534CA3486c01998d4",
         name: "OkxApproval",
         protocol: "okx",
+      },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
+      },
+      {
+        address: "0x332e56e0b91eC3F08553eC7964E19CC041A38672",
+        name: "NativeRouter",
+        protocol: "native",
       },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
@@ -1726,6 +1793,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
         name: "OkxApproval",
         protocol: "okx",
       },
+      {
+        address: "0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5",
+        name: "BinanceRouter",
+        protocol: "binance",
+      },
     ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
@@ -1918,8 +1990,56 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wethAddress: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
     nativeSymbol: "ETH",
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
-    supportedRouters: [],
-    knownSwapTargets: [],
+    supportedRouters: [
+      "icecreamswap",
+      "kyberswap",
+      "okx",
+      "usor",
+      "zeroex",
+      "native",
+    ],
+    knownSwapTargets: [
+      {
+        address: "0x0000000000001ff3684f28c67538d4d072c22734",
+        name: "AllowanceHolder",
+        protocol: "0x",
+      },
+      {
+        address: "0xe72688f7d25d7318b9a81f21edda640ca948c83b",
+        name: "Settler",
+        protocol: "0x",
+      },
+      {
+        address: "0x603206D6105217DD972E4Ab30676A220CA393346",
+        name: "IceCreamSwapRouter",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+        name: "MetaAggregationRouterV2",
+        protocol: "kyberswap",
+      },
+      {
+        address: "0xE58b3089dF6667fBf99b75595a1671BaF6797D6d",
+        name: "OkxRouter",
+        protocol: "okx",
+      },
+      {
+        address: "0x8876789976decbfcbbbe364623c63652db8c0904",
+        name: "UsorRouter",
+        protocol: "usor",
+      },
+      {
+        address: "0xcaf681a66d020601342297493863e78c959e5cb2",
+        name: "SwapRouter02",
+        protocol: "uniswap",
+      },
+      {
+        address: "0xa5ec1f0aC784C3620fFDcdf2A7DbcEF9DA658ea4",
+        name: "NativeRouter",
+        protocol: "native",
+      },
+    ],
     ownerAddress: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
     canonicalPermit2: true,
