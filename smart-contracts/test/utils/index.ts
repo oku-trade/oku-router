@@ -120,7 +120,7 @@ const init = async () => {
   // Deploy OkuRouter using ethers v6
   // Note: Pass constructor args if any, then overrides
   const ownerAddress = await signer.getAddress();
-  const okuRouterInstance = await new OkuRouter__factory(signer).deploy("Oku Router", "1.0", ownerAddress)
+  const okuRouterInstance = await new OkuRouter__factory(signer).deploy("Oku Router", "1.0", ownerAddress, hre.ethers.ZeroAddress)
   await okuRouterInstance.waitForDeployment(); // Wait for deployment confirmation
   const instanceAddress = await okuRouterInstance.getAddress();
   Logger.log("Contract address", instanceAddress);
@@ -313,9 +313,9 @@ export type PermitData = {
 }
 
 export type WarrantData = {
-  nonce: string,
-  validBefore: string,
-  validAfter: string,
+  nonce: bigint,
+  validBefore: bigint,
+  validAfter: bigint,
   verifyingSigner: string,
   signature: string
 }

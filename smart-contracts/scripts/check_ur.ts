@@ -1,4 +1,4 @@
-import { NETWORK_CONFIGS } from "./util/networkConfig";
+import { NETWORK_CONFIGS } from "../util/networkConfig";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -41,7 +41,7 @@ const universalRouters: Record<string, string> = {
   robinhood:  "0x8876789976dEcBfCbBbe364623C63652db8C0904",
 };
 
-const deployDir = path.join(__dirname, "deployments");
+const deployDir = path.join(__dirname, "..", "deployments");
 const deployed = new Set(
   fs.readdirSync(deployDir).filter(f => f.endsWith(".json")).map(f => f.replace(".json", ""))
 );
@@ -50,7 +50,7 @@ for (const [chain, ur] of Object.entries(universalRouters).sort(([a],[b]) => a.l
   const config = NETWORK_CONFIGS[chain];
   if (!config) continue;
   const alreadyHas = config.knownSwapTargets.some(
-    t => t.address.toLowerCase() === ur.toLowerCase()
+    (t: any) => t.address.toLowerCase() === ur.toLowerCase()
   );
   const isDeployed = deployed.has(chain);
   const needsWhitelist = isDeployed && !alreadyHas;

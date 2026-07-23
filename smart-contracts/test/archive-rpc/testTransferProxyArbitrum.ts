@@ -77,7 +77,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
 
     it("Deploy Rainbow Router", async () => {
         const ownerAddress = await signer.getAddress();
-        Rainbow = await new OkuRouter__factory(signer).deploy(name, version, ownerAddress)
+        Rainbow = await new OkuRouter__factory(signer).deploy(name, version, ownerAddress, ethers.ZeroAddress)
         expect(await Rainbow.getAddress()).to.be.properAddress
 
         // Whitelist CoW Protocol contracts
@@ -179,6 +179,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
                 cowCalldata,
                 usdcAmount,
                 0n,
+                await signer.getAddress(), // recipient
                 warrant
             )
         } catch (error: any) {
@@ -221,6 +222,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
                 cowCalldata,
                 usdcAmount,
                 0n,
+                await signer.getAddress(), // recipient
                 warrant
             )
         } catch (error: any) {
@@ -266,6 +268,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
                 cowCalldata,
                 usdcAmount,
                 0n,
+                await signer.getAddress(), // recipient
                 warrant
             )
         } catch (error: any) {

@@ -256,7 +256,7 @@ export const generatePermitSignature = async (
     let nonce: bigint = 0n;
 
     try {
-        nonce = await tokenContract.nonces(ownerAddress);
+        nonce = await (tokenContract as any).nonces(ownerAddress);
     } catch (error: any) {
         console.warn(`WARN: Could not fetch nonce for ${tokenAddress}. This token might not support EIP-2612 (permit). Defaulting nonce to 0.`);
     }
@@ -539,6 +539,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                verifyingSignerAddress, // recipient - the signer's own address
                 permitData,
                 warrant
             )
@@ -552,6 +553,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                verifyingSignerAddress, // recipient - the signer's own address
                 permitData,
                 warrant
             )
@@ -578,6 +580,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                verifyingSignerAddress, // recipient - the signer's own address
                 permitData,
                 warrant
             )
@@ -590,6 +593,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                verifyingSignerAddress, // recipient - the signer's own address
                 permitData,
                 warrant
             )
@@ -1005,7 +1009,7 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
         const decoded = rainbowInterface.parseTransaction({ data: originalTxData });
         
         if (decoded?.name === "fillQuoteTokenToToken") {
-            const [sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, originalWarrant] = decoded.args;
+            const [sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, recipient, originalWarrant] = decoded.args;
 
             const newWarrant = {
                 nonce: originalWarrant.nonce || modifiedWarrant.nonce || "0",
@@ -1016,13 +1020,13 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
             };
 
             const newTxData = rainbowInterface.encodeFunctionData("fillQuoteTokenToToken", [
-                sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, newWarrant
+                sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, recipient, newWarrant
             ]);
 
             console.log(`🔄 Warrant signer changed from ${originalWarrant.verifyingSigner} to ${newWarrant.verifyingSigner}`);
             return newTxData;
         } else if (decoded?.name === "fillQuoteTokenToEth") {
-            const [sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, originalWarrant] = decoded.args;
+            const [sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, recipient, originalWarrant] = decoded.args;
 
             const newWarrant = {
                 nonce: originalWarrant.nonce || modifiedWarrant.nonce || "0",
@@ -1033,14 +1037,14 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
             };
 
             const newTxData = rainbowInterface.encodeFunctionData("fillQuoteTokenToEth", [
-                sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, newWarrant
+                sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, recipient, newWarrant
             ]);
 
             console.log(`🔄 Warrant signer changed from ${originalWarrant.verifyingSigner} to ${newWarrant.verifyingSigner}`);
             return newTxData;
         } else if (decoded?.name === "fillQuoteEthToToken") {
             // Note: fillQuoteEthToToken does NOT have approvalTarget (ETH doesn't require approval)
-            const [buyToken, target, swapCallData, feeAmount, originalWarrant] = decoded.args;
+            const [buyToken, target, swapCallData, feeAmount, recipient, originalWarrant] = decoded.args;
 
             const newWarrant = {
                 nonce: originalWarrant.nonce || modifiedWarrant.nonce || "0",
@@ -1051,7 +1055,7 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
             };
 
             const newTxData = rainbowInterface.encodeFunctionData("fillQuoteEthToToken", [
-                buyToken, target, swapCallData, feeAmount, newWarrant
+                buyToken, target, swapCallData, feeAmount, recipient, newWarrant
             ]);
 
             console.log(`🔄 Warrant signer changed from ${originalWarrant.verifyingSigner} to ${newWarrant.verifyingSigner}`);

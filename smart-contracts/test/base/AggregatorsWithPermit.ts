@@ -162,6 +162,7 @@ describe("OkuRouter Aggregators", function () {
         quote.to || ZeroAddress,
         quote.data || Sources.Aggregator0x,
         quote.fee,
+        await signer.getAddress(), // recipient
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -176,7 +177,7 @@ describe("OkuRouter Aggregators", function () {
 
       const receipt = await swapTx.wait();
       if (showGasUsage && receipt) {
-        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
+        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
       }
 
       const tokenBalanceSigner = await tokenContract.balanceOf(await signer.getAddress());
@@ -272,9 +273,11 @@ describe("OkuRouter Aggregators", function () {
         swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEthWithPermit(
           quote.sellTokenAddress,
           quote.to || ZeroAddress,
+          quote.to || ZeroAddress, // approvalTarget - same as target for standard aggregators
           quote.data || Sources.Aggregator0x, // Provide a default value
           quote.sellAmount,
           quote.feePercentageBasisPoints,
+          signerAddress, // recipient
           permitSignature,
           warrant,
           {
@@ -286,9 +289,11 @@ describe("OkuRouter Aggregators", function () {
         swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEth(
           quote.sellTokenAddress,
           quote.to || ZeroAddress,
+          quote.to || ZeroAddress, // approvalTarget - same as target for standard aggregators
           quote.data || Sources.Aggregator0x,
           quote.sellAmount,
           quote.feePercentageBasisPoints,
+          signerAddress, // recipient
           {
             verifyingSigner: ZeroAddress,
             nonce: 0n,
@@ -410,9 +415,11 @@ describe("OkuRouter Aggregators", function () {
         quote.sellTokenAddress,
         quote.buyTokenAddress,
         quote.to || ZeroAddress, // Provide a default value
+        quote.to || ZeroAddress, // approvalTarget - same as target for standard aggregators
         quote.data || Sources.Aggregator0x, // Provide a default value
         quote.sellAmount,
         quote.fee,
+        signerAddress, // recipient
         permitSignature,
         warrant,
         {

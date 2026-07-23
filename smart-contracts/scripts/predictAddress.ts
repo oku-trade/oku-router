@@ -68,6 +68,7 @@ async function main() {
     CONTRACT_NAME,
     CONTRACT_VERSION,
     ownerAddress,
+    ethers.ZeroAddress,
   );
   if (!routerDeployTx.data) throw new Error("Failed to generate OkuRouter init code");
   const routerInitCodeHash = ethers.keccak256(routerDeployTx.data);

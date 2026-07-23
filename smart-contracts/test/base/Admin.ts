@@ -514,6 +514,7 @@ describe("Admin", function () {
         maliciousCalldata, // The swap calldata to the target
         attackerSellAmount, // amountToSell
         0n, // minAmountOut
+        attackerAddress, // recipient
         warrant,
         { value: 0n } // msg.value if needed
       )
@@ -569,6 +570,7 @@ describe("Admin", function () {
         maliciousCalldata,
         attackerSellAmount,
         0n,
+        attackerAddress, // recipient
         warrant,
         { value: 0n }
       )
@@ -834,6 +836,7 @@ describe("Admin", function () {
           "0x",
           1000000n,
           0n,
+          await owner.getAddress(), // recipient
           warrant
         )
       ).to.be.revertedWithCustomError(instance, "EnforcedPause");

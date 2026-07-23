@@ -145,7 +145,7 @@ async function testChain(chain: ChainTarget, devAddress: string): Promise<TestRe
 
     // Predict address using the dev wallet as owner (matching real deploy flow)
     const OkuRouter = await ethers.getContractFactory("OkuRouter");
-    const deployTx = await OkuRouter.getDeployTransaction(CONTRACT_NAME, CONTRACT_VERSION, devAddress);
+    const deployTx = await OkuRouter.getDeployTransaction(CONTRACT_NAME, CONTRACT_VERSION, devAddress, ethers.ZeroAddress);
     const initCode = deployTx.data;
     if (!initCode) throw new Error("Failed to generate init code");
 

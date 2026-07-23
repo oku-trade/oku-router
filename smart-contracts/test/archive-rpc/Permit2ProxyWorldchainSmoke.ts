@@ -79,6 +79,7 @@ describe("Permit2Proxy.executeAllowance — World Chain smoke", function () {
             "Oku Router",
             "1.1",
             ownerAddress,
+            ethers.ZeroAddress,
         );
         await Rainbow.waitForDeployment();
 

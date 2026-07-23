@@ -104,6 +104,15 @@ contract OkuRouter is BaseAggregator, Ownable2Step {
         emit ContractUnpaused(msg.sender);
     }
 
+    /// @dev Sets the maximum allowed warrant duration (validBefore - validAfter) in seconds.
+    /// Set to 0 to disable the check. Only callable by the owner.
+    /// @param duration The maximum duration in seconds (e.g., 300 for 5 minutes)
+    function setMaxWarrantDuration(uint256 duration) external onlyOwner {
+        uint256 old = maxWarrantDuration;
+        maxWarrantDuration = duration;
+        emit MaxWarrantDurationUpdated(old, duration);
+    }
+
     /// @dev Sweep the full contract balance of multiple ERC20 tokens
     /// (and optionally the full ETH balance) to a single receiver.
     /// Reverts if both `tokens` is empty and `includeEth` is false to

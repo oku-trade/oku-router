@@ -108,7 +108,7 @@ describe("Permit2Proxy", function () {
         const ownerAddress = await owner.getAddress();
 
         // Deploy OkuRouter
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress);
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ethers.ZeroAddress);
         await Rainbow.waitForDeployment();
         rainbowAddress = await Rainbow.getAddress();
 
@@ -172,6 +172,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    proxyAddress, // recipient (proxy is msg.sender, forwards output to user)
                     zeroWarrant,
                 ]
             );
@@ -229,6 +230,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     feeAmount,
+                    proxyAddress, // recipient (proxy is msg.sender, forwards output to user)
                     zeroWarrant,
                 ]
             );
@@ -301,6 +303,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    proxyAddress, // recipient (proxy is msg.sender, forwards output to user)
                     zeroWarrant,
                 ]
             );
@@ -343,6 +346,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    proxyAddress, // recipient (proxy is msg.sender, forwards output to user)
                     zeroWarrant,
                 ]
             );

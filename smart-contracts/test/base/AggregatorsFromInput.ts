@@ -230,6 +230,7 @@ describe("OkuRouter Aggregators", function () {
         quote.data || Sources.Aggregator0x,
         quote.sellAmount,
         quote.fee,
+        signerAddress, // recipient
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -367,6 +368,7 @@ describe("OkuRouter Aggregators", function () {
         quote.to || ZeroAddress,
         quote.data || Sources.Aggregator0x,
         quote.fee,
+        signerAddress, // recipient
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -510,9 +512,11 @@ describe("OkuRouter Aggregators", function () {
       const swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEth(
         quoteParams.sellTokenAddress,
         quoteParams.target,
+        quoteParams.target, // approvalTarget - same as target for standard aggregators
         quoteParams.data,
         quoteParams.sellAmount,
         quoteParams.feePercentageBasisPoints,
+        signerAddress, // recipient
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,

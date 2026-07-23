@@ -45,7 +45,7 @@ describe("Test Oku Specific Functions", function () {
         recipientAddress = await recipient.getAddress()
 
         const ownerAddress = await owner.getAddress();
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress)
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ethers.ZeroAddress)
 
         const usdcAddress = "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85" // Optimism USDC
         USDC = ERC20__factory.connect(usdcAddress, owner)
@@ -191,7 +191,7 @@ describe("Test Oku Specific Functions", function () {
             const initialContractBalance = await USDC.balanceOf(rainbowAddress)
             const initialRecipientBalance = await USDC.balanceOf(recipientAddress)
 
-            await expect(Rainbow.connect(owner).withdrawToken(usdcAddress, recipientAddress, withdrawAmount))
+            await expect((Rainbow.connect(owner) as any).withdrawToken(usdcAddress, recipientAddress, withdrawAmount))
                 .to.emit(Rainbow, "TokenWithdrawn")
                 .withArgs(usdcAddress, recipientAddress, withdrawAmount)
 
@@ -203,19 +203,19 @@ describe("Test Oku Specific Functions", function () {
         })
 
         it("Should prevent withdrawing tokens to the zero address", async () => {
-            await expect(Rainbow.connect(owner).withdrawToken(usdcAddress, ZeroAddress, withdrawAmount))
+            await expect((Rainbow.connect(owner) as any).withdrawToken(usdcAddress, ZeroAddress, withdrawAmount))
                 .to.be.revertedWith("ZERO_ADDRESS")
         })
 
         it("Should prevent non-owner from withdrawing tokens", async () => {
-            await expect(Rainbow.connect(nonOwner).withdrawToken(usdcAddress, recipientAddress, withdrawAmount))
+            await expect((Rainbow.connect(nonOwner) as any).withdrawToken(usdcAddress, recipientAddress, withdrawAmount))
                 .to.be.revertedWithCustomError(Rainbow, "OwnableUnauthorizedAccount")
         })
 
         it("Should revert if withdrawing more tokens than balance (via SafeERC20)", async () => {
             const currentBalance = await USDC.balanceOf(rainbowAddress);
             const excessAmount = currentBalance + 1n // Calculate amount just over balance
-            await expect(Rainbow.connect(owner).withdrawToken(usdcAddress, recipientAddress, excessAmount))
+            await expect((Rainbow.connect(owner) as any).withdrawToken(usdcAddress, recipientAddress, excessAmount))
                 .to.be.reverted // SafeERC20 reverts without specific message usually, or with "ERC20: transfer amount exceeds balance"
         })
 
@@ -224,7 +224,7 @@ describe("Test Oku Specific Functions", function () {
             const initialContractBalance = await USDC.balanceOf(rainbowAddress)
             const initialRecipientBalance = await USDC.balanceOf(recipientAddress)
 
-            await expect(Rainbow.connect(owner).withdrawToken(usdcAddress, recipientAddress, 0n))
+            await expect((Rainbow.connect(owner) as any).withdrawToken(usdcAddress, recipientAddress, 0n))
                 .to.emit(Rainbow, "TokenWithdrawn")
                 .withArgs(usdcAddress, recipientAddress, 0n)
 
@@ -240,7 +240,7 @@ describe("Test Oku Specific Functions", function () {
             const initialContractBalance = await USDC.balanceOf(rainbowAddress)
             const initialRecipientBalance = await USDC.balanceOf(recipientAddress)
 
-            await expect(Rainbow.connect(owner).withdrawToken(usdcAddress, recipientAddress, minAmount))
+            await expect((Rainbow.connect(owner) as any).withdrawToken(usdcAddress, recipientAddress, minAmount))
                 .to.emit(Rainbow, "TokenWithdrawn")
                 .withArgs(usdcAddress, recipientAddress, minAmount)
 
@@ -266,7 +266,7 @@ describe("Test Oku Specific Functions", function () {
             const initialContractBalance = await ethers.provider.getBalance(rainbowAddress)
             const initialRecipientBalance = await ethers.provider.getBalance(recipientAddress)
 
-            const tx = await Rainbow.connect(owner).withdrawEth(recipientAddress, withdrawAmount)
+            const tx = await (Rainbow.connect(owner) as any).withdrawEth(recipientAddress, withdrawAmount)
             const receipt = await tx.wait()
             const gasUsed = receipt!.gasUsed * receipt!.gasPrice // Calculate gas cost for accurate balance check if owner is recipient
 
@@ -288,19 +288,19 @@ describe("Test Oku Specific Functions", function () {
         })
 
         it("Should prevent withdrawing ETH to the zero address", async () => {
-            await expect(Rainbow.connect(owner).withdrawEth(ZeroAddress, withdrawAmount))
+            await expect((Rainbow.connect(owner) as any).withdrawEth(ZeroAddress, withdrawAmount))
                 .to.be.revertedWith("ZERO_ADDRESS")
         })
 
         it("Should prevent non-owner from withdrawing ETH", async () => {
-            await expect(Rainbow.connect(nonOwner).withdrawEth(recipientAddress, withdrawAmount))
+            await expect((Rainbow.connect(nonOwner) as any).withdrawEth(recipientAddress, withdrawAmount))
                 .to.be.revertedWithCustomError(Rainbow, "OwnableUnauthorizedAccount")
         })
 
         it("Should revert if withdrawing more ETH than balance", async () => {
             const currentBalance = await ethers.provider.getBalance(rainbowAddress);
             const excessAmount = currentBalance + ethers.parseEther("1") // Calculate amount clearly over balance
-            await expect(Rainbow.connect(owner).withdrawEth(recipientAddress, excessAmount))
+            await expect((Rainbow.connect(owner) as any).withdrawEth(recipientAddress, excessAmount))
                 .to.be.reverted // Reverts due to insufficient balance (no specific message needed usually)
         })
 
@@ -309,7 +309,7 @@ describe("Test Oku Specific Functions", function () {
             const initialContractBalance = await ethers.provider.getBalance(rainbowAddress)
             const initialRecipientBalance = await ethers.provider.getBalance(recipientAddress)
 
-            await expect(Rainbow.connect(owner).withdrawEth(recipientAddress, 0n))
+            await expect((Rainbow.connect(owner) as any).withdrawEth(recipientAddress, 0n))
                 .to.emit(Rainbow, "EthWithdrawn")
                 .withArgs(recipientAddress, 0n)
 
@@ -325,7 +325,7 @@ describe("Test Oku Specific Functions", function () {
             const initialContractBalance = await ethers.provider.getBalance(rainbowAddress)
             const initialRecipientBalance = await ethers.provider.getBalance(recipientAddress)
 
-            await expect(Rainbow.connect(owner).withdrawEth(recipientAddress, minAmount))
+            await expect((Rainbow.connect(owner) as any).withdrawEth(recipientAddress, minAmount))
                 .to.emit(Rainbow, "EthWithdrawn")
                 .withArgs(recipientAddress, minAmount)
 
