@@ -97,7 +97,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                     swapCallData,
                     sellAmount,
                     0n,
-                    ZeroAddress,
+                    userAddress,
                     expiredWarrant
                 )
             ).to.be.revertedWith("CANOE: EXPIRED");
@@ -140,7 +140,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                     swapCallData,
                     sellAmount,
                     0n,
-                    ZeroAddress,
+                    userAddress,
                     futureWarrant
                 )
             ).to.be.revertedWith("CANOE: NOT_YET");
@@ -191,7 +191,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                     swapCallData,
                     sellAmount,
                     0n,
-                    ZeroAddress,
+                    userAddress,
                     wrongSignerWarrant
                 )
             ).to.be.revertedWith("CANOE: INVALID_SIGNATURE");
@@ -234,10 +234,10 @@ describe("OkuRouter Comprehensive Coverage", function () {
                 UNISWAP_V3_ROUTER,
                 UNISWAP_V3_ROUTER, // approvalTarget - same as target
                 swapCallData,
-                sellAmount,
-                0n,
-                ZeroAddress,
-                zeroSignerWarrant
+                    sellAmount,
+                    0n,
+                    userAddress,
+                    zeroSignerWarrant
             );
 
             const finalUSDC = await USDC.balanceOf(userAddress);
@@ -295,7 +295,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                     swapCallData,
                     sellAmount,
                     0n,
-                    ZeroAddress,
+                    userAddress,
                     warrant
                 )
             ).to.be.revertedWith("TARGET_NOT_AUTH");
@@ -341,7 +341,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                     swapCallData,
                     sellAmount,
                     0n,
-                    ZeroAddress,
+                    userAddress,
                     warrant
                 )
             ).to.be.revertedWith("INVALID_SIGNER");
@@ -389,7 +389,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                 swapCallData,
                 sellAmount,
                 feeAmount,
-                ZeroAddress,
+                userAddress,
                 warrant
             );
 
@@ -454,7 +454,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                 swapCallData,
                 sellAmount,
                 feeAmount,
-                ZeroAddress,
+                userAddress,
                 warrant
             );
 
@@ -516,7 +516,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                 swapCallData,
                 sellAmount,
                 0n,
-                ZeroAddress,
+                userAddress,
                 warrant
             );
 
@@ -558,7 +558,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
                 UNISWAP_V3_ROUTER,
                 swapCallData,
                 feeAmount,
-                ZeroAddress,
+                userAddress,
                 warrant,
                 { value: sellAmount }
             );

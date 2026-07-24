@@ -179,7 +179,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
                 cowCalldata,
                 usdcAmount,
                 0n,
-                ZeroAddress,
+                await signer.getAddress(),
                 warrant
             )
         } catch (error: any) {
@@ -222,7 +222,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
                 cowCalldata,
                 usdcAmount,
                 0n,
-                ZeroAddress,
+                await signer.getAddress(),
                 warrant
             )
         } catch (error: any) {
@@ -268,7 +268,7 @@ describe("Transfer Proxy Pattern - Arbitrum (CoW Protocol / PropellerSwap)", fun
                 cowCalldata,
                 usdcAmount,
                 0n,
-                ZeroAddress,
+                await signer.getAddress(),
                 warrant
             )
         } catch (error: any) {

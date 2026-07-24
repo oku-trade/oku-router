@@ -162,7 +162,7 @@ describe("OkuRouter Aggregators", function () {
         quote.to || ZeroAddress,
         quote.data || Sources.Aggregator0x,
         quote.fee,
-        ZeroAddress,
+        await signer.getAddress(),
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -277,7 +277,7 @@ describe("OkuRouter Aggregators", function () {
           quote.data || Sources.Aggregator0x, // Provide a default value
           quote.sellAmount,
           quote.feePercentageBasisPoints,
-          ZeroAddress,
+          signerAddress,
           permitSignature,
           warrant,
           {
@@ -293,7 +293,7 @@ describe("OkuRouter Aggregators", function () {
           quote.data || Sources.Aggregator0x,
           quote.sellAmount,
           quote.feePercentageBasisPoints,
-          ZeroAddress,
+          signerAddress,
           {
             verifyingSigner: ZeroAddress,
             nonce: 0n,
@@ -419,7 +419,7 @@ describe("OkuRouter Aggregators", function () {
         quote.data || Sources.Aggregator0x, // Provide a default value
         quote.sellAmount,
         quote.fee,
-        ZeroAddress,
+        signerAddress,
         permitSignature,
         warrant,
         {

@@ -125,7 +125,7 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
             swapCallData,
             sellAmount,
             feeAmount,
-            ZeroAddress,
+            proxyAddress,
             zeroWarrant,
         ]);
     }
