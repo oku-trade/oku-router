@@ -39,7 +39,7 @@ async function execWithTimeout(
   timeoutMs: number
 ): Promise<{ stdout: string; stderr: string }> {
   return Promise.race([
-    execAsync(command, options),
+    execAsync(command, options) as unknown as Promise<{ stdout: string; stderr: string }>,
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`Timeout after ${timeoutMs / 1000}s`)), timeoutMs)
     ),
@@ -54,7 +54,7 @@ async function testChain(networkName: string, chainName: string): Promise<ChainT
   try {
     const { stdout, stderr } = await execWithTimeout(
       `npx hardhat run scripts/testRouters/testRouters.ts --network ${networkName}`,
-      { maxBuffer: 10 * 1024 * 1024 }, // 10MB buffer for large output
+      { maxBuffer: 10 * 1024 * 1024, encoding: 'utf-8' }, // 10MB buffer for large output
       CHAIN_TIMEOUT_MS
     );
 

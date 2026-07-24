@@ -47,7 +47,7 @@ describe("OkuRouter Comprehensive Coverage", function () {
         unauthorizedSigner = signers[2];
 
         const ownerAddress = await owner.getAddress();
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress);
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
 
         USDC = IERC20Metadata__factory.connect(OPTIMISM_TOKENS.USDC, owner);
         WETH = IERC20Metadata__factory.connect(OPTIMISM_TOKENS.WETH, owner);

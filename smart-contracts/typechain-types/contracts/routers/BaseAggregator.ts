@@ -86,6 +86,7 @@ export interface BaseAggregatorInterface extends Interface {
       | "fillQuoteTokenToEthWithPermit"
       | "fillQuoteTokenToToken"
       | "fillQuoteTokenToTokenWithPermit"
+      | "maxWarrantDuration"
       | "paused"
       | "permit2"
       | "swapTargets"
@@ -96,9 +97,9 @@ export interface BaseAggregatorInterface extends Interface {
   getEvent(
     nameOrSignatureOrTopic:
       | "EIP712DomainChanged"
+      | "MaxWarrantDurationUpdated"
       | "OrderFilled"
       | "Paused"
-      | "RecipientOverridden"
       | "Unpaused"
   ): EventFragment;
 
@@ -173,6 +174,10 @@ export interface BaseAggregatorInterface extends Interface {
       CanoeHelper.WarrantStruct
     ]
   ): string;
+  encodeFunctionData(
+    functionFragment: "maxWarrantDuration",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(functionFragment: "permit2", values?: undefined): string;
   encodeFunctionData(
@@ -212,6 +217,10 @@ export interface BaseAggregatorInterface extends Interface {
     functionFragment: "fillQuoteTokenToTokenWithPermit",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "maxWarrantDuration",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "permit2", data: BytesLike): Result;
   decodeFunctionResult(
@@ -232,6 +241,22 @@ export namespace EIP712DomainChangedEvent {
   export type InputTuple = [];
   export type OutputTuple = [];
   export interface OutputObject {}
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace MaxWarrantDurationUpdatedEvent {
+  export type InputTuple = [
+    oldDuration: BigNumberish,
+    newDuration: BigNumberish
+  ];
+  export type OutputTuple = [oldDuration: bigint, newDuration: bigint];
+  export interface OutputObject {
+    oldDuration: bigint;
+    newDuration: bigint;
+  }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
   export type Log = TypedEventLog<Event>;
@@ -280,28 +305,6 @@ export namespace PausedEvent {
   export type OutputTuple = [account: string];
   export interface OutputObject {
     account: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace RecipientOverriddenEvent {
-  export type InputTuple = [
-    requestedRecipient: AddressLike,
-    resolvedRecipient: AddressLike,
-    reason: string
-  ];
-  export type OutputTuple = [
-    requestedRecipient: string,
-    resolvedRecipient: string,
-    reason: string
-  ];
-  export interface OutputObject {
-    requestedRecipient: string;
-    resolvedRecipient: string;
-    reason: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -457,6 +460,8 @@ export interface BaseAggregator extends BaseContract {
     "payable"
   >;
 
+  maxWarrantDuration: TypedContractMethod<[], [bigint], "view">;
+
   paused: TypedContractMethod<[], [boolean], "view">;
 
   permit2: TypedContractMethod<[], [string], "view">;
@@ -575,6 +580,9 @@ export interface BaseAggregator extends BaseContract {
     "payable"
   >;
   getFunction(
+    nameOrSignature: "maxWarrantDuration"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "paused"
   ): TypedContractMethod<[], [boolean], "view">;
   getFunction(
@@ -602,6 +610,13 @@ export interface BaseAggregator extends BaseContract {
     EIP712DomainChangedEvent.OutputObject
   >;
   getEvent(
+    key: "MaxWarrantDurationUpdated"
+  ): TypedContractEvent<
+    MaxWarrantDurationUpdatedEvent.InputTuple,
+    MaxWarrantDurationUpdatedEvent.OutputTuple,
+    MaxWarrantDurationUpdatedEvent.OutputObject
+  >;
+  getEvent(
     key: "OrderFilled"
   ): TypedContractEvent<
     OrderFilledEvent.InputTuple,
@@ -614,13 +629,6 @@ export interface BaseAggregator extends BaseContract {
     PausedEvent.InputTuple,
     PausedEvent.OutputTuple,
     PausedEvent.OutputObject
-  >;
-  getEvent(
-    key: "RecipientOverridden"
-  ): TypedContractEvent<
-    RecipientOverriddenEvent.InputTuple,
-    RecipientOverriddenEvent.OutputTuple,
-    RecipientOverriddenEvent.OutputObject
   >;
   getEvent(
     key: "Unpaused"
@@ -640,6 +648,17 @@ export interface BaseAggregator extends BaseContract {
       EIP712DomainChangedEvent.InputTuple,
       EIP712DomainChangedEvent.OutputTuple,
       EIP712DomainChangedEvent.OutputObject
+    >;
+
+    "MaxWarrantDurationUpdated(uint256,uint256)": TypedContractEvent<
+      MaxWarrantDurationUpdatedEvent.InputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputObject
+    >;
+    MaxWarrantDurationUpdated: TypedContractEvent<
+      MaxWarrantDurationUpdatedEvent.InputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputObject
     >;
 
     "OrderFilled(address,address,address,address,uint256,uint256,uint256,address)": TypedContractEvent<
@@ -662,17 +681,6 @@ export interface BaseAggregator extends BaseContract {
       PausedEvent.InputTuple,
       PausedEvent.OutputTuple,
       PausedEvent.OutputObject
-    >;
-
-    "RecipientOverridden(address,address,string)": TypedContractEvent<
-      RecipientOverriddenEvent.InputTuple,
-      RecipientOverriddenEvent.OutputTuple,
-      RecipientOverriddenEvent.OutputObject
-    >;
-    RecipientOverridden: TypedContractEvent<
-      RecipientOverriddenEvent.InputTuple,
-      RecipientOverriddenEvent.OutputTuple,
-      RecipientOverriddenEvent.OutputObject
     >;
 
     "Unpaused(address)": TypedContractEvent<

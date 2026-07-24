@@ -46,7 +46,7 @@ describe("Permit Signature", function () {
 
     it("Deploy", async () => {
         const ownerAddress = await signer.getAddress();
-        Rainbow = await new OkuRouter__factory(signer).deploy(name, version, ownerAddress)
+        Rainbow = await new OkuRouter__factory(signer).deploy(name, version, ownerAddress, ZeroAddress)
 
         let tx = await Rainbow.connect(signer).updateSwapTargets(routerAddr, true)
         await tx.wait()

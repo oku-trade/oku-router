@@ -108,7 +108,7 @@ describe("Permit2Proxy", function () {
         const ownerAddress = await owner.getAddress();
 
         // Deploy OkuRouter
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress);
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
         await Rainbow.waitForDeployment();
         rainbowAddress = await Rainbow.getAddress();
 

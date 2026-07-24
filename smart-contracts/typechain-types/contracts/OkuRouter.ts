@@ -87,6 +87,7 @@ export interface OkuRouterInterface extends Interface {
       | "fillQuoteTokenToEthWithPermit"
       | "fillQuoteTokenToToken"
       | "fillQuoteTokenToTokenWithPermit"
+      | "maxWarrantDuration"
       | "name"
       | "owner"
       | "pause"
@@ -94,6 +95,7 @@ export interface OkuRouterInterface extends Interface {
       | "pendingOwner"
       | "permit2"
       | "renounceOwnership"
+      | "setMaxWarrantDuration"
       | "swapTargets"
       | "sweepAll"
       | "transferOwnership"
@@ -111,11 +113,11 @@ export interface OkuRouterInterface extends Interface {
       | "ContractUnpaused"
       | "EIP712DomainChanged"
       | "EthWithdrawn"
+      | "MaxWarrantDurationUpdated"
       | "OrderFilled"
       | "OwnershipTransferStarted"
       | "OwnershipTransferred"
       | "Paused"
-      | "RecipientOverridden"
       | "SwapTargetAdded"
       | "SwapTargetRemoved"
       | "TokenWithdrawn"
@@ -199,6 +201,10 @@ export interface OkuRouterInterface extends Interface {
       CanoeHelper.WarrantStruct
     ]
   ): string;
+  encodeFunctionData(
+    functionFragment: "maxWarrantDuration",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
@@ -211,6 +217,10 @@ export interface OkuRouterInterface extends Interface {
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMaxWarrantDuration",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "swapTargets",
@@ -271,6 +281,10 @@ export interface OkuRouterInterface extends Interface {
     functionFragment: "fillQuoteTokenToTokenWithPermit",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "maxWarrantDuration",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
@@ -282,6 +296,10 @@ export interface OkuRouterInterface extends Interface {
   decodeFunctionResult(functionFragment: "permit2", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMaxWarrantDuration",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -360,6 +378,22 @@ export namespace EthWithdrawnEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace MaxWarrantDurationUpdatedEvent {
+  export type InputTuple = [
+    oldDuration: BigNumberish,
+    newDuration: BigNumberish
+  ];
+  export type OutputTuple = [oldDuration: bigint, newDuration: bigint];
+  export interface OutputObject {
+    oldDuration: bigint;
+    newDuration: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace OrderFilledEvent {
   export type InputTuple = [
     sender: AddressLike,
@@ -428,28 +462,6 @@ export namespace PausedEvent {
   export type OutputTuple = [account: string];
   export interface OutputObject {
     account: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace RecipientOverriddenEvent {
-  export type InputTuple = [
-    requestedRecipient: AddressLike,
-    resolvedRecipient: AddressLike,
-    reason: string
-  ];
-  export type OutputTuple = [
-    requestedRecipient: string,
-    resolvedRecipient: string,
-    reason: string
-  ];
-  export interface OutputObject {
-    requestedRecipient: string;
-    resolvedRecipient: string;
-    reason: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -673,6 +685,8 @@ export interface OkuRouter extends BaseContract {
     "payable"
   >;
 
+  maxWarrantDuration: TypedContractMethod<[], [bigint], "view">;
+
   name: TypedContractMethod<[], [string], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
@@ -686,6 +700,12 @@ export interface OkuRouter extends BaseContract {
   permit2: TypedContractMethod<[], [string], "view">;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
+  setMaxWarrantDuration: TypedContractMethod<
+    [duration: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
   swapTargets: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
@@ -832,6 +852,9 @@ export interface OkuRouter extends BaseContract {
     "payable"
   >;
   getFunction(
+    nameOrSignature: "maxWarrantDuration"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
     nameOrSignature: "name"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -852,6 +875,9 @@ export interface OkuRouter extends BaseContract {
   getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setMaxWarrantDuration"
+  ): TypedContractMethod<[duration: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "swapTargets"
   ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
@@ -925,6 +951,13 @@ export interface OkuRouter extends BaseContract {
     EthWithdrawnEvent.OutputObject
   >;
   getEvent(
+    key: "MaxWarrantDurationUpdated"
+  ): TypedContractEvent<
+    MaxWarrantDurationUpdatedEvent.InputTuple,
+    MaxWarrantDurationUpdatedEvent.OutputTuple,
+    MaxWarrantDurationUpdatedEvent.OutputObject
+  >;
+  getEvent(
     key: "OrderFilled"
   ): TypedContractEvent<
     OrderFilledEvent.InputTuple,
@@ -951,13 +984,6 @@ export interface OkuRouter extends BaseContract {
     PausedEvent.InputTuple,
     PausedEvent.OutputTuple,
     PausedEvent.OutputObject
-  >;
-  getEvent(
-    key: "RecipientOverridden"
-  ): TypedContractEvent<
-    RecipientOverriddenEvent.InputTuple,
-    RecipientOverriddenEvent.OutputTuple,
-    RecipientOverriddenEvent.OutputObject
   >;
   getEvent(
     key: "SwapTargetAdded"
@@ -1047,6 +1073,17 @@ export interface OkuRouter extends BaseContract {
       EthWithdrawnEvent.OutputObject
     >;
 
+    "MaxWarrantDurationUpdated(uint256,uint256)": TypedContractEvent<
+      MaxWarrantDurationUpdatedEvent.InputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputObject
+    >;
+    MaxWarrantDurationUpdated: TypedContractEvent<
+      MaxWarrantDurationUpdatedEvent.InputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputObject
+    >;
+
     "OrderFilled(address,address,address,address,uint256,uint256,uint256,address)": TypedContractEvent<
       OrderFilledEvent.InputTuple,
       OrderFilledEvent.OutputTuple,
@@ -1089,17 +1126,6 @@ export interface OkuRouter extends BaseContract {
       PausedEvent.InputTuple,
       PausedEvent.OutputTuple,
       PausedEvent.OutputObject
-    >;
-
-    "RecipientOverridden(address,address,string)": TypedContractEvent<
-      RecipientOverriddenEvent.InputTuple,
-      RecipientOverriddenEvent.OutputTuple,
-      RecipientOverriddenEvent.OutputObject
-    >;
-    RecipientOverridden: TypedContractEvent<
-      RecipientOverriddenEvent.InputTuple,
-      RecipientOverriddenEvent.OutputTuple,
-      RecipientOverriddenEvent.OutputObject
     >;
 
     "SwapTargetAdded(address)": TypedContractEvent<

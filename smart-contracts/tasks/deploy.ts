@@ -241,7 +241,7 @@ task("deploy", "Deploy OkuRouter contract")
     let blockNumber: number | null = null;
     let txHash: string | null = null;
     let reused = false;
-    let contract;
+    let contract: any;
 
     try {
       if (deterministicMode) {
@@ -339,7 +339,7 @@ task("deploy", "Deploy OkuRouter contract")
           // doesn't double-submit the tx. updateSwapTargets is idempotent
           // anyway (writes a bool), so a retried second copy on chain
           // would be harmless — but we still avoid wasting gas on dupes.
-          const updateTx = await withRetry(
+          const updateTx: any = await withRetry(
             () =>
               contract.updateSwapTargets(target.address, true),
             `updateSwapTargets(${target.address})`,
@@ -360,7 +360,7 @@ task("deploy", "Deploy OkuRouter contract")
       `validSigners(${zeroAddress})`,
     );
     if (!isZeroAddressSigner) {
-      const validSignerTx = await withRetry(
+      const validSignerTx: any = await withRetry(
         () =>
           contract.updateValidSigner(zeroAddress, true),
         `updateValidSigner(${zeroAddress})`,
@@ -369,6 +369,25 @@ task("deploy", "Deploy OkuRouter contract")
       console.log("✓ Zero address approved as valid signer");
     } else {
       console.log("✓ Zero address already approved as valid signer");
+    }
+
+    // Set max warrant duration to 5 minutes (300 seconds).
+    // This limits the validity window of warrant signatures, reducing the
+    // attack surface for stolen/leaked warrants.
+    const DEFAULT_MAX_WARRANT_DURATION = 300; // 5 minutes
+    const currentDuration = await withRetry(
+      () => contract.maxWarrantDuration(),
+      "maxWarrantDuration()",
+    );
+    if (Number(currentDuration) !== DEFAULT_MAX_WARRANT_DURATION) {
+      const durationTx: any = await withRetry(
+        () => contract.setMaxWarrantDuration(DEFAULT_MAX_WARRANT_DURATION),
+        `setMaxWarrantDuration(${DEFAULT_MAX_WARRANT_DURATION})`,
+      );
+      await withRetry(() => durationTx.wait(), `tx.wait(${durationTx.hash})`);
+      console.log(`✓ Max warrant duration set to ${DEFAULT_MAX_WARRANT_DURATION}s (5 minutes)`);
+    } else {
+      console.log(`✓ Max warrant duration already set to ${DEFAULT_MAX_WARRANT_DURATION}s`);
     }
 
     if (mainnet) {

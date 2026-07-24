@@ -78,7 +78,7 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
         // Deploy a fresh OkuRouter at v1.1 (post-sweepAll). The proxy
         // bytecode does not depend on the router version, but using the
         // current version here keeps the test fixture honest.
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress);
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
         await Rainbow.waitForDeployment();
         rainbowAddress = await Rainbow.getAddress();
 

@@ -2,11 +2,14 @@
  * Tests for the `recipient` parameter on all swap functions.
  *
  * Covers:
- *  - Silent defaults: address(0), msg.sender -> resolves to msg.sender
- *  - Silent overrides with event: address(this), target, approvalTarget -> msg.sender
+ *  - msg.sender works as explicit recipient (no warrant needed)
+ *  - address(0) requires warrant (burn path)
+ *  - Reverts on bad recipients: address(this), target, approvalTarget
  *  - Warrant enforcement: revert when recipient != msg.sender and warrant bypassed
- *  - Full flow: valid warrant + unique recipient for token-to-token, eth-to-token, token-to-eth
+ *  - Full flow: valid warrant + unique recipient for all 3 swap types
  *  - OrderFilled event: correct recipient emitted
+ *  - maxWarrantDuration: enforced when set, bypassed when 0
+ *  - Warrant nonce replay protection
  */
 
 import { expect } from "chai";
@@ -25,9 +28,6 @@ import {
   MockSwapTarget__factory,
 } from "../../typechain-types";
 
-// ---- Helpers ----
-
-/** Build the zero-signer (bypass) warrant */
 function bypassWarrant() {
   return {
     nonce: 0n,
@@ -38,17 +38,17 @@ function bypassWarrant() {
   };
 }
 
-/** Build a real EIP-712 warrant signed by `signer` for a given dataHash */
 async function signWarrant(
   signer: Signer,
   routerAddress: string,
   dataHash: string,
   nonce: bigint,
+  durationSeconds: number = 300,
 ) {
   const latestBlock = await ethers.provider.getBlock("latest");
   const ts = latestBlock ? Number(latestBlock.timestamp) : Math.floor(Date.now() / 1000);
-  const validBefore = ts + 3600;
-  const validAfter = ts - 300;
+  const validAfter = ts - 10;
+  const validBefore = validAfter + durationSeconds;
 
   const packedValidationData =
     nonce |
@@ -69,9 +69,7 @@ async function signWarrant(
     ],
   };
 
-  const value = { packedValidationData, dataHash };
-
-  const signature = await signer.signTypedData(domain, types, value);
+  const signature = await signer.signTypedData(domain, types, { packedValidationData, dataHash });
 
   return {
     nonce,
@@ -82,52 +80,32 @@ async function signWarrant(
   };
 }
 
-/** Encode calldata for MockSwapTarget.swap(...) */
 function encodeSwap(
   mockTarget: MockSwapTarget,
-  tokenIn: string,
-  tokenOut: string,
-  amountIn: bigint,
-  amountOut: bigint,
+  tokenIn: string, tokenOut: string,
+  amountIn: bigint, amountOut: bigint,
 ): string {
-  return mockTarget.interface.encodeFunctionData("swap", [
-    tokenIn,
-    tokenOut,
-    amountIn,
-    amountOut,
-  ]);
+  return mockTarget.interface.encodeFunctionData("swap", [tokenIn, tokenOut, amountIn, amountOut]);
 }
 
-/** Encode calldata for MockSwapTarget.swapFromEth(...) */
 function encodeSwapFromEth(
   mockTarget: MockSwapTarget,
-  tokenOut: string,
-  amountOut: bigint,
+  tokenOut: string, amountOut: bigint,
 ): string {
-  return mockTarget.interface.encodeFunctionData("swapFromEth", [
-    tokenOut,
-    amountOut,
-  ]);
+  return mockTarget.interface.encodeFunctionData("swapFromEth", [tokenOut, amountOut]);
 }
 
-/** Encode calldata for MockSwapTarget.swapToEth(...) */
 function encodeSwapToEth(
   mockTarget: MockSwapTarget,
-  tokenIn: string,
-  amountIn: bigint,
+  tokenIn: string, amountIn: bigint,
 ): string {
-  return mockTarget.interface.encodeFunctionData("swapToEth", [
-    tokenIn,
-    amountIn,
-  ]);
+  return mockTarget.interface.encodeFunctionData("swapToEth", [tokenIn, amountIn]);
 }
-
-// ---- Test Suite ----
 
 describe("Recipient parameter", function () {
   let router: OkuRouter;
-  let tokenA: MockERC20; // sell token
-  let tokenB: MockERC20; // buy token
+  let tokenA: MockERC20;
+  let tokenB: MockERC20;
   let mockTarget: MockSwapTarget;
 
   let owner: Signer;
@@ -141,7 +119,6 @@ describe("Recipient parameter", function () {
   let tokenBAddr: string;
   let userAddr: string;
   let recipientAddr: string;
-  let warrantSignerAddr: string;
 
   const SELL_AMOUNT = ethers.parseEther("100");
   const BUY_AMOUNT = ethers.parseEther("200");
@@ -149,20 +126,14 @@ describe("Recipient parameter", function () {
 
   before(async () => {
     [owner, user, recipient, warrantSigner] = await ethers.getSigners();
-
     userAddr = await user.getAddress();
     recipientAddr = await recipient.getAddress();
-    warrantSignerAddr = await warrantSigner.getAddress();
 
-    // Deploy contracts
     tokenA = await new MockERC20__factory(owner).deploy("Token A", "TKA", 18);
     tokenB = await new MockERC20__factory(owner).deploy("Token B", "TKB", 18);
     mockTarget = await new MockSwapTarget__factory(owner).deploy();
     router = await new OkuRouter__factory(owner).deploy(
-      "Oku Router",
-      "1.0",
-      await owner.getAddress(),
-      ZeroAddress, // permit2 not needed for these tests
+      "Oku Router", "1.0", await owner.getAddress(), ZeroAddress,
     );
 
     await tokenA.waitForDeployment();
@@ -175,13 +146,12 @@ describe("Recipient parameter", function () {
     tokenAAddr = await tokenA.getAddress();
     tokenBAddr = await tokenB.getAddress();
 
-    // Setup: whitelist target and signers
     await router.connect(owner).updateSwapTargets(targetAddr, true);
     await router.connect(owner).updateValidSigner(ZeroAddress, true);
-    await router.connect(owner).updateValidSigner(warrantSignerAddr, true);
+    await router.connect(owner).updateValidSigner(await warrantSigner.getAddress(), true);
+    await router.connect(owner).setMaxWarrantDuration(300);
   });
 
-  /** Mint tokenA to user and approve the router */
   async function fundUser(amount: bigint) {
     await tokenA.mint(userAddr, amount);
     await tokenA.connect(user).approve(routerAddr, amount);
@@ -191,126 +161,85 @@ describe("Recipient parameter", function () {
   // fillQuoteTokenToToken
   // ==========================================
   describe("fillQuoteTokenToToken", function () {
-
-    describe("Silent defaults (no warrant needed)", function () {
-      it("recipient = address(0) -> tokens go to msg.sender", async function () {
+    describe("Valid recipients", function () {
+      it("recipient = msg.sender -> tokens go to msg.sender (no warrant needed)", async function () {
         await fundUser(SELL_AMOUNT);
         const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
 
         await router.connect(user).fillQuoteTokenToToken(
           tokenAAddr, tokenBAddr, targetAddr, targetAddr,
           swapData, SELL_AMOUNT, FEE_AMOUNT,
-          ZeroAddress, // recipient = 0x0
+          userAddr,
           bypassWarrant(),
         );
 
         expect(await tokenB.balanceOf(userAddr)).to.equal(BUY_AMOUNT);
-        expect(await tokenB.balanceOf(recipientAddr)).to.equal(0n);
       });
 
-      it("recipient = msg.sender -> tokens go to msg.sender", async function () {
+      it("recipient = address(0) requires warrant (burn path)", async function () {
         await fundUser(SELL_AMOUNT);
         const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
 
-        const userBalBefore = await tokenB.balanceOf(userAddr);
-
-        await router.connect(user).fillQuoteTokenToToken(
-          tokenAAddr, tokenBAddr, targetAddr, targetAddr,
-          swapData, SELL_AMOUNT, FEE_AMOUNT,
-          userAddr, // recipient = msg.sender
-          bypassWarrant(),
-        );
-
-        expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore + BUY_AMOUNT);
+        await expect(
+          router.connect(user).fillQuoteTokenToToken(
+            tokenAAddr, tokenBAddr, targetAddr, targetAddr,
+            swapData, SELL_AMOUNT, FEE_AMOUNT,
+            ZeroAddress,
+            bypassWarrant(),
+          )
+        ).to.be.revertedWith("WARRANT_REQUIRED_FOR_RECIPIENT");
       });
     });
 
-    describe("Silent overrides with RecipientOverridden event", function () {
-      it("recipient = address(this) -> overridden to msg.sender, emits event", async function () {
+    describe("Reverts on bad recipients", function () {
+      it("recipient = address(this) -> reverts", async function () {
         await fundUser(SELL_AMOUNT);
         const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
-
-        const userBalBefore = await tokenB.balanceOf(userAddr);
 
         await expect(
           router.connect(user).fillQuoteTokenToToken(
             tokenAAddr, tokenBAddr, targetAddr, targetAddr,
             swapData, SELL_AMOUNT, FEE_AMOUNT,
-            routerAddr, // recipient = address(this)
+            routerAddr,
             bypassWarrant(),
           )
-        )
-          .to.emit(router, "RecipientOverridden")
-          .withArgs(routerAddr, userAddr, "RECIPIENT_IS_THIS");
-
-        expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore + BUY_AMOUNT);
+        ).to.be.revertedWith("RECIPIENT_IS_THIS");
       });
 
-      it("recipient = target -> overridden to msg.sender, emits event", async function () {
+      it("recipient = target -> reverts", async function () {
         await fundUser(SELL_AMOUNT);
         const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
-
-        const userBalBefore = await tokenB.balanceOf(userAddr);
 
         await expect(
           router.connect(user).fillQuoteTokenToToken(
             tokenAAddr, tokenBAddr, targetAddr, targetAddr,
             swapData, SELL_AMOUNT, FEE_AMOUNT,
-            targetAddr, // recipient = target
+            targetAddr,
             bypassWarrant(),
           )
-        )
-          .to.emit(router, "RecipientOverridden")
-          .withArgs(targetAddr, userAddr, "RECIPIENT_IS_TARGET");
-
-        expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore + BUY_AMOUNT);
+        ).to.be.revertedWith("RECIPIENT_IS_TARGET");
       });
 
-      it("recipient = approvalTarget -> overridden to msg.sender, emits event", async function () {
-        // When approvalTarget differs from target, the router gives ERC20 allowance
-        // to approvalTarget (transfer proxy pattern, e.g. OKX). Testing with a
-        // distinct approvalTarget requires a real proxy that can consume the
-        // allowance on behalf of the target -- complex to mock.
-        //
-        // Instead, we test via fillQuoteTokenToEth where target == approvalTarget
-        // (the common case), and pass recipient = target. This triggers
-        // RECIPIENT_IS_TARGET. The RECIPIENT_IS_APPROVAL_TARGET branch is
-        // structurally identical (same _resolveRecipient function, next check
-        // after target). We verify the check exists by confirming a recipient
-        // matching the approvalTarget address does NOT bypass the warrant
-        // requirement when approvalTarget != target.
-
-        // Deploy a second mock as a distinct approvalTarget
-        const mockApproval = await new MockSwapTarget__factory(owner).deploy();
-        await mockApproval.waitForDeployment();
-        const mockApprovalAddr = await mockApproval.getAddress();
-        await router.connect(owner).updateSwapTargets(mockApprovalAddr, true);
+      it("recipient = approvalTarget (distinct from target) -> reverts", async function () {
+        const dummyApproval = "0x0000000000000000000000000000000000000042";
+        await router.connect(owner).updateSwapTargets(dummyApproval, true);
 
         await fundUser(SELL_AMOUNT);
         const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
 
-        // With recipient = approvalTarget and warrant bypassed, the recipient
-        // should be overridden to msg.sender (not require a warrant).
-        // The swap itself will fail because the allowance goes to mockApproval
-        // but the target (mockTarget) tries transferFrom. But _resolveRecipient
-        // runs first. Since the override makes resolvedRecipient == msg.sender,
-        // the warrant bypass is allowed. The subsequent swap failure (ALLOWANCE)
-        // proves the override happened (if it hadn't overridden, it would have
-        // reverted with WARRANT_REQUIRED_FOR_RECIPIENT instead).
         await expect(
           router.connect(user).fillQuoteTokenToToken(
-            tokenAAddr, tokenBAddr, targetAddr, mockApprovalAddr,
+            tokenAAddr, tokenBAddr, targetAddr, dummyApproval,
             swapData, SELL_AMOUNT, FEE_AMOUNT,
-            mockApprovalAddr, // recipient = approvalTarget -> overridden to msg.sender
+            dummyApproval,
             bypassWarrant(),
           )
-        ).to.not.be.revertedWith("WARRANT_REQUIRED_FOR_RECIPIENT");
-        // It reverts for a different reason (allowance), confirming the override worked
+        ).to.be.revertedWith("RECIPIENT_IS_APPROVAL_TARGET");
       });
     });
 
     describe("Warrant enforcement", function () {
-      it("reverts when recipient != msg.sender and warrant is bypassed (signer = 0x0)", async function () {
+      it("reverts when recipient != msg.sender and warrant is bypassed", async function () {
         await fundUser(SELL_AMOUNT);
         const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
 
@@ -318,7 +247,7 @@ describe("Recipient parameter", function () {
           router.connect(user).fillQuoteTokenToToken(
             tokenAAddr, tokenBAddr, targetAddr, targetAddr,
             swapData, SELL_AMOUNT, FEE_AMOUNT,
-            recipientAddr, // different from msg.sender
+            recipientAddr,
             bypassWarrant(),
           )
         ).to.be.revertedWith("WARRANT_REQUIRED_FOR_RECIPIENT");
@@ -333,7 +262,6 @@ describe("Recipient parameter", function () {
         const recipientBalBefore = await tokenB.balanceOf(recipientAddr);
         const userBalBefore = await tokenB.balanceOf(userAddr);
 
-        // Build the dataHash matching what the contract computes
         const dataHash = ethers.keccak256(
           ethers.AbiCoder.defaultAbiCoder().encode(
             ["address", "address", "address", "address", "bytes32", "uint256", "uint256", "address"],
@@ -341,32 +269,20 @@ describe("Recipient parameter", function () {
           )
         );
 
-        const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 1n);
+        const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 1n, 300);
 
         const tx = router.connect(user).fillQuoteTokenToToken(
           tokenAAddr, tokenBAddr, targetAddr, targetAddr,
           swapData, SELL_AMOUNT, FEE_AMOUNT,
-          recipientAddr,
-          warrant,
+          recipientAddr, warrant,
         );
 
-        // Verify event
         await expect(tx)
           .to.emit(router, "OrderFilled")
-          .withArgs(
-            userAddr,           // sender
-            recipientAddr,      // recipient
-            tokenAAddr,         // tokenIn
-            tokenBAddr,         // tokenOut
-            SELL_AMOUNT,        // amountIn
-            BUY_AMOUNT,         // amountOut
-            FEE_AMOUNT,         // feeAmount
-            targetAddr,         // target
-          );
+          .withArgs(userAddr, recipientAddr, tokenAAddr, tokenBAddr, SELL_AMOUNT, BUY_AMOUNT, FEE_AMOUNT, targetAddr);
 
-        // Verify balances
         expect(await tokenB.balanceOf(recipientAddr)).to.equal(recipientBalBefore + BUY_AMOUNT);
-        expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore); // user gets nothing
+        expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore);
       });
     });
   });
@@ -379,95 +295,63 @@ describe("Recipient parameter", function () {
     const ETH_FEE = ethers.parseEther("0.01");
     const TOKEN_OUT = ethers.parseEther("500");
 
-    describe("Silent defaults", function () {
-      it("recipient = address(0) -> tokens go to msg.sender", async function () {
-        const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
+    it("recipient = msg.sender -> tokens go to msg.sender", async function () {
+      const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
+      const userBalBefore = await tokenB.balanceOf(userAddr);
 
-        const userBalBefore = await tokenB.balanceOf(userAddr);
+      await router.connect(user).fillQuoteEthToToken(
+        tokenBAddr, targetAddr, swapData, ETH_FEE,
+        userAddr, bypassWarrant(),
+        { value: ETH_SELL },
+      );
 
-        await router.connect(user).fillQuoteEthToToken(
-          tokenBAddr, targetAddr, swapData, ETH_FEE,
-          ZeroAddress,
-          bypassWarrant(),
-          { value: ETH_SELL },
-        );
-
-        expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore + TOKEN_OUT);
-      });
+      expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore + TOKEN_OUT);
     });
 
-    describe("Silent overrides with event", function () {
-      it("recipient = address(this) -> overridden to msg.sender", async function () {
-        const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
-        const userBalBefore = await tokenB.balanceOf(userAddr);
+    it("recipient = address(this) -> reverts", async function () {
+      const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
 
-        await expect(
-          router.connect(user).fillQuoteEthToToken(
-            tokenBAddr, targetAddr, swapData, ETH_FEE,
-            routerAddr,
-            bypassWarrant(),
-            { value: ETH_SELL },
-          )
+      await expect(
+        router.connect(user).fillQuoteEthToToken(
+          tokenBAddr, targetAddr, swapData, ETH_FEE,
+          routerAddr, bypassWarrant(),
+          { value: ETH_SELL },
         )
-          .to.emit(router, "RecipientOverridden")
-          .withArgs(routerAddr, userAddr, "RECIPIENT_IS_THIS");
-
-        expect(await tokenB.balanceOf(userAddr)).to.equal(userBalBefore + TOKEN_OUT);
-      });
+      ).to.be.revertedWith("RECIPIENT_IS_THIS");
     });
 
-    describe("Warrant enforcement", function () {
-      it("reverts when recipient != msg.sender and warrant bypassed", async function () {
-        const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
+    it("reverts when recipient != msg.sender and warrant bypassed", async function () {
+      const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
 
-        await expect(
-          router.connect(user).fillQuoteEthToToken(
-            tokenBAddr, targetAddr, swapData, ETH_FEE,
-            recipientAddr,
-            bypassWarrant(),
-            { value: ETH_SELL },
-          )
-        ).to.be.revertedWith("WARRANT_REQUIRED_FOR_RECIPIENT");
-      });
-    });
-
-    describe("Full flow with warrant and unique recipient", function () {
-      it("sends tokens to a different recipient when warrant is valid", async function () {
-        const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
-
-        const recipientBalBefore = await tokenB.balanceOf(recipientAddr);
-
-        const dataHash = ethers.keccak256(
-          ethers.AbiCoder.defaultAbiCoder().encode(
-            ["address", "address", "bytes32", "uint256", "address"],
-            [tokenBAddr, targetAddr, ethers.keccak256(swapData), ETH_FEE, recipientAddr],
-          )
-        );
-
-        const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 2n);
-
-        const tx = router.connect(user).fillQuoteEthToToken(
+      await expect(
+        router.connect(user).fillQuoteEthToToken(
           tokenBAddr, targetAddr, swapData, ETH_FEE,
-          recipientAddr,
-          warrant,
+          recipientAddr, bypassWarrant(),
           { value: ETH_SELL },
-        );
+        )
+      ).to.be.revertedWith("WARRANT_REQUIRED_FOR_RECIPIENT");
+    });
 
-        await expect(tx)
-          .to.emit(router, "OrderFilled")
-          .withArgs(
-            userAddr,
-            recipientAddr,
-            ZeroAddress,  // tokenIn = ETH
-            tokenBAddr,
-            ETH_SELL,
-            TOKEN_OUT,
-            ETH_FEE,
-            targetAddr,
-          );
+    it("sends tokens to different recipient with valid warrant", async function () {
+      const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
+      const recipientBalBefore = await tokenB.balanceOf(recipientAddr);
 
-        expect(await tokenB.balanceOf(recipientAddr)).to.equal(recipientBalBefore + TOKEN_OUT);
-      });
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "bytes32", "uint256", "address"],
+          [tokenBAddr, targetAddr, ethers.keccak256(swapData), ETH_FEE, recipientAddr],
+        )
+      );
+
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 2n, 300);
+
+      await router.connect(user).fillQuoteEthToToken(
+        tokenBAddr, targetAddr, swapData, ETH_FEE,
+        recipientAddr, warrant,
+        { value: ETH_SELL },
+      );
+
+      expect(await tokenB.balanceOf(recipientAddr)).to.equal(recipientBalBefore + TOKEN_OUT);
     });
   });
 
@@ -478,95 +362,66 @@ describe("Recipient parameter", function () {
     const TOKEN_SELL = ethers.parseEther("100");
     const ETH_OUT = ethers.parseEther("0.5");
 
-    describe("Silent defaults", function () {
-      it("recipient = address(0) -> ETH goes to msg.sender", async function () {
-        await fundUser(TOKEN_SELL);
+    it("recipient = msg.sender -> ETH goes to msg.sender", async function () {
+      await fundUser(TOKEN_SELL);
+      await owner.sendTransaction({ to: targetAddr, value: ETH_OUT });
+      const swapData = encodeSwapToEth(mockTarget, tokenAAddr, TOKEN_SELL);
+      const userEthBefore = await ethers.provider.getBalance(userAddr);
 
-        // Fund the mock target with ETH so it can send ETH back
-        await owner.sendTransaction({ to: targetAddr, value: ETH_OUT });
+      await router.connect(user).fillQuoteTokenToEth(
+        tokenAAddr, targetAddr, targetAddr, swapData,
+        TOKEN_SELL, 0n, userAddr, bypassWarrant(),
+      );
 
-        const swapData = encodeSwapToEth(mockTarget, tokenAAddr, TOKEN_SELL);
-
-        const userEthBefore = await ethers.provider.getBalance(userAddr);
-
-        await router.connect(user).fillQuoteTokenToEth(
-          tokenAAddr, targetAddr, targetAddr, swapData,
-          TOKEN_SELL, 0n,
-          ZeroAddress,
-          bypassWarrant(),
-        );
-
-        const userEthAfter = await ethers.provider.getBalance(userAddr);
-        // User should have more ETH (minus gas), net positive
-        expect(userEthAfter).to.be.gt(userEthBefore - ethers.parseEther("0.01"));
-      });
+      const userEthAfter = await ethers.provider.getBalance(userAddr);
+      expect(userEthAfter).to.be.gt(userEthBefore - ethers.parseEther("0.01"));
     });
 
-    describe("Warrant enforcement", function () {
-      it("reverts when recipient != msg.sender and warrant bypassed", async function () {
-        await fundUser(TOKEN_SELL);
+    it("reverts when recipient != msg.sender and warrant bypassed", async function () {
+      await fundUser(TOKEN_SELL);
+      await owner.sendTransaction({ to: targetAddr, value: ETH_OUT });
+      const swapData = encodeSwapToEth(mockTarget, tokenAAddr, TOKEN_SELL);
 
-        await owner.sendTransaction({ to: targetAddr, value: ETH_OUT });
-
-        const swapData = encodeSwapToEth(mockTarget, tokenAAddr, TOKEN_SELL);
-
-        await expect(
-          router.connect(user).fillQuoteTokenToEth(
-            tokenAAddr, targetAddr, targetAddr, swapData,
-            TOKEN_SELL, 0n,
-            recipientAddr,
-            bypassWarrant(),
-          )
-        ).to.be.revertedWith("WARRANT_REQUIRED_FOR_RECIPIENT");
-      });
+      await expect(
+        router.connect(user).fillQuoteTokenToEth(
+          tokenAAddr, targetAddr, targetAddr, swapData,
+          TOKEN_SELL, 0n, recipientAddr, bypassWarrant(),
+        )
+      ).to.be.revertedWith("WARRANT_REQUIRED_FOR_RECIPIENT");
     });
 
-    describe("Full flow with warrant and unique recipient", function () {
-      it("sends ETH to a different recipient when warrant is valid", async function () {
-        await fundUser(TOKEN_SELL);
+    it("sends ETH to different recipient with valid warrant", async function () {
+      await fundUser(TOKEN_SELL);
+      await owner.sendTransaction({ to: targetAddr, value: ETH_OUT });
 
-        // Fund mock target with ETH
-        await owner.sendTransaction({ to: targetAddr, value: ETH_OUT });
+      const targetEthBalance = await ethers.provider.getBalance(targetAddr);
+      const swapData = encodeSwapToEth(mockTarget, tokenAAddr, TOKEN_SELL);
+      const recipientEthBefore = await ethers.provider.getBalance(recipientAddr);
 
-        // Record how much ETH the mock target actually holds (may include leftovers)
-        const targetEthBalance = await ethers.provider.getBalance(targetAddr);
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "address", "bytes32", "uint256", "uint256", "address"],
+          [tokenAAddr, targetAddr, targetAddr, ethers.keccak256(swapData), TOKEN_SELL, 0n, recipientAddr],
+        )
+      );
 
-        const swapData = encodeSwapToEth(mockTarget, tokenAAddr, TOKEN_SELL);
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 3n, 300);
 
-        const recipientEthBefore = await ethers.provider.getBalance(recipientAddr);
+      await router.connect(user).fillQuoteTokenToEth(
+        tokenAAddr, targetAddr, targetAddr, swapData,
+        TOKEN_SELL, 0n, recipientAddr, warrant,
+      );
 
-        const dataHash = ethers.keccak256(
-          ethers.AbiCoder.defaultAbiCoder().encode(
-            ["address", "address", "address", "bytes32", "uint256", "uint256", "address"],
-            [tokenAAddr, targetAddr, targetAddr, ethers.keccak256(swapData), TOKEN_SELL, 0n, recipientAddr],
-          )
-        );
-
-        const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 3n);
-
-        await router.connect(user).fillQuoteTokenToEth(
-          tokenAAddr, targetAddr, targetAddr, swapData,
-          TOKEN_SELL, 0n,
-          recipientAddr,
-          warrant,
-        );
-
-        // Verify recipient got the ETH (all of the target's balance is sent)
-        const recipientEthAfter = await ethers.provider.getBalance(recipientAddr);
-        expect(recipientEthAfter).to.equal(recipientEthBefore + targetEthBalance);
-
-        // Verify user did NOT receive the ETH
-        // (user only loses gas, doesn't gain ETH)
-      });
+      const recipientEthAfter = await ethers.provider.getBalance(recipientAddr);
+      expect(recipientEthAfter).to.equal(recipientEthBefore + targetEthBalance);
     });
   });
 
   // ==========================================
-  // Warrant nonce replay protection
+  // maxWarrantDuration
   // ==========================================
-  describe("Warrant nonce replay protection", function () {
-    it("rejects a reused warrant nonce", async function () {
-      // First swap succeeds
+  describe("maxWarrantDuration", function () {
+    it("reverts when warrant duration exceeds maxWarrantDuration", async function () {
       await fundUser(SELL_AMOUNT);
       const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
 
@@ -577,7 +432,51 @@ describe("Recipient parameter", function () {
         )
       );
 
-      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 100n);
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 10n, 600);
+
+      await expect(
+        router.connect(user).fillQuoteTokenToToken(
+          tokenAAddr, tokenBAddr, targetAddr, targetAddr,
+          swapData, SELL_AMOUNT, FEE_AMOUNT,
+          recipientAddr, warrant,
+        )
+      ).to.be.revertedWith("WARRANT_DURATION_EXCEEDED");
+    });
+
+    it("allows warrant within maxWarrantDuration", async function () {
+      await fundUser(SELL_AMOUNT);
+      const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
+
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "address", "address", "bytes32", "uint256", "uint256", "address"],
+          [tokenAAddr, tokenBAddr, targetAddr, targetAddr, ethers.keccak256(swapData), SELL_AMOUNT, FEE_AMOUNT, recipientAddr],
+        )
+      );
+
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 11n, 200);
+
+      await router.connect(user).fillQuoteTokenToToken(
+        tokenAAddr, tokenBAddr, targetAddr, targetAddr,
+        swapData, SELL_AMOUNT, FEE_AMOUNT,
+        recipientAddr, warrant,
+      );
+    });
+
+    it("skips duration check when maxWarrantDuration is 0", async function () {
+      await router.connect(owner).setMaxWarrantDuration(0);
+
+      await fundUser(SELL_AMOUNT);
+      const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
+
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "address", "address", "bytes32", "uint256", "uint256", "address"],
+          [tokenAAddr, tokenBAddr, targetAddr, targetAddr, ethers.keccak256(swapData), SELL_AMOUNT, FEE_AMOUNT, recipientAddr],
+        )
+      );
+
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 12n, 3600);
 
       await router.connect(user).fillQuoteTokenToToken(
         tokenAAddr, tokenBAddr, targetAddr, targetAddr,
@@ -585,7 +484,59 @@ describe("Recipient parameter", function () {
         recipientAddr, warrant,
       );
 
-      // Second swap with same nonce should fail
+      await router.connect(owner).setMaxWarrantDuration(300);
+    });
+
+    it("skips duration check for bypass warrants (signer = 0x0)", async function () {
+      await fundUser(SELL_AMOUNT);
+      const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
+
+      await router.connect(user).fillQuoteTokenToToken(
+        tokenAAddr, tokenBAddr, targetAddr, targetAddr,
+        swapData, SELL_AMOUNT, FEE_AMOUNT,
+        userAddr,
+        bypassWarrant(),
+      );
+    });
+
+    it("only owner can set maxWarrantDuration", async function () {
+      await expect(
+        router.connect(user).setMaxWarrantDuration(600)
+      ).to.be.revertedWithCustomError(router, "OwnableUnauthorizedAccount");
+    });
+
+    it("emits MaxWarrantDurationUpdated event", async function () {
+      await expect(router.connect(owner).setMaxWarrantDuration(600))
+        .to.emit(router, "MaxWarrantDurationUpdated")
+        .withArgs(300, 600);
+
+      await router.connect(owner).setMaxWarrantDuration(300);
+    });
+  });
+
+  // ==========================================
+  // Warrant nonce replay protection
+  // ==========================================
+  describe("Warrant nonce replay protection", function () {
+    it("rejects a reused warrant nonce", async function () {
+      await fundUser(SELL_AMOUNT);
+      const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
+
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "address", "address", "bytes32", "uint256", "uint256", "address"],
+          [tokenAAddr, tokenBAddr, targetAddr, targetAddr, ethers.keccak256(swapData), SELL_AMOUNT, FEE_AMOUNT, recipientAddr],
+        )
+      );
+
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 100n, 300);
+
+      await router.connect(user).fillQuoteTokenToToken(
+        tokenAAddr, tokenBAddr, targetAddr, targetAddr,
+        swapData, SELL_AMOUNT, FEE_AMOUNT,
+        recipientAddr, warrant,
+      );
+
       await fundUser(SELL_AMOUNT);
 
       await expect(
