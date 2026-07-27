@@ -19,7 +19,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { ZeroAddress, type Signer } from "ethers";
-import type { OkuRouter, Permit2Proxy } from "../../typechain-types";
+import type { OkuRouter, Permit2Proxy, IERC20Metadata } from "../../typechain-types";
 import {
     OkuRouter__factory,
     Permit2Proxy__factory,
@@ -53,9 +53,9 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
     let owner: Signer;
     let user: Signer;
     let attacker: Signer;
-    let USDC: any;
-    let WETH: any;
-    let permit2: any;
+    let USDC: IERC20Metadata;
+    let WETH: IERC20Metadata;
+    let permit2: any; // Permit2 uses inline ABI, no TypeChain type available
     let rainbowAddress: string;
     let proxyAddress: string;
 

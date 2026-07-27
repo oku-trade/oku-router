@@ -1,7 +1,7 @@
 import { task } from "hardhat/config";
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Signer } from "ethers";
-import { OkuRouter__factory, Permit2Proxy__factory } from "../typechain-types";
+import { type OkuRouter, OkuRouter__factory, Permit2Proxy__factory } from "../typechain-types";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { getNetworkConfig } from "../util/networkConfig";
 import {
@@ -241,7 +241,7 @@ task("deploy", "Deploy OkuRouter contract")
     let blockNumber: number | null = null;
     let txHash: string | null = null;
     let reused = false;
-    let contract: any;
+    let contract: OkuRouter;
 
     try {
       if (deterministicMode) {
@@ -339,7 +339,7 @@ task("deploy", "Deploy OkuRouter contract")
           // doesn't double-submit the tx. updateSwapTargets is idempotent
           // anyway (writes a bool), so a retried second copy on chain
           // would be harmless — but we still avoid wasting gas on dupes.
-          const updateTx: any = await withRetry(
+          const updateTx = await withRetry(
             () =>
               contract.updateSwapTargets(target.address, true),
             `updateSwapTargets(${target.address})`,
@@ -360,7 +360,7 @@ task("deploy", "Deploy OkuRouter contract")
       `validSigners(${zeroAddress})`,
     );
     if (!isZeroAddressSigner) {
-      const validSignerTx: any = await withRetry(
+      const validSignerTx = await withRetry(
         () =>
           contract.updateValidSigner(zeroAddress, true),
         `updateValidSigner(${zeroAddress})`,
@@ -380,7 +380,7 @@ task("deploy", "Deploy OkuRouter contract")
       "maxWarrantDuration()",
     );
     if (Number(currentDuration) !== DEFAULT_MAX_WARRANT_DURATION) {
-      const durationTx: any = await withRetry(
+      const durationTx = await withRetry(
         () => contract.setMaxWarrantDuration(DEFAULT_MAX_WARRANT_DURATION),
         `setMaxWarrantDuration(${DEFAULT_MAX_WARRANT_DURATION})`,
       );

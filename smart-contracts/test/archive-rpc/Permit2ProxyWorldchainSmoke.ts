@@ -41,7 +41,7 @@ describe("Permit2Proxy.executeAllowance — World Chain smoke", function () {
     let proxy: Permit2Proxy;
     let user: Signer;
     let token: MockERC20;
-    let permit2: any;
+    let permit2: any; // Permit2 uses inline ABI, no TypeChain type available
     let proxyAddress: string;
     let tokenAddress: string;
 

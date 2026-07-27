@@ -57,6 +57,7 @@ export async function createDummyWarrant(
         validAfter?: number;
         useZeroSigner?: boolean;
         approvalTarget?: string;
+        recipient?: string;
         name?: string;
         version?: string;
     } = {}
@@ -68,14 +69,15 @@ export async function createDummyWarrant(
     const validBefore = options.validBefore ?? blockTimestamp + 3600;
     const validAfter = options.validAfter ?? blockTimestamp - 300;
     const approvalTarget = options.approvalTarget ?? routerAddress;
+    const recipient = options.recipient ?? ZeroAddress;
     const name = options.name ?? "Rainbow Router";
     const version = options.version ?? "1.0";
 
     const swapCallDataHash = ethers.keccak256(swapCallData);
     const dataHash = ethers.keccak256(
         ethers.AbiCoder.defaultAbiCoder().encode(
-            ['address', 'address', 'address', 'address', 'bytes32', 'uint256', 'uint256'],
-            [sellTokenAddress, buyTokenAddress, routerAddress, approvalTarget, swapCallDataHash, sellAmount, feeAmount]
+            ['address', 'address', 'address', 'address', 'bytes32', 'uint256', 'uint256', 'address'],
+            [sellTokenAddress, buyTokenAddress, routerAddress, approvalTarget, swapCallDataHash, sellAmount, feeAmount, recipient]
         )
     );
 
@@ -185,7 +187,8 @@ export async function createWrongSignerWarrant(
     swapCallData: string,
     sellAmount: bigint,
     feeAmount: bigint,
-    approvalTarget?: string
+    approvalTarget?: string,
+    recipient?: string
 ) {
     const latestBlock = await ethers.provider.getBlock('latest');
     const blockTimestamp = latestBlock ? Number(latestBlock.timestamp) : Math.floor(Date.now() / 1000);
@@ -194,12 +197,13 @@ export async function createWrongSignerWarrant(
     const validBefore = blockTimestamp + 3600;
     const validAfter = blockTimestamp - 300;
     const approvalTargetAddr = approvalTarget ?? routerAddress;
+    const recipientAddr = recipient ?? ZeroAddress;
 
     const swapCallDataHash = ethers.keccak256(swapCallData);
     const dataHash = ethers.keccak256(
         ethers.AbiCoder.defaultAbiCoder().encode(
-            ['address', 'address', 'address', 'address', 'bytes32', 'uint256', 'uint256'],
-            [sellTokenAddress, buyTokenAddress, routerAddress, approvalTargetAddr, swapCallDataHash, sellAmount, feeAmount]
+            ['address', 'address', 'address', 'address', 'bytes32', 'uint256', 'uint256', 'address'],
+            [sellTokenAddress, buyTokenAddress, routerAddress, approvalTargetAddr, swapCallDataHash, sellAmount, feeAmount, recipientAddr]
         )
     );
 

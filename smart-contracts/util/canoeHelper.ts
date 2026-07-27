@@ -1,5 +1,5 @@
 import { AbiCoder, AddressLike, BigNumberish, BytesLike, formatUnits, Interface, keccak256, parseUnits, Signer, TransactionResponse, TypedDataDomain, ZeroAddress } from "ethers";
-import { ERC20__factory, ISwapRouter02__factory, OkuRouter, OkuRouter__factory } from "../typechain-types";
+import { ERC20__factory, IERC2612__factory, ISwapRouter02__factory, OkuRouter, OkuRouter__factory } from "../typechain-types";
 import hre, { ethers, network } from "hardhat";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { IERC20__factory } from "../typechain-types/factories/contracts/interfaces/openzeppelin";
@@ -256,7 +256,7 @@ export const generatePermitSignature = async (
     let nonce: bigint = 0n;
 
     try {
-        nonce = await (tokenContract as any).nonces(ownerAddress);
+        nonce = await IERC2612__factory.connect(tokenAddress, signer).nonces(ownerAddress);
     } catch (error: any) {
         console.warn(`WARN: Could not fetch nonce for ${tokenAddress}. This token might not support EIP-2612 (permit). Defaulting nonce to 0.`);
     }

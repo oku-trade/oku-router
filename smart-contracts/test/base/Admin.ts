@@ -92,13 +92,11 @@ describe("Admin", function () {
     await expect(sweepTx)
       .to.emit(instance, "TokenWithdrawn")
       .withArgs(
-        (emittedWethAddress: any) => {
-          return typeof emittedWethAddress === 'string' &&
-            emittedWethAddress.toLowerCase() === wethAddress.toLowerCase();
+        (emittedWethAddress: string) => {
+          return emittedWethAddress.toLowerCase() === wethAddress.toLowerCase();
         },
-        (emittedReceiverAddress: any) => {
-          return typeof emittedReceiverAddress === 'string' &&
-            emittedReceiverAddress.toLowerCase() === receiverAddress.toLowerCase();
+        (emittedReceiverAddress: string) => {
+          return emittedReceiverAddress.toLowerCase() === receiverAddress.toLowerCase();
         },
         amount
       );
