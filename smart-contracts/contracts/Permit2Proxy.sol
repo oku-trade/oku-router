@@ -49,9 +49,10 @@ contract Permit2Proxy {
     }
 
     /// @notice Accept ETH from OkuRouter during token-to-ETH swaps.
-    /// @dev Unrestricted: this proxy holds no funds between calls and any
-    ///      stray ETH would be swept out via the next caller's
-    ///      `_forwardAndReturn` accounting (output diff vs. snapshot).
+    /// @dev Unrestricted: this proxy holds no funds between calls. Any ETH
+    ///      received during a swap is accounted for via the balance-diff
+    ///      snapshot in `_forwardAndReturn` and forwarded to the caller in
+    ///      the same call; there is no cross-call residual to sweep.
     receive() external payable {}
 
     /// @notice Permit2 SignatureTransfer entry point.
@@ -126,6 +127,17 @@ contract Permit2Proxy {
     ///      because OkuRouter's warrant signature is over
     ///      `keccak256(routerCalldata)` — any re-encoding here would
     ///      invalidate the warrant.
+    ///
+    ///      Nothing binds `sellAmount` (the amount just pulled from
+    ///      msg.sender) to the sell amount encoded inside `routerCalldata`
+    ///      — the router pulls whatever amount `routerCalldata` tells it
+    ///      to, independent of `sellAmount`. If `sellAmount` exceeds the
+    ///      router's actual pull, the proxy would otherwise be left
+    ///      holding a residual `sellToken` balance plus a stale
+    ///      proxy->router allowance that a later caller could fold into
+    ///      their own swap. To prevent that, this function actively
+    ///      zeroes the leftover allowance and refunds any residual
+    ///      `sellToken` balance back to msg.sender after the router call.
     function _forwardAndReturn(
         address sellToken,
         uint256 sellAmount,
@@ -165,6 +177,19 @@ contract Permit2Proxy {
             require(ok, "ETH_TRANSFER_FAILED");
         } else {
             IERC20(buyToken).safeTransfer(msg.sender, received);
+        }
+
+        // 6. Close both residual-theft vectors: OkuRouter only pulls the
+        //    sell amount encoded in `routerCalldata`, which is not bound
+        //    to `sellAmount` pulled in step 1/2 above. If the router
+        //    pulled less than was approved, zero the leftover
+        //    proxy->router allowance and refund any residual `sellToken`
+        //    balance to msg.sender so nothing is left parked in the proxy
+        //    for a later caller to fold into their own swap.
+        IERC20(sellToken).forceApprove(okuRouter, 0);
+        uint256 residualSellToken = IERC20(sellToken).balanceOf(address(this));
+        if (residualSellToken > 0) {
+            IERC20(sellToken).safeTransfer(msg.sender, residualSellToken);
         }
     }
 }
