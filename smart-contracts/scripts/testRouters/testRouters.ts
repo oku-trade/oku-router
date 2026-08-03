@@ -30,7 +30,7 @@ import {
   extractTargetsFromRainbowData,
   canoeParams,
 } from "../../util/canoeHelper";
-import { NETWORK_CONFIGS, NetworkConfig } from "../../util/networkConfig";
+import { NETWORK_CONFIGS, NetworkConfig } from "../../util/deploymentConfig";
 import { getCurrentAddress } from "../../util/deploymentsRegistry";
 import { IERC20__factory, OkuRouter__factory } from "../../typechain-types";
 import { Signer } from "ethers";
