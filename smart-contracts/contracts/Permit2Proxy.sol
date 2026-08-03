@@ -49,11 +49,19 @@ contract Permit2Proxy {
     }
 
     /// @notice Accept ETH from OkuRouter during token-to-ETH swaps.
-    /// @dev Unrestricted: this proxy holds no funds between calls. Any ETH
-    ///      received during a swap is accounted for via the balance-diff
-    ///      snapshot in `_forwardAndReturn` and forwarded to the caller in
-    ///      the same call; there is no cross-call residual to sweep.
-    receive() external payable {}
+    /// @dev Restricted to `okuRouter`: this proxy has no owner and no sweep
+    ///      function, so any ETH accepted from elsewhere (e.g. a plain
+    ///      transfer sent directly to this contract) would be permanently
+    ///      stuck — the balance-diff snapshot in `_forwardAndReturn`
+    ///      (`outputBefore`) re-includes pre-existing ETH on every
+    ///      subsequent call, so it is never forwarded to any caller. Only
+    ///      OkuRouter legitimately sends ETH here (the output of a
+    ///      token-to-ETH swap via `_fillQuoteTokenToEth`), so restricting
+    ///      the sender closes off the stray-ETH-lock vector entirely
+    ///      without needing to introduce ownership/recovery logic.
+    receive() external payable {
+        require(msg.sender == okuRouter, "ONLY_ROUTER");
+    }
 
     /// @notice Permit2 SignatureTransfer entry point.
     /// @dev    Used by Safe smart wallets and EOAs that sign a fresh permit

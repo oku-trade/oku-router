@@ -80,6 +80,47 @@ async function signWarrant(
   };
 }
 
+// Variant of signWarrant that takes explicit validAfter/validBefore
+// instead of deriving them from a duration, so tests can construct
+// malformed (reversed) timestamp warrants.
+async function signWarrantExplicit(
+  signer: Signer,
+  routerAddress: string,
+  dataHash: string,
+  nonce: bigint,
+  validAfter: number,
+  validBefore: number,
+) {
+  const packedValidationData =
+    nonce |
+    (BigInt(validBefore) << 160n) |
+    (BigInt(validAfter) << 208n);
+
+  const domain: TypedDataDomain = {
+    name: "Oku Router",
+    version: "1.0",
+    chainId: (await ethers.provider.getNetwork()).chainId,
+    verifyingContract: routerAddress,
+  };
+
+  const types = {
+    CanoeWarrant: [
+      { name: "packedValidationData", type: "uint256" },
+      { name: "dataHash", type: "bytes32" },
+    ],
+  };
+
+  const signature = await signer.signTypedData(domain, types, { packedValidationData, dataHash });
+
+  return {
+    nonce,
+    validBefore,
+    validAfter,
+    verifyingSigner: await signer.getAddress(),
+    signature,
+  };
+}
+
 function encodeSwap(
   mockTarget: MockSwapTarget,
   tokenIn: string, tokenOut: string,
@@ -338,12 +379,63 @@ describe("Recipient parameter", function () {
 
       const dataHash = ethers.keccak256(
         ethers.AbiCoder.defaultAbiCoder().encode(
-          ["address", "address", "bytes32", "uint256", "address"],
-          [tokenBAddr, targetAddr, ethers.keccak256(swapData), ETH_FEE, recipientAddr],
+          ["address", "address", "bytes32", "uint256", "address", "uint256"],
+          [tokenBAddr, targetAddr, ethers.keccak256(swapData), ETH_FEE, recipientAddr, ETH_SELL - ETH_FEE],
         )
       );
 
       const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 2n, 300);
+
+      await router.connect(user).fillQuoteEthToToken(
+        tokenBAddr, targetAddr, swapData, ETH_FEE,
+        recipientAddr, warrant,
+        { value: ETH_SELL },
+      );
+
+      expect(await tokenB.balanceOf(recipientAddr)).to.equal(recipientBalBefore + TOKEN_OUT);
+    });
+
+    // Regression test for Low-01 (Chain Defenders audit, July 2026):
+    // "msg.value Not Bound in ETH-Token Warrant dataHash". The dataHash
+    // must bind the net ETH amount (msg.value - feeAmount) so a warrant
+    // signed for one input size cannot be replayed with a different
+    // msg.value.
+    it("rejects the warrant when msg.value does not match the signed amount", async function () {
+      const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
+
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "bytes32", "uint256", "address", "uint256"],
+          [tokenBAddr, targetAddr, ethers.keccak256(swapData), ETH_FEE, recipientAddr, ETH_SELL - ETH_FEE],
+        )
+      );
+
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 20n, 300);
+
+      // Same warrant, but submitted with double the signed ETH amount —
+      // the dataHash recomputed on-chain will differ, so signature
+      // recovery fails.
+      await expect(
+        router.connect(user).fillQuoteEthToToken(
+          tokenBAddr, targetAddr, swapData, ETH_FEE,
+          recipientAddr, warrant,
+          { value: ETH_SELL * 2n },
+        )
+      ).to.be.revertedWith("CANOE: INVALID_SIGNATURE");
+    });
+
+    it("accepts the warrant when msg.value matches the signed amount exactly", async function () {
+      const swapData = encodeSwapFromEth(mockTarget, tokenBAddr, TOKEN_OUT);
+      const recipientBalBefore = await tokenB.balanceOf(recipientAddr);
+
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "bytes32", "uint256", "address", "uint256"],
+          [tokenBAddr, targetAddr, ethers.keccak256(swapData), ETH_FEE, recipientAddr, ETH_SELL - ETH_FEE],
+        )
+      );
+
+      const warrant = await signWarrant(warrantSigner, routerAddr, dataHash, 21n, 300);
 
       await router.connect(user).fillQuoteEthToToken(
         tokenBAddr, targetAddr, swapData, ETH_FEE,
@@ -483,6 +575,81 @@ describe("Recipient parameter", function () {
         swapData, SELL_AMOUNT, FEE_AMOUNT,
         recipientAddr, warrant,
       );
+
+      await router.connect(owner).setMaxWarrantDuration(300);
+    });
+
+    // Regression tests for Low-02 (Chain Defenders audit, July 2026):
+    // "Warrant Duration Validation Underflows On Reversed Timestamps".
+    // A warrant with validAfter > validBefore used to underflow the
+    // `validBefore - validAfter` subtraction in _validateWarrantDuration,
+    // producing an opaque Panic(0x11) instead of a clean revert.
+    it("reverts cleanly (not an arithmetic panic) on reversed timestamps when maxWarrantDuration is set", async function () {
+      await fundUser(SELL_AMOUNT);
+      const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
+
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "address", "address", "bytes32", "uint256", "uint256", "address"],
+          [tokenAAddr, tokenBAddr, targetAddr, targetAddr, ethers.keccak256(swapData), SELL_AMOUNT, FEE_AMOUNT, recipientAddr],
+        )
+      );
+
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const now = latestBlock ? Number(latestBlock.timestamp) : Math.floor(Date.now() / 1000);
+
+      // validBefore < validAfter -> validBefore - validAfter would underflow.
+      const warrant = await signWarrantExplicit(
+        warrantSigner, routerAddr, dataHash, 30n,
+        now + 100, // validAfter (in the future)
+        now - 100, // validBefore (in the past)
+      );
+
+      await expect(
+        router.connect(user).fillQuoteTokenToToken(
+          tokenAAddr, tokenBAddr, targetAddr, targetAddr,
+          swapData, SELL_AMOUNT, FEE_AMOUNT,
+          recipientAddr, warrant,
+        )
+      ).to.be.revertedWith("CANOE: INVALID_TIMESTAMPS");
+    });
+
+    it("still reverts cleanly on reversed timestamps when maxWarrantDuration is 0 (duration check disabled)", async function () {
+      await router.connect(owner).setMaxWarrantDuration(0);
+
+      await fundUser(SELL_AMOUNT);
+      const swapData = encodeSwap(mockTarget, tokenAAddr, tokenBAddr, SELL_AMOUNT - FEE_AMOUNT, BUY_AMOUNT);
+
+      const dataHash = ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ["address", "address", "address", "address", "bytes32", "uint256", "uint256", "address"],
+          [tokenAAddr, tokenBAddr, targetAddr, targetAddr, ethers.keccak256(swapData), SELL_AMOUNT, FEE_AMOUNT, recipientAddr],
+        )
+      );
+
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const now = latestBlock ? Number(latestBlock.timestamp) : Math.floor(Date.now() / 1000);
+
+      // Same reversed pair as the previous test, but with the duration
+      // check disabled entirely (maxWarrantDuration == 0), so
+      // _validateWarrantDuration returns early and CanoeHelper.verifyWarrant
+      // is the only check that runs. Its own timestamp checks are ordered
+      // EXPIRED -> NOT_YET -> INVALID_TIMESTAMPS, and validBefore is in
+      // the past here, so CANOE: EXPIRED fires first — still a clean,
+      // meaningful revert rather than an arithmetic panic.
+      const warrant = await signWarrantExplicit(
+        warrantSigner, routerAddr, dataHash, 31n,
+        now + 100, // validAfter (in the future)
+        now - 100, // validBefore (in the past)
+      );
+
+      await expect(
+        router.connect(user).fillQuoteTokenToToken(
+          tokenAAddr, tokenBAddr, targetAddr, targetAddr,
+          swapData, SELL_AMOUNT, FEE_AMOUNT,
+          recipientAddr, warrant,
+        )
+      ).to.be.revertedWith("CANOE: EXPIRED");
 
       await router.connect(owner).setMaxWarrantDuration(300);
     });

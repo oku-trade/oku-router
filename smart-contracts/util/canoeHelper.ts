@@ -655,7 +655,18 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
 
 // Constants
 export const OKU_ROUTER_EIP712_NAME = "Oku Router";
-export const OKU_ROUTER_EIP712_VERSION = "1.0";
+// IMPORTANT: this MUST match `CONTRACT_VERSION` in util/contractMeta.ts,
+// which is what's actually passed as the EIP-712 `version` to the deployed
+// OkuRouter constructor. If this constant drifts behind CONTRACT_VERSION,
+// any live signer that builds its EIP-712 domain from this constant will
+// produce warrants that recover to the wrong signer and revert
+// "CANOE: INVALID_SIGNATURE" for every real (non-bypass) warrant — leaving
+// only the validSigners[address(0)] bypass path functional, which skips
+// signature verification, time-window checks, nonce tracking, and duration
+// validation entirely (see Info-01, Chain Defenders audit, July 2026).
+// Remove the address(0) bypass-signer registration in tasks/deploy.ts once
+// a real signer using the correct version is operational.
+export const OKU_ROUTER_EIP712_VERSION = "1.2";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const BACKEND_WARRANT_SIGNER = "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf";
 

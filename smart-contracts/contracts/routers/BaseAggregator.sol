@@ -116,6 +116,15 @@ contract BaseAggregator is EIP712, Pausable {
     ) internal view {
         if (maxWarrantDuration == 0) return; // disabled
         if (warrant.verifyingSigner == address(0)) return; // bypass mode
+        // Guard against underflow on reversed timestamps (validAfter >
+        // validBefore). This mirrors the check in CanoeHelper.verifyWarrant
+        // so malformed warrants get the same clean revert reason instead
+        // of an opaque arithmetic Panic(0x11), regardless of which check
+        // runs first.
+        require(
+            warrant.validAfter <= warrant.validBefore,
+            "CANOE: INVALID_TIMESTAMPS"
+        );
         require(
             uint256(warrant.validBefore) - uint256(warrant.validAfter) <= maxWarrantDuration,
             "WARRANT_DURATION_EXCEEDED"
@@ -195,6 +204,10 @@ contract BaseAggregator is EIP712, Pausable {
         _validateWarrantDuration(warrant);
 
         // 0.3 - verify the canoe warrant
+        // NOTE: the dataHash binds `msg.value - feeAmount` (the exact net
+        // ETH forwarded to `target` below) so a warrant signed for one
+        // ETH input size cannot be replayed with a different msg.value.
+        // `msg.value > feeAmount` is enforced above, so this cannot underflow.
         _consumeWarrantNonce(warrant);
         CanoeHelper.verifyWarrant(
             _domainSeparatorV4(),
@@ -204,7 +217,8 @@ contract BaseAggregator is EIP712, Pausable {
                     target,
                     keccak256(swapCallData),
                     feeAmount,
-                    recipient
+                    recipient,
+                    msg.value - feeAmount
                 )
             ),
             warrant
