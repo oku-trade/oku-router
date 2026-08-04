@@ -3,6 +3,7 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import { HardhatUserConfig, task } from 'hardhat/config';
 import { config as dotEnvConfig } from "dotenv";
+import { networkByName } from "@gfxlabs/oku-chains";
 import "./tasks/deploy";
 import "./tasks/deployPermit2Proxy";
 import "./tasks/predictAll";
@@ -12,6 +13,22 @@ dotEnvConfig();
 
 const zaddr =
   "0000000000000000000000000000000000000000000000000000000000000000";
+
+// chainId, keyed by @gfxlabs/oku-chains internalName. Sourced from
+// chain-config (the single source of truth for chain identity) rather than
+// hardcoded per network, so this can never drift from deploymentConfig.ts.
+// "mainnet" -> "optimism" and "avax" -> "avalanche" are the only hardhat
+// network names that don't match chain-config's internalName 1:1.
+function chainIdFor(internalName: string): number {
+  return networkByName(internalName).id;
+}
+
+// A chain-config-sourced public RPC, used as a last-resort fallback (after
+// env var override and Alchemy) for any chain not covered by the
+// hand-curated PUBLIC_RPCS map below.
+function chainConfigRpc(internalName: string): string | undefined {
+  return networkByName(internalName).rpcUrls.default.http[0];
+}
 
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
 
@@ -61,9 +78,17 @@ function alchemyUrl(network: string): string {
   return PUBLIC_RPCS[network] || "";
 }
 
-// Resolve RPC URL: env var override → Alchemy/public fallback → zero addr
-function rpcUrl(envVar: string | undefined, alchemyNetwork: string): string {
-  return envVar || alchemyUrl(alchemyNetwork) || zaddr;
+// Resolve RPC URL: env var override → Alchemy/curated public fallback →
+// chain-config public RPC → zero addr. The chain-config fallback only
+// matters for chains missing from the hand-curated PUBLIC_RPCS map above
+// (it's a safety net, not a replacement -- PUBLIC_RPCS entries were chosen
+// deliberately and take priority).
+function rpcUrl(
+  envVar: string | undefined,
+  alchemyNetwork: string,
+  chainConfigFallback?: string,
+): string {
+  return envVar || alchemyUrl(alchemyNetwork) || chainConfigFallback || zaddr;
 }
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -226,7 +251,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 10, // Use Optimism chainId by default for EIP-712 compatibility
+      chainId: chainIdFor("optimism"), // Use Optimism chainId by default for EIP-712 compatibility
       forking: {
         url: process.env.MAINNET_URL ? process.env.MAINNET_URL : zaddr,
         blockNumber: 14546835,
@@ -236,194 +261,195 @@ const config: HardhatUserConfig = {
       },
     },
     mainnet: {
-      url: rpcUrl(process.env.MAINNET_URL, "eth-mainnet"),
+      url: rpcUrl(process.env.MAINNET_URL, "eth-mainnet", chainConfigRpc("ethereum")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
       minGasPrice: 32000000000,
+      chainId: chainIdFor("ethereum"),
     },
     op: {
-      url: rpcUrl(process.env.OP_URL, "opt-mainnet"),
+      url: rpcUrl(process.env.OP_URL, "opt-mainnet", chainConfigRpc("optimism")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
       minGasPrice: 32000000000,
-      chainId: 10,
+      chainId: chainIdFor("optimism"),
     },
     worldchain: {
-      url: rpcUrl(process.env.WORLDCHAIN_URL, "worldchain-mainnet"),
+      url: rpcUrl(process.env.WORLDCHAIN_URL, "worldchain-mainnet", chainConfigRpc("worldchain")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
       minGasPrice: 32000000000,
-      chainId: 480,
+      chainId: chainIdFor("worldchain"),
     },
     base: {
-      url: rpcUrl(process.env.BASE_URL, "base-mainnet"),
+      url: rpcUrl(process.env.BASE_URL, "base-mainnet", chainConfigRpc("base")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 8453,
+      chainId: chainIdFor("base"),
     },
     arbitrum: {
-      url: rpcUrl(process.env.ARB_URL, "arb-mainnet"),
+      url: rpcUrl(process.env.ARB_URL, "arb-mainnet", chainConfigRpc("arbitrum")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 42161,
+      chainId: chainIdFor("arbitrum"),
     },
     polygon: {
-      url: rpcUrl(process.env.POLYGON_URL, "polygon-mainnet"),
+      url: rpcUrl(process.env.POLYGON_URL, "polygon-mainnet", chainConfigRpc("polygon")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 137,
+      chainId: chainIdFor("polygon"),
     },
     bsc: {
-      url: rpcUrl(process.env.BSC_URL, "bnb-mainnet"),
+      url: rpcUrl(process.env.BSC_URL, "bnb-mainnet", chainConfigRpc("bsc")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 56,
+      chainId: chainIdFor("bsc"),
       timeout: 60000,
       httpHeaders: { "Content-Type": "application/json" },
     },
     avax: {
-      url: rpcUrl(process.env.AVAX_URL, "avax-mainnet"),
+      url: rpcUrl(process.env.AVAX_URL, "avax-mainnet", chainConfigRpc("avalanche")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 43114,
+      chainId: chainIdFor("avalanche"),
     },
     linea: {
-      url: rpcUrl(process.env.LINEA_URL, "linea-mainnet"),
+      url: rpcUrl(process.env.LINEA_URL, "linea-mainnet", chainConfigRpc("linea")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 59144,
+      chainId: chainIdFor("linea"),
     },
     blast: {
-      url: rpcUrl(process.env.BLAST_URL, "blast-mainnet"),
+      url: rpcUrl(process.env.BLAST_URL, "blast-mainnet", chainConfigRpc("blast")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 81457,
+      chainId: chainIdFor("blast"),
     },
     scroll: {
-      url: rpcUrl(process.env.SCROLL_URL, "scroll-mainnet"),
+      url: rpcUrl(process.env.SCROLL_URL, "scroll-mainnet", chainConfigRpc("scroll")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 534352,
+      chainId: chainIdFor("scroll"),
     },
     zksync: {
-      url: rpcUrl(process.env.ZKSYNC_URL, "zksync-mainnet"),
+      url: rpcUrl(process.env.ZKSYNC_URL, "zksync-mainnet", chainConfigRpc("zksync")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 324,
+      chainId: chainIdFor("zksync"),
     },
     mantle: {
-      url: rpcUrl(process.env.MANTLE_URL, "mantle-mainnet"),
+      url: rpcUrl(process.env.MANTLE_URL, "mantle-mainnet", chainConfigRpc("mantle")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 5000,
+      chainId: chainIdFor("mantle"),
     },
     gnosis: {
-      url: rpcUrl(process.env.GNOSIS_URL, "gnosis-mainnet"),
+      url: rpcUrl(process.env.GNOSIS_URL, "gnosis-mainnet", chainConfigRpc("gnosis")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 100,
+      chainId: chainIdFor("gnosis"),
     },
     taiko: {
-      url: rpcUrl(process.env.TAIKO_URL, "taiko-mainnet"),
+      url: rpcUrl(process.env.TAIKO_URL, "taiko-mainnet", chainConfigRpc("taiko")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 167000,
+      chainId: chainIdFor("taiko"),
     },
     celo: {
-      url: rpcUrl(process.env.CELO_URL, "celo-mainnet"),
+      url: rpcUrl(process.env.CELO_URL, "celo-mainnet", chainConfigRpc("celo")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 42220,
+      chainId: chainIdFor("celo"),
     },
     sonic: {
-      url: rpcUrl(process.env.SONIC_URL, "sonic-mainnet"),
+      url: rpcUrl(process.env.SONIC_URL, "sonic-mainnet", chainConfigRpc("sonic")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 146,
+      chainId: chainIdFor("sonic"),
     },
     unichain: {
-      url: rpcUrl(process.env.UNICHAIN_URL, "unichain-mainnet"),
+      url: rpcUrl(process.env.UNICHAIN_URL, "unichain-mainnet", chainConfigRpc("unichain")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 130,
+      chainId: chainIdFor("unichain"),
     },
     // Additional networks
     rootstock: {
-      url: rpcUrl(process.env.ROOTSTOCK_URL, "rootstock-mainnet"),
+      url: rpcUrl(process.env.ROOTSTOCK_URL, "rootstock-mainnet", chainConfigRpc("rootstock")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 30,
+      chainId: chainIdFor("rootstock"),
     },
     filecoin: {
-      url: rpcUrl(process.env.FILECOIN_URL, "filecoin-mainnet"),
+      url: rpcUrl(process.env.FILECOIN_URL, "filecoin-mainnet", chainConfigRpc("filecoin")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 314,
+      chainId: chainIdFor("filecoin"),
     },
     boba: {
-      url: rpcUrl(process.env.BOBA_URL, "boba-mainnet"),
+      url: rpcUrl(process.env.BOBA_URL, "boba-mainnet", chainConfigRpc("boba")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 288,
+      chainId: chainIdFor("boba"),
     },
     telos: {
-      url: rpcUrl(process.env.TELOS_URL, "telos-mainnet"),
+      url: rpcUrl(process.env.TELOS_URL, "telos-mainnet", chainConfigRpc("telos")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 40,
+      chainId: chainIdFor("telos"),
     },
     lightlink: {
-      url: rpcUrl(process.env.LIGHTLINK_URL, "lightlink-mainnet"),
+      url: rpcUrl(process.env.LIGHTLINK_URL, "lightlink-mainnet", chainConfigRpc("lightlink")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 1890,
+      chainId: chainIdFor("lightlink"),
     },
     hemi: {
-      url: rpcUrl(process.env.HEMI_URL, "hemi-mainnet"),
+      url: rpcUrl(process.env.HEMI_URL, "hemi-mainnet", chainConfigRpc("hemi")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 43111,
+      chainId: chainIdFor("hemi"),
     },
     xdc: {
-      url: rpcUrl(process.env.XDC_URL, "xdc-mainnet"),
+      url: rpcUrl(process.env.XDC_URL, "xdc-mainnet", chainConfigRpc("xdc")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 50,
+      chainId: chainIdFor("xdc"),
     },
     redbelly: {
-      url: rpcUrl(process.env.REDBELLY_URL, "redbelly-mainnet"),
+      url: rpcUrl(process.env.REDBELLY_URL, "redbelly-mainnet", chainConfigRpc("redbelly")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 151,
+      chainId: chainIdFor("redbelly"),
     },
     lens: {
-      url: rpcUrl(process.env.LENS_URL, "lens-mainnet"),
+      url: rpcUrl(process.env.LENS_URL, "lens-mainnet", chainConfigRpc("lens")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 232,
+      chainId: chainIdFor("lens"),
     },
     goat: {
-      url: rpcUrl(process.env.GOAT_URL, "goat-mainnet"),
+      url: rpcUrl(process.env.GOAT_URL, "goat-mainnet", chainConfigRpc("goat")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 2345,
+      chainId: chainIdFor("goat"),
     },
     nibiru: {
-      url: rpcUrl(process.env.NIBIRU_URL, "nibiru-mainnet"),
+      url: rpcUrl(process.env.NIBIRU_URL, "nibiru-mainnet", chainConfigRpc("nibiru")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 6900,
+      chainId: chainIdFor("nibiru"),
     },
     plasma: {
-      url: rpcUrl(process.env.PLASMA_URL, "plasma-mainnet"),
+      url: rpcUrl(process.env.PLASMA_URL, "plasma-mainnet", chainConfigRpc("plasma")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 9745,
+      chainId: chainIdFor("plasma"),
     },
     etherlink: {
-      url: rpcUrl(process.env.ETHERLINK_URL, "etherlink-mainnet"),
+      url: rpcUrl(process.env.ETHERLINK_URL, "etherlink-mainnet", chainConfigRpc("etherlink")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 42793,
+      chainId: chainIdFor("etherlink"),
     },
     bob: {
-      url: rpcUrl(process.env.BOB_URL, "bob-mainnet"),
+      url: rpcUrl(process.env.BOB_URL, "bob-mainnet", chainConfigRpc("bob")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 60808,
+      chainId: chainIdFor("bob"),
     },
     corn: {
-      url: rpcUrl(process.env.CORN_URL, "corn-mainnet"),
+      url: rpcUrl(process.env.CORN_URL, "corn-mainnet", chainConfigRpc("corn")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 21000000,
+      chainId: chainIdFor("corn"),
     },
     monad: {
-      url: rpcUrl(process.env.MONAD_URL, "monad-mainnet"),
+      url: rpcUrl(process.env.MONAD_URL, "monad-mainnet", chainConfigRpc("monad")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 143,
+      chainId: chainIdFor("monad"),
     },
     sei: {
-      url: rpcUrl(process.env.SEI_URL, "sei-mainnet"),
+      url: rpcUrl(process.env.SEI_URL, "sei-mainnet", chainConfigRpc("sei")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 1329,
+      chainId: chainIdFor("sei"),
     },
     gensyn: {
-      url: rpcUrl(process.env.GENSYN_URL, "gensyn-mainnet"),
+      url: rpcUrl(process.env.GENSYN_URL, "gensyn-mainnet", chainConfigRpc("gensyn")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 685689,
+      chainId: chainIdFor("gensyn"),
     },
     robinhood: {
-      url: "https://rpc.mainnet.chain.robinhood.com",
+      url: rpcUrl(process.env.ROBINHOOD_URL, "robinhood-mainnet", chainConfigRpc("robinhood")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
-      chainId: 4663,
+      chainId: chainIdFor("robinhood"),
     },
   },
   solidity: {

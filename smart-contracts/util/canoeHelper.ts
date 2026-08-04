@@ -5,7 +5,7 @@ import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { IERC20__factory } from "../typechain-types/factories/contracts/interfaces/openzeppelin";
 import { IERC20 } from "../typechain-types/contracts/interfaces/openzeppelin";
 import axios from "axios";
-import { NETWORK_CONFIGS } from "./networkConfig";
+import { NETWORK_CONFIGS } from "./deploymentConfig";
 import { getCurrentAddress } from "./deploymentsRegistry";
 
 

@@ -3,7 +3,7 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Signer } from "ethers";
 import { type OkuRouter, OkuRouter__factory, Permit2Proxy__factory } from "../typechain-types";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
-import { getNetworkConfig } from "../util/networkConfig";
+import { getNetworkConfig } from "../util/deploymentConfig";
 import {
   CONTRACT_NAME,
   CONTRACT_VERSION,

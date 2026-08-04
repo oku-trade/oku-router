@@ -10,7 +10,7 @@
  *   npx hardhat run scripts/testRouters/testAllChains.ts
  */
 
-import { NETWORK_CONFIGS } from "../../util/networkConfig";
+import { NETWORK_CONFIGS } from "../../util/deploymentConfig";
 import { getCurrentAddress } from "../../util/deploymentsRegistry";
 import { exec } from "child_process";
 import { promisify } from "util";
