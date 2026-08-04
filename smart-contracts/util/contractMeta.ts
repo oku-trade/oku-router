@@ -36,8 +36,26 @@ export const CONTRACT_NAME = "Oku Router";
  *   usage on chains with non-canonical deployments. Because the constructor
  *   args now vary per chain (different Permit2 addresses), the CREATE2
  *   address will differ across chains that use different Permit2 contracts.
+ * - "1.3" is the Chain Defenders audit-fix boundary (July 2026). Bumped
+ *   specifically so the fixed bytecode gets a fresh deterministic address
+ *   distinct from the pre-audit "1.2" deployments already live on 17
+ *   chains (bumping the CREATE2 salt without changing this string would
+ *   otherwise have left two different "1.2" bytecodes with no version
+ *   boundary between them). Behavioral changes in this bump:
+ *     - Mid-01: Permit2Proxy._forwardAndReturn refunds residual sellToken
+ *       and zeroes the leftover router allowance after every call.
+ *     - Low-01: fillQuoteEthToToken's warrant dataHash now binds
+ *       `msg.value - feeAmount`, so a signed ETH-input size can't be
+ *       replayed with a different msg.value.
+ *     - Low-02: _validateWarrantDuration guards against underflow on
+ *       reversed timestamps (validAfter > validBefore) with a clean
+ *       "CANOE: INVALID_TIMESTAMPS" revert instead of an opaque Panic(0x11).
+ *     - Info-02: Permit2Proxy.receive() is restricted to `okuRouter` only.
+ *   OKU_ROUTER_EIP712_VERSION in canoeHelper.ts MUST be bumped in lockstep
+ *   with this constant (see Info-01) or all warrants will fail signature
+ *   verification.
  */
-export const CONTRACT_VERSION = "1.2";
+export const CONTRACT_VERSION = "1.3";
 
 /**
  * Safe Singleton Factory — canonical CREATE2 deployer present on all major
