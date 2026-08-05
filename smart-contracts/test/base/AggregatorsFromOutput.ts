@@ -194,6 +194,7 @@ describe("OkuRouter Aggregators", function () {
         quote.data || Sources.Aggregator0x,
         quote.sellAmount,
         quote.fee,
+        signerAddress,
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -209,7 +210,7 @@ describe("OkuRouter Aggregators", function () {
       const receipt = await swapTx.wait();
 
       if (showGasUsage && receipt) {
-        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
+        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
       }
 
       const daiBalanceSigner = await daiContract.balanceOf(signerAddress);
@@ -285,6 +286,7 @@ describe("OkuRouter Aggregators", function () {
         quote.data || Sources.Aggregator0x,
         quote.sellAmount,
         quote.fee,
+        signerAddress,
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -299,7 +301,7 @@ describe("OkuRouter Aggregators", function () {
 
       const receipt = await swapTx.wait();
       if (showGasUsage && receipt) {
-        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
+        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
       }
 
       const daiBalanceSigner = await daiContract.balanceOf(signerAddress);
@@ -364,6 +366,7 @@ describe("OkuRouter Aggregators", function () {
         quote.to || ZeroAddress,
         quote.data || Sources.Aggregator0x,
         quote.fee,
+        signerAddress,
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,
@@ -379,7 +382,7 @@ describe("OkuRouter Aggregators", function () {
       const receipt = await swapTx.wait();
 
       if (showGasUsage && receipt) {
-        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
+        Logger.info("      ⛽  Gas usage: ", receipt.gasUsed.toString());
       }
 
       const daiBalanceSigner = await daiContract.balanceOf(signerAddress);
@@ -445,9 +448,11 @@ describe("OkuRouter Aggregators", function () {
       const swapTx = await okuRouterInstance.connect(signer).fillQuoteTokenToEth(
         quote.sellTokenAddress,
         quote.to || ZeroAddress,
+        quote.to || ZeroAddress, // approvalTarget
         quote.data || Sources.Aggregator0x,
         quote.sellAmount,
         quote.feePercentageBasisPoints,
+        signerAddress,
         {
           verifyingSigner: ZeroAddress,
           nonce: 0n,

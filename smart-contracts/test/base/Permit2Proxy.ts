@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { ZeroAddress, type Signer } from "ethers";
-import type { OkuRouter, Permit2Proxy } from "../../typechain-types";
+import type { OkuRouter, Permit2Proxy, IERC20Metadata } from "../../typechain-types";
 import {
     OkuRouter__factory,
     Permit2Proxy__factory,
@@ -84,8 +84,8 @@ describe("Permit2Proxy", function () {
     let proxy: Permit2Proxy;
     let owner: Signer;
     let user: Signer;
-    let USDC: any;
-    let WETH: any;
+    let USDC: IERC20Metadata;
+    let WETH: IERC20Metadata;
     let rainbowAddress: string;
     let proxyAddress: string;
     let chainId: bigint;
@@ -108,7 +108,7 @@ describe("Permit2Proxy", function () {
         const ownerAddress = await owner.getAddress();
 
         // Deploy OkuRouter
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress);
+        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
         await Rainbow.waitForDeployment();
         rainbowAddress = await Rainbow.getAddress();
 
@@ -172,6 +172,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    proxyAddress,
                     zeroWarrant,
                 ]
             );
@@ -229,6 +230,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     feeAmount,
+                    proxyAddress,
                     zeroWarrant,
                 ]
             );
@@ -301,6 +303,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    proxyAddress,
                     zeroWarrant,
                 ]
             );
@@ -343,6 +346,7 @@ describe("Permit2Proxy", function () {
                     swapCallData,
                     sellAmount,
                     0n,
+                    proxyAddress,
                     zeroWarrant,
                 ]
             );

@@ -86,6 +86,7 @@ export interface BaseAggregatorInterface extends Interface {
       | "fillQuoteTokenToEthWithPermit"
       | "fillQuoteTokenToToken"
       | "fillQuoteTokenToTokenWithPermit"
+      | "maxWarrantDuration"
       | "paused"
       | "permit2"
       | "swapTargets"
@@ -96,6 +97,7 @@ export interface BaseAggregatorInterface extends Interface {
   getEvent(
     nameOrSignatureOrTopic:
       | "EIP712DomainChanged"
+      | "MaxWarrantDurationUpdated"
       | "OrderFilled"
       | "Paused"
       | "Unpaused"
@@ -112,6 +114,7 @@ export interface BaseAggregatorInterface extends Interface {
       AddressLike,
       BytesLike,
       BigNumberish,
+      AddressLike,
       CanoeHelper.WarrantStruct
     ]
   ): string;
@@ -124,6 +127,7 @@ export interface BaseAggregatorInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       CanoeHelper.WarrantStruct
     ]
   ): string;
@@ -136,6 +140,7 @@ export interface BaseAggregatorInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       PermitHelper.PermitStruct,
       CanoeHelper.WarrantStruct
     ]
@@ -150,6 +155,7 @@ export interface BaseAggregatorInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       CanoeHelper.WarrantStruct
     ]
   ): string;
@@ -163,9 +169,14 @@ export interface BaseAggregatorInterface extends Interface {
       BytesLike,
       BigNumberish,
       BigNumberish,
+      AddressLike,
       PermitHelper.PermitStruct,
       CanoeHelper.WarrantStruct
     ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "maxWarrantDuration",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(functionFragment: "permit2", values?: undefined): string;
@@ -206,6 +217,10 @@ export interface BaseAggregatorInterface extends Interface {
     functionFragment: "fillQuoteTokenToTokenWithPermit",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "maxWarrantDuration",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "permit2", data: BytesLike): Result;
   decodeFunctionResult(
@@ -232,9 +247,26 @@ export namespace EIP712DomainChangedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace MaxWarrantDurationUpdatedEvent {
+  export type InputTuple = [
+    oldDuration: BigNumberish,
+    newDuration: BigNumberish
+  ];
+  export type OutputTuple = [oldDuration: bigint, newDuration: bigint];
+  export interface OutputObject {
+    oldDuration: bigint;
+    newDuration: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace OrderFilledEvent {
   export type InputTuple = [
     sender: AddressLike,
+    recipient: AddressLike,
     tokenIn: AddressLike,
     tokenOut: AddressLike,
     amountIn: BigNumberish,
@@ -244,6 +276,7 @@ export namespace OrderFilledEvent {
   ];
   export type OutputTuple = [
     sender: string,
+    recipient: string,
     tokenIn: string,
     tokenOut: string,
     amountIn: bigint,
@@ -253,6 +286,7 @@ export namespace OrderFilledEvent {
   ];
   export interface OutputObject {
     sender: string;
+    recipient: string;
     tokenIn: string;
     tokenOut: string;
     amountIn: bigint;
@@ -355,6 +389,7 @@ export interface BaseAggregator extends BaseContract {
       target: AddressLike,
       swapCallData: BytesLike,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -369,6 +404,7 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -383,6 +419,7 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
@@ -399,6 +436,7 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -414,12 +452,15 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
     "payable"
   >;
+
+  maxWarrantDuration: TypedContractMethod<[], [bigint], "view">;
 
   paused: TypedContractMethod<[], [boolean], "view">;
 
@@ -464,6 +505,7 @@ export interface BaseAggregator extends BaseContract {
       target: AddressLike,
       swapCallData: BytesLike,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -479,6 +521,7 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -494,6 +537,7 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feePercentageBasisPoints: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
@@ -511,6 +555,7 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
@@ -527,12 +572,16 @@ export interface BaseAggregator extends BaseContract {
       swapCallData: BytesLike,
       sellAmount: BigNumberish,
       feeAmount: BigNumberish,
+      recipient: AddressLike,
       permitData: PermitHelper.PermitStruct,
       warrant: CanoeHelper.WarrantStruct
     ],
     [void],
     "payable"
   >;
+  getFunction(
+    nameOrSignature: "maxWarrantDuration"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "paused"
   ): TypedContractMethod<[], [boolean], "view">;
@@ -559,6 +608,13 @@ export interface BaseAggregator extends BaseContract {
     EIP712DomainChangedEvent.InputTuple,
     EIP712DomainChangedEvent.OutputTuple,
     EIP712DomainChangedEvent.OutputObject
+  >;
+  getEvent(
+    key: "MaxWarrantDurationUpdated"
+  ): TypedContractEvent<
+    MaxWarrantDurationUpdatedEvent.InputTuple,
+    MaxWarrantDurationUpdatedEvent.OutputTuple,
+    MaxWarrantDurationUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "OrderFilled"
@@ -594,7 +650,18 @@ export interface BaseAggregator extends BaseContract {
       EIP712DomainChangedEvent.OutputObject
     >;
 
-    "OrderFilled(address,address,address,uint256,uint256,uint256,address)": TypedContractEvent<
+    "MaxWarrantDurationUpdated(uint256,uint256)": TypedContractEvent<
+      MaxWarrantDurationUpdatedEvent.InputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputObject
+    >;
+    MaxWarrantDurationUpdated: TypedContractEvent<
+      MaxWarrantDurationUpdatedEvent.InputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputTuple,
+      MaxWarrantDurationUpdatedEvent.OutputObject
+    >;
+
+    "OrderFilled(address,address,address,address,uint256,uint256,uint256,address)": TypedContractEvent<
       OrderFilledEvent.InputTuple,
       OrderFilledEvent.OutputTuple,
       OrderFilledEvent.OutputObject

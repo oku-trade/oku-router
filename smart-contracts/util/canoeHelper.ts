@@ -1,11 +1,11 @@
 import { AbiCoder, AddressLike, BigNumberish, BytesLike, formatUnits, Interface, keccak256, parseUnits, Signer, TransactionResponse, TypedDataDomain, ZeroAddress } from "ethers";
-import { ERC20__factory, ISwapRouter02__factory, OkuRouter, OkuRouter__factory } from "../typechain-types";
+import { ERC20__factory, IERC2612__factory, ISwapRouter02__factory, OkuRouter, OkuRouter__factory } from "../typechain-types";
 import hre, { ethers, network } from "hardhat";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
 import { IERC20__factory } from "../typechain-types/factories/contracts/interfaces/openzeppelin";
 import { IERC20 } from "../typechain-types/contracts/interfaces/openzeppelin";
 import axios from "axios";
-import { NETWORK_CONFIGS } from "./networkConfig";
+import { NETWORK_CONFIGS } from "./deploymentConfig";
 import { getCurrentAddress } from "./deploymentsRegistry";
 
 
@@ -256,7 +256,7 @@ export const generatePermitSignature = async (
     let nonce: bigint = 0n;
 
     try {
-        nonce = await tokenContract.nonces(ownerAddress);
+        nonce = await IERC2612__factory.connect(tokenAddress, signer).nonces(ownerAddress);
     } catch (error: any) {
         console.warn(`WARN: Could not fetch nonce for ${tokenAddress}. This token might not support EIP-2612 (permit). Defaulting nonce to 0.`);
     }
@@ -539,6 +539,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )
@@ -552,6 +553,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )
@@ -578,6 +580,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )
@@ -590,6 +593,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
                 digest.candidateTrade.data,
                 inputAmount,
                 0n,
+                ZeroAddress, // recipient
                 permitData,
                 warrant
             )
@@ -651,7 +655,18 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
 
 // Constants
 export const OKU_ROUTER_EIP712_NAME = "Oku Router";
-export const OKU_ROUTER_EIP712_VERSION = "1.0";
+// IMPORTANT: this MUST match `CONTRACT_VERSION` in util/contractMeta.ts,
+// which is what's actually passed as the EIP-712 `version` to the deployed
+// OkuRouter constructor. If this constant drifts behind CONTRACT_VERSION,
+// any live signer that builds its EIP-712 domain from this constant will
+// produce warrants that recover to the wrong signer and revert
+// "CANOE: INVALID_SIGNATURE" for every real (non-bypass) warrant — leaving
+// only the validSigners[address(0)] bypass path functional, which skips
+// signature verification, time-window checks, nonce tracking, and duration
+// validation entirely (see Info-01, Chain Defenders audit, July 2026).
+// Remove the address(0) bypass-signer registration in tasks/deploy.ts once
+// a real signer using the correct version is operational.
+export const OKU_ROUTER_EIP712_VERSION = "1.3";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const BACKEND_WARRANT_SIGNER = "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf";
 
@@ -1005,7 +1020,7 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
         const decoded = rainbowInterface.parseTransaction({ data: originalTxData });
         
         if (decoded?.name === "fillQuoteTokenToToken") {
-            const [sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, originalWarrant] = decoded.args;
+            const [sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, recipient, originalWarrant] = decoded.args;
 
             const newWarrant = {
                 nonce: originalWarrant.nonce || modifiedWarrant.nonce || "0",
@@ -1016,13 +1031,13 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
             };
 
             const newTxData = rainbowInterface.encodeFunctionData("fillQuoteTokenToToken", [
-                sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, newWarrant
+                sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, recipient, newWarrant
             ]);
 
             console.log(`🔄 Warrant signer changed from ${originalWarrant.verifyingSigner} to ${newWarrant.verifyingSigner}`);
             return newTxData;
         } else if (decoded?.name === "fillQuoteTokenToEth") {
-            const [sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, originalWarrant] = decoded.args;
+            const [sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, recipient, originalWarrant] = decoded.args;
 
             const newWarrant = {
                 nonce: originalWarrant.nonce || modifiedWarrant.nonce || "0",
@@ -1033,14 +1048,14 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
             };
 
             const newTxData = rainbowInterface.encodeFunctionData("fillQuoteTokenToEth", [
-                sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, newWarrant
+                sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, recipient, newWarrant
             ]);
 
             console.log(`🔄 Warrant signer changed from ${originalWarrant.verifyingSigner} to ${newWarrant.verifyingSigner}`);
             return newTxData;
         } else if (decoded?.name === "fillQuoteEthToToken") {
             // Note: fillQuoteEthToToken does NOT have approvalTarget (ETH doesn't require approval)
-            const [buyToken, target, swapCallData, feeAmount, originalWarrant] = decoded.args;
+            const [buyToken, target, swapCallData, feeAmount, recipient, originalWarrant] = decoded.args;
 
             const newWarrant = {
                 nonce: originalWarrant.nonce || modifiedWarrant.nonce || "0",
@@ -1051,7 +1066,7 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
             };
 
             const newTxData = rainbowInterface.encodeFunctionData("fillQuoteEthToToken", [
-                buyToken, target, swapCallData, feeAmount, newWarrant
+                buyToken, target, swapCallData, feeAmount, recipient, newWarrant
             ]);
 
             console.log(`🔄 Warrant signer changed from ${originalWarrant.verifyingSigner} to ${newWarrant.verifyingSigner}`);

@@ -1,4 +1,5 @@
-import type { Address, Hex } from "viem";
+type Address = `0x${string}`;
+type Hex = `0x${string}`;
 
 export interface MessageParam {
   nonce: number;

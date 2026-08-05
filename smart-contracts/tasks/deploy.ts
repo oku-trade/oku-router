@@ -1,9 +1,9 @@
 import { task } from "hardhat/config";
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Signer } from "ethers";
-import { OkuRouter__factory } from "../typechain-types";
+import { type OkuRouter, OkuRouter__factory, Permit2Proxy__factory } from "../typechain-types";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
-import { getNetworkConfig } from "../util/networkConfig";
+import { getNetworkConfig } from "../util/deploymentConfig";
 import {
   CONTRACT_NAME,
   CONTRACT_VERSION,
@@ -11,7 +11,7 @@ import {
   getOkuRouterSalt,
   computeCreate2Address,
 } from "../util/contractMeta";
-import { recordDeployment } from "../util/deploymentsRegistry";
+import { recordDeployment, getCurrentEntry } from "../util/deploymentsRegistry";
 import { sleep, withRetry } from "../util/rpcRetry";
 
 // Address used to impersonate the deployer on local Hardhat forks.
@@ -232,7 +232,8 @@ task("deploy", "Deploy OkuRouter contract")
     if (!permit2Address) {
       throw new Error(
         `No permit2Address configured for network "${networkName}". ` +
-          `Add it to NETWORK_CONFIGS in util/networkConfig.ts before deploying.`,
+          `Add a DEPLOYMENT_OVERRIDES entry for it in util/deploymentConfig.ts, ` +
+          `and ensure @gfxlabs/oku-chains has a Permit2 address (or canonicalPermit2: true) for this chain.`,
       );
     }
     console.log(`Permit2: ${permit2Address}`);
@@ -241,7 +242,7 @@ task("deploy", "Deploy OkuRouter contract")
     let blockNumber: number | null = null;
     let txHash: string | null = null;
     let reused = false;
-    let contract;
+    let contract: OkuRouter;
 
     try {
       if (deterministicMode) {
@@ -371,6 +372,25 @@ task("deploy", "Deploy OkuRouter contract")
       console.log("✓ Zero address already approved as valid signer");
     }
 
+    // Set max warrant duration to 5 minutes (300 seconds).
+    // This limits the validity window of warrant signatures, reducing the
+    // attack surface for stolen/leaked warrants.
+    const DEFAULT_MAX_WARRANT_DURATION = 300; // 5 minutes
+    const currentDuration = await withRetry(
+      () => contract.maxWarrantDuration(),
+      "maxWarrantDuration()",
+    );
+    if (Number(currentDuration) !== DEFAULT_MAX_WARRANT_DURATION) {
+      const durationTx = await withRetry(
+        () => contract.setMaxWarrantDuration(DEFAULT_MAX_WARRANT_DURATION),
+        `setMaxWarrantDuration(${DEFAULT_MAX_WARRANT_DURATION})`,
+      );
+      await withRetry(() => durationTx.wait(), `tx.wait(${durationTx.hash})`);
+      console.log(`✓ Max warrant duration set to ${DEFAULT_MAX_WARRANT_DURATION}s (5 minutes)`);
+    } else {
+      console.log(`✓ Max warrant duration already set to ${DEFAULT_MAX_WARRANT_DURATION}s`);
+    }
+
     if (mainnet) {
       console.log("\nVerifying contract on block explorer...");
       try {
@@ -381,6 +401,78 @@ task("deploy", "Deploy OkuRouter contract")
       } catch (err: any) {
         // Verification is best-effort; the deployment is already recorded.
         console.warn(`⚠ Verification failed (will need manual retry): ${err.message}`);
+      }
+    }
+
+    // --- Auto-deploy Permit2Proxy on chains that have one ---
+    //
+    // The Permit2Proxy is hard-bound to a specific OkuRouter address via its
+    // constructor. When we deploy a new OkuRouter on a chain that already has
+    // a Permit2Proxy, the old proxy is pointing at a stale router. We detect
+    // this by checking the on-disk registry: if a Permit2Proxy entry exists
+    // and its `okuRouter` doesn't match the just-deployed router, we deploy
+    // a fresh one and update the registry.
+    //
+    // Currently only Worldchain uses Permit2Proxy, but this logic is generic
+    // so any future chain with a proxy entry will also auto-redeploy.
+    if (mainnet && !reused) {
+      const existingProxy = getCurrentEntry(networkName, "Permit2Proxy");
+      if (existingProxy) {
+        if (existingProxy.okuRouter === contractAddress) {
+          console.log(`\n✓ Permit2Proxy already bonded to this OkuRouter (${contractAddress})`);
+        } else {
+          console.log(
+            `\n⚠ Existing Permit2Proxy is bonded to stale OkuRouter ${existingProxy.okuRouter}.` +
+              `\n  Deploying a fresh Permit2Proxy bonded to ${contractAddress}...`,
+          );
+          try {
+            const proxyContract = await withRetry(
+              () =>
+                new Permit2Proxy__factory(signer).deploy(contractAddress, {
+                  gasLimit: 3_000_000,
+                }),
+              "deploy(Permit2Proxy)",
+            );
+            const proxyDeployTx = proxyContract.deploymentTransaction();
+            await withRetry(
+              () => proxyContract.waitForDeployment(),
+              "waitForDeployment(Permit2Proxy)",
+            );
+            const proxyAddress = await proxyContract.getAddress();
+            console.log("✓ Permit2Proxy deployed to:", proxyAddress);
+
+            // Record in the registry
+            try {
+              const chainIdBig = (await hre.ethers.provider.getNetwork()).chainId;
+              recordDeployment(networkName, Number(chainIdBig), "Permit2Proxy", {
+                address: proxyAddress,
+                okuRouter: contractAddress,
+              });
+              console.log(`✓ Updated Permit2Proxy in deployments/${networkName}.json`);
+            } catch (err: any) {
+              console.warn(
+                `⚠ Failed to write Permit2Proxy to deployments/${networkName}.json:`,
+                err.message,
+              );
+            }
+
+            // Verify the proxy
+            await sleep(5000);
+            try {
+              await hre.run("verify:verify", {
+                address: proxyAddress,
+                constructorArguments: [contractAddress],
+              });
+            } catch (err: any) {
+              console.warn(`⚠ Permit2Proxy verification failed (manual retry needed): ${err.message}`);
+            }
+          } catch (err: any) {
+            console.error(`✗ Permit2Proxy deployment failed: ${err.message}`);
+            console.error(
+              `  You must deploy manually: npx hardhat deploy-permit2-proxy --network ${networkName}`,
+            );
+          }
+        }
       }
     }
 

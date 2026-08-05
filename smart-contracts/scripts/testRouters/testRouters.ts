@@ -30,7 +30,7 @@ import {
   extractTargetsFromRainbowData,
   canoeParams,
 } from "../../util/canoeHelper";
-import { NETWORK_CONFIGS, NetworkConfig } from "../../util/networkConfig";
+import { NETWORK_CONFIGS, NetworkConfig } from "../../util/deploymentConfig";
 import { getCurrentAddress } from "../../util/deploymentsRegistry";
 import { IERC20__factory, OkuRouter__factory } from "../../typechain-types";
 import { Signer } from "ethers";
@@ -811,7 +811,7 @@ async function main() {
   const config = NETWORK_CONFIGS[configKey];
 
   if (!config) {
-    console.error(`\n❌ Network "${networkName}" not found in networkConfig.ts`);
+    console.error(`\n❌ Network "${networkName}" not found in util/deploymentConfig.ts (check DEPLOYMENT_OVERRIDES and @gfxlabs/oku-chains)`);
     console.error(`Available networks: ${Object.keys(NETWORK_CONFIGS).join(", ")}`);
     process.exit(1);
   }

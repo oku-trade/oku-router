@@ -18,7 +18,7 @@ import {
   computeCreate2Address,
   getOkuRouterSalt,
 } from "../util/contractMeta";
-import { NETWORK_CONFIGS, getSupportedNetworks } from "../util/networkConfig";
+import { NETWORK_CONFIGS, getSupportedNetworks } from "../util/deploymentConfig";
 
 task("predict-all", "Predict deterministic OkuRouter address for all chains")
   .addOptionalParam(
@@ -43,6 +43,7 @@ task("predict-all", "Predict deterministic OkuRouter address for all chains")
       CONTRACT_NAME,
       CONTRACT_VERSION,
       owner,
+      hre.ethers.ZeroAddress,
     );
     if (!deployTx.data) throw new Error("Failed to generate init code");
     const initCodeHash = hre.ethers.keccak256(deployTx.data);

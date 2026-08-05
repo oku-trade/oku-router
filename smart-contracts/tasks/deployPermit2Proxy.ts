@@ -1,7 +1,7 @@
 import { task } from "hardhat/config";
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Permit2Proxy__factory } from "../typechain-types";
-import { getNetworkConfig } from "../util/networkConfig";
+import { getNetworkConfig } from "../util/deploymentConfig";
 import {
   CONTRACT_VERSION,
   SAFE_SINGLETON_FACTORY,
