@@ -811,7 +811,7 @@ async function main() {
   const config = NETWORK_CONFIGS[configKey];
 
   if (!config) {
-    console.error(`\n❌ Network "${networkName}" not found in networkConfig.ts`);
+    console.error(`\n❌ Network "${networkName}" not found in util/deploymentConfig.ts (check DEPLOYMENT_OVERRIDES and @gfxlabs/oku-chains)`);
     console.error(`Available networks: ${Object.keys(NETWORK_CONFIGS).join(", ")}`);
     process.exit(1);
   }

@@ -232,7 +232,8 @@ task("deploy", "Deploy OkuRouter contract")
     if (!permit2Address) {
       throw new Error(
         `No permit2Address configured for network "${networkName}". ` +
-          `Add it to NETWORK_CONFIGS in util/networkConfig.ts before deploying.`,
+          `Add a DEPLOYMENT_OVERRIDES entry for it in util/deploymentConfig.ts, ` +
+          `and ensure @gfxlabs/oku-chains has a Permit2 address (or canonicalPermit2: true) for this chain.`,
       );
     }
     console.log(`Permit2: ${permit2Address}`);
