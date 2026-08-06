@@ -666,7 +666,7 @@ export const OKU_ROUTER_EIP712_NAME = "Oku Router";
 // validation entirely (see Info-01, Chain Defenders audit, July 2026).
 // Remove the address(0) bypass-signer registration in tasks/deploy.ts once
 // a real signer using the correct version is operational.
-export const OKU_ROUTER_EIP712_VERSION = "1.3";
+export const OKU_ROUTER_EIP712_VERSION = "2.0";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 export const BACKEND_WARRANT_SIGNER = "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf";
 

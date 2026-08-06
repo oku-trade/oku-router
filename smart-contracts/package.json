@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@gfxlabs/oku-chains": "file:../../chain-config",
+    "@gfxlabs/oku-chains": "1.12.28",
     "@noble/curves": "^1.6.0",
     "@openzeppelin/contracts": "5.0.2",
     "@typechain/ethers-v6": "^0.5.1",

@@ -29,7 +29,7 @@ const gfxOwner = "0x00a0bB9dfD2db3a6E447147426aB2D1B5Ac356d5";
  * cross-chain address we have to deploy with the same `owner` everywhere
  * (currently: the deployer EOA, with ownership transferred post-deploy).
  */
-async function predictOkuRouterAddress(
+export async function predictOkuRouterAddress(
   hre: HardhatRuntimeEnvironment,
   owner: string,
   permit2Address: string,
@@ -64,7 +64,7 @@ async function predictOkuRouterAddress(
  * silently falling back to a non-deterministic deploy (which would defeat
  * the whole point of having matching addresses across chains).
  */
-async function deployDeterministic(
+export async function deployDeterministic(
   hre: HardhatRuntimeEnvironment,
   signer: Signer,
   owner: string,

@@ -51,11 +51,21 @@ export const CONTRACT_NAME = "Oku Router";
  *       reversed timestamps (validAfter > validBefore) with a clean
  *       "CANOE: INVALID_TIMESTAMPS" revert instead of an opaque Panic(0x11).
  *     - Info-02: Permit2Proxy.receive() is restricted to `okuRouter` only.
+ *   "1.3" was never deployed on-chain anywhere -- it was superseded by
+ *   "2.0" (below) before any live redeploy happened, so its bytecode/salt
+ *   only ever existed in git history and local testing.
+ * - "2.0" is the release version actually being redeployed across all
+ *   chains. It carries forward every "1.3" fix unchanged (no further
+ *   contract changes) plus the migration of network/swap-target
+ *   configuration to `@gfxlabs/oku-chains` (see util/deploymentConfig.ts).
+ *   Bumped from "1.3" to "2.0" purely to mark this as the actual public
+ *   release boundary, distinct from the never-shipped "1.3" internal
+ *   audit-fix milestone.
  *   OKU_ROUTER_EIP712_VERSION in canoeHelper.ts MUST be bumped in lockstep
  *   with this constant (see Info-01) or all warrants will fail signature
  *   verification.
  */
-export const CONTRACT_VERSION = "1.3";
+export const CONTRACT_VERSION = "2.0";
 
 /**
  * Safe Singleton Factory — canonical CREATE2 deployer present on all major
