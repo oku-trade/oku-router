@@ -65,8 +65,9 @@ export interface NetworkConfig {
  * Deployment-specific overrides, keyed by hardhat network name.
  *
  * `internalName` is only set where it differs from the hardhat network key
- * (chain-config's naming almost always matches 1:1 -- "op" -> "optimism" and
- * "avax" -> "avalanche" are the only two exceptions).
+ * (chain-config's naming almost always matches 1:1 -- "op" -> "optimism",
+ * "avax" -> "avalanche", and "mainnet" -> "ethereum" are the only
+ * exceptions).
  */
 interface DeploymentOverride {
   internalName?: string;
@@ -291,6 +292,51 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
     supportedRouters: [],
     canonicalPermit2: true,
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+  },
+  // --- Full-scope expansion additions below ---
+  mainnet: {
+    internalName: "ethereum",
+    // chain-config's `uniswap.permit2` is now populated for ethereum (see
+    // src/definitions/mainnet.ts upstream), but canonicalPermit2 is kept
+    // `true` here too as a belt-and-suspenders fallback in case an older
+    // published chain-config version (without that field) is installed.
+    supportedRouters: ["binance","enso","icecreamswap","kyberswap","native","odos","okx","openocean","paraswap","uniswap","zeroex"],
+    canonicalPermit2: true,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+    rpcUrl: process.env.MAINNET_URL,
+  },
+  saga: {
+    supportedRouters: ["uniswap"],
+    canonicalPermit2: false,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+    rpcUrl: process.env.SAGA_URL,
+  },
+  zerog: {
+    supportedRouters: ["icecreamswap","uniswap"],
+    canonicalPermit2: false,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+    rpcUrl: process.env.ZEROG_URL,
+  },
+  hyperevm: {
+    // Same belt-and-suspenders note as `mainnet` above -- chain-config now
+    // has real `uniswap.permit2` data for hyperevm too, manually confirmed
+    // via eth_getCode against the canonical Permit2 address.
+    supportedRouters: ["enso","icecreamswap","kyberswap","okx","openocean","zeroex"],
+    canonicalPermit2: true,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+    rpcUrl: process.env.HYPEREVM_URL,
+  },
+  pharos: {
+    // chain-config now has real `uniswap.permit2` data for pharos (confirmed
+    // canonical per https://docs.pharos.xyz/getting-started/canonical-contracts
+    // Pacific Mainnet table, and verified on-chain via eth_getCode). Kept as
+    // a belt-and-suspenders fallback per the same pattern as mainnet/hyperevm.
+    // `marketRouters` is still empty in chain-config (0 entries) -- no
+    // swap targets to whitelist yet, same situation as `celo`.
+    supportedRouters: [],
+    canonicalPermit2: true,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
+    rpcUrl: process.env.PHAROS_URL,
   },
 };
 

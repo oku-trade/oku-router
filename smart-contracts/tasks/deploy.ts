@@ -3,7 +3,7 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Signer } from "ethers";
 import { type OkuRouter, OkuRouter__factory, Permit2Proxy__factory } from "../typechain-types";
 import { setBalance } from "@nomicfoundation/hardhat-network-helpers";
-import { getNetworkConfig } from "../util/deploymentConfig";
+import { getNetworkConfig, type SwapTarget } from "../util/deploymentConfig";
 import {
   CONTRACT_NAME,
   CONTRACT_VERSION,
@@ -64,6 +64,73 @@ export async function predictOkuRouterAddress(
  * silently falling back to a non-deterministic deploy (which would defeat
  * the whole point of having matching addresses across chains).
  */
+/**
+ * Register every `knownSwapTargets` entry for a chain against a deployed
+ * OkuRouter, skipping any already registered. Prints a full labeled list of
+ * every target (name/protocol/address) up front, then confirms each write
+ * with a checkmark only AFTER the transaction is actually mined -- earlier
+ * revisions printed the checkmark before submitting, which could look like
+ * success even when the tx failed or was never sent (e.g. mid-loop RPC
+ * errors). This is exported so both the live `deploy` task and local-fork
+ * test scripts exercise identical whitelist-registration logic and logging.
+ */
+export async function registerSwapTargets(
+  hre: HardhatRuntimeEnvironment,
+  contract: OkuRouter,
+  targets: readonly SwapTarget[],
+  options: { sleepBetweenTxMs?: number } = {},
+): Promise<{ alreadyRegistered: SwapTarget[]; newlyRegistered: SwapTarget[] }> {
+  if (targets.length === 0) {
+    console.log("\nNo known swap targets configured for this network.");
+    return { alreadyRegistered: [], newlyRegistered: [] };
+  }
+
+  console.log(`\nSwap target whitelist (${targets.length} known for this network):`);
+  const targetsToAdd: SwapTarget[] = [];
+  const alreadyRegistered: SwapTarget[] = [];
+  for (const target of targets) {
+    const isRegistered = await withRetry(
+      () => contract.swapTargets(target.address),
+      `swapTargets(${target.address})`,
+    );
+    console.log(
+      `  ${isRegistered ? "[already registered]" : "[pending]          "} ${target.name} (${target.protocol}): ${target.address}`,
+    );
+    if (isRegistered) {
+      alreadyRegistered.push(target);
+    } else {
+      targetsToAdd.push(target);
+    }
+  }
+
+  if (targetsToAdd.length === 0) {
+    console.log(`\n✓ All ${targets.length} swap targets already registered`);
+    return { alreadyRegistered, newlyRegistered: [] };
+  }
+
+  console.log(`\nRegistering ${targetsToAdd.length} new swap targets:`);
+  for (let i = 0; i < targetsToAdd.length; i++) {
+    const target = targetsToAdd[i];
+    // Wrap submission + wait separately so a 429 on either side doesn't
+    // double-submit the tx. updateSwapTargets is idempotent anyway (writes
+    // a bool), so a retried second copy on chain would be harmless -- but
+    // we still avoid wasting gas on dupes.
+    const updateTx = await withRetry(
+      () => contract.updateSwapTargets(target.address, true),
+      `updateSwapTargets(${target.address})`,
+    );
+    await withRetry(() => updateTx.wait(), `tx.wait(${updateTx.hash})`);
+    // Only printed AFTER the tx is confirmed mined -- this is the
+    // trustworthy confirmation, unlike an optimistic pre-send log.
+    console.log(`  ✓ ${target.name} (${target.protocol}): ${target.address} [tx ${updateTx.hash}]`);
+    if (options.sleepBetweenTxMs && i < targetsToAdd.length - 1) {
+      await sleep(options.sleepBetweenTxMs);
+    }
+  }
+
+  return { alreadyRegistered, newlyRegistered: targetsToAdd };
+}
+
 export async function deployDeterministic(
   hre: HardhatRuntimeEnvironment,
   signer: Signer,
@@ -318,41 +385,10 @@ task("deploy", "Deploy OkuRouter contract")
     }
 
     // Use config (already resolved above) for swap target wiring.
-    if (config && config.knownSwapTargets.length > 0) {
-      const targets = config.knownSwapTargets;
-      const targetsToAdd: typeof targets = [];
-      for (const target of targets) {
-        const isRegistered = await withRetry(
-          () => contract.swapTargets(target.address),
-          `swapTargets(${target.address})`,
-        );
-        if (!isRegistered) {
-          targetsToAdd.push(target);
-        }
-      }
-
-      if (targetsToAdd.length > 0) {
-        console.log(`\nRegistering ${targetsToAdd.length} new swap targets:`);
-        for (let i = 0; i < targetsToAdd.length; i++) {
-          const target = targetsToAdd[i];
-          console.log(`  ✓ ${target.name} (${target.protocol}): ${target.address}`);
-          // Wrap submission + wait separately so a 429 on either side
-          // doesn't double-submit the tx. updateSwapTargets is idempotent
-          // anyway (writes a bool), so a retried second copy on chain
-          // would be harmless — but we still avoid wasting gas on dupes.
-          const updateTx = await withRetry(
-            () =>
-              contract.updateSwapTargets(target.address, true),
-            `updateSwapTargets(${target.address})`,
-          );
-          await withRetry(() => updateTx.wait(), `tx.wait(${updateTx.hash})`);
-          if (mainnet && i < targetsToAdd.length - 1) {
-            await sleep(2000);
-          }
-        }
-      } else {
-        console.log(`\n✓ All ${targets.length} swap targets already registered`);
-      }
+    if (config) {
+      await registerSwapTargets(hre, contract, config.knownSwapTargets, {
+        sleepBetweenTxMs: mainnet ? 2000 : undefined,
+      });
     }
 
     const zeroAddress = hre.ethers.ZeroAddress;

@@ -451,6 +451,35 @@ const config: HardhatUserConfig = {
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
       chainId: chainIdFor("robinhood"),
     },
+    // --- Full-scope expansion additions below ---
+    // `mainnet` (ethereum) already has a network entry above. `celo` and
+    // `pharos` are deliberately NOT added here yet (see the matching note
+    // in util/deploymentConfig.ts).
+    saga: {
+      url: rpcUrl(process.env.SAGA_URL, "saga-mainnet", chainConfigRpc("saga")),
+      accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
+      chainId: chainIdFor("saga"),
+      // Saga chainlet mines zero-price txs (baseFee = gasPrice = 0) and the
+      // deployer wallet holds a 0 balance. Force a legacy gasPrice of 0 so
+      // ethers doesn't auto-populate a non-zero EIP-1559 fee, which would
+      // otherwise trip the node's balance check (balance < gasLimit * fee).
+      gasPrice: 0,
+    },
+    zerog: {
+      url: rpcUrl(process.env.ZEROG_URL, "zerog-mainnet", chainConfigRpc("zerog")),
+      accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
+      chainId: chainIdFor("zerog"),
+    },
+    hyperevm: {
+      url: rpcUrl(process.env.HYPEREVM_URL, "hyperevm-mainnet", chainConfigRpc("hyperevm")),
+      accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
+      chainId: chainIdFor("hyperevm"),
+    },
+    pharos: {
+      url: rpcUrl(process.env.PHAROS_URL, "pharos-mainnet", chainConfigRpc("pharos")),
+      accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
+      chainId: chainIdFor("pharos"),
+    },
   },
   solidity: {
     settings: {

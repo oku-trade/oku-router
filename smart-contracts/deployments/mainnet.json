@@ -1,6 +1,6 @@
 {
-  "networkName": "linea",
-  "chainId": 59144,
+  "networkName": "mainnet",
+  "chainId": 1,
   "current": {
     "OkuRouter": {
       "address": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",

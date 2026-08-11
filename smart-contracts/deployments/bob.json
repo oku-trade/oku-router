@@ -1,9 +1,9 @@
 {
-  "networkName": "linea",
-  "chainId": 59144,
+  "networkName": "bob",
+  "chainId": 60808,
   "current": {
     "OkuRouter": {
-      "address": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "address": "0x3132f599bde0e251ba12d5FF95E256FbBeCbDA83",
       "version": "2.0",
       "owner": "0x3CB68a6762041aA05E762814A8791CA9d98E79A0"
     }

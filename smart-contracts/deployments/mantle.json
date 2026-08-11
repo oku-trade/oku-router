@@ -3,8 +3,8 @@
   "chainId": 5000,
   "current": {
     "OkuRouter": {
-      "address": "0xCF883b5926F1c782308381121BA80234000000cE",
-      "version": "1.2",
+      "address": "0x86d61277970685075a0BF66023c219dc4A6e3F6d",
+      "version": "2.0",
       "owner": "0x3CB68a6762041aA05E762814A8791CA9d98E79A0"
     }
   }
