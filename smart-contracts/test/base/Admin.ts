@@ -47,10 +47,10 @@ describe("Admin", function () {
     // It might look something like this internally:
     // const [deployerSigner] = await hre.ethers.getSigners();
     // const routerFactory = await hre.ethers.getContractFactory("OkuRouter", deployerSigner);
-    // const rainbowRouterInstance = await routerFactory.attach("YOUR_ROUTER_ADDRESS") as OkuRouter; // Or deploy if needed
+    // const okuRouterInstance = await routerFactory.attach("YOUR_ROUTER_ADDRESS") as OkuRouter; // Or deploy if needed
     // const wethFactory = await hre.ethers.getContractFactory("IWETH", deployerSigner);
     // const wethContract = await wethFactory.attach(WETH_ADDRESS) as IWETH;
-    // return { rainbowRouterInstance, wethContract, deployer: deployerSigner };
+    // return { okuRouterInstance, wethContract, deployer: deployerSigner };
     let { okuRouterInstance, signer, wethContract, } = await init(); // Assuming init returns TypeChain types
     instance = okuRouterInstance;
     weth = wethContract;
@@ -474,13 +474,13 @@ describe("Admin", function () {
     // 1 - Get some WETH to the victim
     await weth.connect(victim).deposit({ value: amount });
 
-    // 2 - Approve the Rainbow contract to transfer WETH from the victim's account
+    // 2 - Approve the Router contract to transfer WETH from the victim's account
     await weth.connect(victim).approve(instanceAddress, amount);
 
     // 3 - Get some WETH to the attacker
     await weth.connect(attacker).deposit({ value: attackerSellAmount });
 
-    // 4 - Approve the Rainbow contract to transfer WETH from the attacker's account
+    // 4 - Approve the Router contract to transfer WETH from the attacker's account
     await weth.connect(attacker).approve(instanceAddress, attackerSellAmount);
 
     // 5 - Encode malicious calldata using ethers Interface (available on TypeChain instance)
@@ -540,7 +540,7 @@ describe("Admin", function () {
     // 2 - Get some WETH to the attacker
     await weth.connect(attacker).deposit({ value: attackerSellAmount });
 
-    // 3 - Approve the Rainbow contract to transfer WETH from the attacker's account
+    // 3 - Approve the Router contract to transfer WETH from the attacker's account
     await weth.connect(attacker).approve(instanceAddress, attackerSellAmount);
 
     // 4 - Encode malicious calldata to steal funds *from* the router contract

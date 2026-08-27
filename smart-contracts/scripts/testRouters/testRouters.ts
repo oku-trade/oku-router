@@ -24,10 +24,10 @@ import { parseUnits } from "ethers";
 import hre from "hardhat";
 import {
   getRouterQuote,
-  getRainbowExecution,
+  getOkuExecution,
   ensureTargetIsWhitelisted,
   handleERC20Approval,
-  extractTargetsFromRainbowData,
+  extractTargetsFromRouterData,
   canoeParams,
 } from "../../util/canoeHelper";
 import { NETWORK_CONFIGS, NetworkConfig } from "../../util/deploymentConfig";
@@ -223,14 +223,14 @@ interface TestResult {
   gasEstimate?: string;
   whitelistingPerformed?: boolean;
   usingPermit2?: boolean;
-  directWethWrap?: boolean; // True when backend returns direct WETH wrap/unwrap (bypasses Rainbow Router)
+  directWethWrap?: boolean; // True when backend returns direct WETH wrap/unwrap (bypasses Oku Router)
   skipped?: boolean; // True when skipped due to known limitation
   skipReason?: string;
 }
 
 interface TestSetup {
   testSigner: Signer;
-  Rainbow: OkuRouter;
+  Router: OkuRouter;
   /**
    * The live OkuRouter address on this chain, pulled from the on-disk
    * registry (`deployments/<networkName>.json`) once at startup. Cached on
@@ -322,7 +322,7 @@ function getTokenConfig(tokenType: string, config: NetworkConfig): TokenConfig {
  */
 function validateConfig(config: NetworkConfig, routerAddress: string | undefined): void {
   if (!routerAddress) {
-    throw new Error(`Rainbow Router not deployed on ${config.chainName}. Deploy first.`);
+    throw new Error(`Oku Router not deployed on ${config.chainName}. Deploy first.`);
   }
   if (!config.wethAddress) {
     throw new Error(`WETH address not configured for ${config.chainName}`);
@@ -351,9 +351,9 @@ async function setupTestEnvironment(
 
   console.log(`\n🔧 Test Setup`);
   console.log(`  Signer: ${testAddress}`);
-  console.log(`  Rainbow Router: ${routerAddress}`);
+  console.log(`  Oku Router: ${routerAddress}`);
 
-  const Rainbow = OkuRouter__factory.connect(routerAddress, testSigner);
+  const Router = OkuRouter__factory.connect(routerAddress, testSigner);
 
   // Connect to tokens if addresses are configured
   const USDC = config.usdcAddress
@@ -373,7 +373,7 @@ async function setupTestEnvironment(
 
   return {
     testSigner,
-    Rainbow,
+    Router,
     routerAddress,
     USDC,
     WETH,
@@ -390,7 +390,7 @@ async function testRouter(
   setup: TestSetup,
   networkKey: string,
 ): Promise<TestResult> {
-  const { testSigner, Rainbow, routerAddress, USDC, WETH, config } = setup;
+  const { testSigner, Router, routerAddress, USDC, WETH, config } = setup;
   const testAddress = await testSigner.getAddress();
 
   const inToken = getTokenConfig(phase.inToken, config);
@@ -467,13 +467,13 @@ async function testRouter(
     // If Permit2 was actually needed, the simulation will fail with a clear error.
 
     // 3. Get execution info from backend
-    const rainbowExecution = await getRainbowExecution(
+    const okuExecution = await getOkuExecution(
       quoteResponse.coupon,
       router,
       permit2SigningRequest
     );
 
-    const trade = rainbowExecution.trade;
+    const trade = okuExecution.trade;
     if (!trade) {
       throw new Error("No trade data found");
     }
@@ -483,7 +483,7 @@ async function testRouter(
 
     if (isDirectWethWrap) {
       // Direct WETH wrap/unwrap - simulate the transaction directly to WETH contract
-      // This bypasses Rainbow Router entirely (no whitelisting needed)
+      // This bypasses Oku Router entirely (no whitelisting needed)
       let gasEstimate: bigint | undefined;
       try {
         gasEstimate = await hre.ethers.provider.estimateGas({
@@ -520,20 +520,20 @@ async function testRouter(
       };
     }
 
-    // Normal path - transaction goes through Rainbow Router
+    // Normal path - transaction goes through Oku Router
     if (trade.to.toLowerCase() !== routerAddress.toLowerCase()) {
-      throw new Error(`Expected Rainbow Router, got ${trade.to}`);
+      throw new Error(`Expected Oku Router, got ${trade.to}`);
     }
 
     // 4. Decode transaction and extract targets
-    const rainbowInterface = OkuRouter__factory.createInterface();
-    const decoded = rainbowInterface.parseTransaction({ data: trade.data });
+    const okuInterface = OkuRouter__factory.createInterface();
+    const decoded = okuInterface.parseTransaction({ data: trade.data });
 
     if (!decoded) {
       throw new Error("Failed to decode transaction");
     }
 
-    const { target: targetAddress, approvalTarget: approvalTargetAddress } = extractTargetsFromRainbowData(trade.data);
+    const { target: targetAddress, approvalTarget: approvalTargetAddress } = extractTargetsFromRouterData(trade.data);
 
     // Validate target contract exists
     if (targetAddress.toLowerCase() !== ZERO_ADDRESS.toLowerCase()) {
@@ -563,11 +563,11 @@ async function testRouter(
     }
 
     // 6. Whitelist targets and signers (real transactions if needed, or log if AUTO_WHITELIST is false)
-    const targetWhitelisted = await Rainbow.swapTargets(targetAddress);
+    const targetWhitelisted = await Router.swapTargets(targetAddress);
 
     if (!targetWhitelisted) {
       if (AUTO_WHITELIST) {
-        await ensureTargetIsWhitelisted(testSigner, Rainbow, targetAddress);
+        await ensureTargetIsWhitelisted(testSigner, Router, targetAddress);
         whitelistingPerformed = true;
       } else {
         console.log(`    ⚠️  Target not whitelisted: ${targetAddress}`);
@@ -585,10 +585,10 @@ async function testRouter(
         approvalTargetAddress.toLowerCase() !== targetAddress.toLowerCase() &&
         approvalTargetAddress.toLowerCase() !== ZERO_ADDRESS.toLowerCase() &&
         !tokenAddresses.includes(approvalTargetAddress.toLowerCase())) {
-      const approvalTargetWhitelisted = await Rainbow.swapTargets(approvalTargetAddress);
+      const approvalTargetWhitelisted = await Router.swapTargets(approvalTargetAddress);
       if (!approvalTargetWhitelisted) {
         if (AUTO_WHITELIST) {
-          await ensureTargetIsWhitelisted(testSigner, Rainbow, approvalTargetAddress);
+          await ensureTargetIsWhitelisted(testSigner, Router, approvalTargetAddress);
           whitelistingPerformed = true;
         } else {
           console.log(`    ⚠️  ApprovalTarget not whitelisted: ${approvalTargetAddress}`);
@@ -597,10 +597,10 @@ async function testRouter(
     }
 
     // Check warrant signer is whitelisted (backend returns 0x0 which should already be whitelisted by deploy script)
-    if (rainbowExecution.warrant) {
-      const warrantSignerWhitelisted = await Rainbow.validSigners(rainbowExecution.warrant.verifyingSigner);
+    if (okuExecution.warrant) {
+      const warrantSignerWhitelisted = await Router.validSigners(okuExecution.warrant.verifyingSigner);
       if (!warrantSignerWhitelisted) {
-        console.log(`    ⚠️  Warrant signer not whitelisted: ${rainbowExecution.warrant.verifyingSigner}`);
+        console.log(`    ⚠️  Warrant signer not whitelisted: ${okuExecution.warrant.verifyingSigner}`);
       }
     }
 
@@ -824,7 +824,7 @@ async function main() {
   console.log(`\n🚀 Testing Routers on ${config.chainName.toUpperCase()}`);
   console.log(`${"=".repeat(60)}`);
   console.log(`Network: ${config.chainName} (chainId: ${config.chainId})`);
-  console.log(`Rainbow Router: ${routerAddress ?? "(not deployed)"}`);
+  console.log(`Oku Router: ${routerAddress ?? "(not deployed)"}`);
   console.log(`Routers to test: ${config.supportedRouters.length}`);
   console.log(`Trade phases: ${TRADE_PHASES.length}`);
 

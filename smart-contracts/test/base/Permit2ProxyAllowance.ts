@@ -48,7 +48,7 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
     // Balancer vault on Optimism — large USDC holder, used as test whale.
     const usdcWhale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
-    let Rainbow: OkuRouter;
+    let Router: OkuRouter;
     let proxy: Permit2Proxy;
     let owner: Signer;
     let user: Signer;
@@ -56,7 +56,7 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
     let USDC: IERC20Metadata;
     let WETH: IERC20Metadata;
     let permit2: any; // Permit2 uses inline ABI, no TypeChain type available
-    let rainbowAddress: string;
+    let okuRouterAddress: string;
     let proxyAddress: string;
 
     before(async function () {
@@ -78,16 +78,16 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
         // Deploy a fresh OkuRouter at v1.1 (post-sweepAll). The proxy
         // bytecode does not depend on the router version, but using the
         // current version here keeps the test fixture honest.
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
-        await Rainbow.waitForDeployment();
-        rainbowAddress = await Rainbow.getAddress();
+        Router = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
+        await Router.waitForDeployment();
+        okuRouterAddress = await Router.getAddress();
 
         // Register swap target + zero-address signer (warrant bypass mode).
-        await Rainbow.connect(owner).updateSwapTargets(UNISWAP_V3_ROUTER, true);
-        await Rainbow.connect(owner).updateValidSigner(ZeroAddress, true);
+        await Router.connect(owner).updateSwapTargets(UNISWAP_V3_ROUTER, true);
+        await Router.connect(owner).updateValidSigner(ZeroAddress, true);
 
         // Deploy the (refactored) Permit2Proxy.
-        proxy = await new Permit2Proxy__factory(owner).deploy(rainbowAddress);
+        proxy = await new Permit2Proxy__factory(owner).deploy(okuRouterAddress);
         await proxy.waitForDeployment();
         proxyAddress = await proxy.getAddress();
 
@@ -115,9 +115,9 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
             OPTIMISM_TOKENS.USDC,
             OPTIMISM_TOKENS.WETH,
             sellAmount - feeAmount,
-            rainbowAddress,
+            okuRouterAddress,
         );
-        return Rainbow.interface.encodeFunctionData("fillQuoteTokenToToken", [
+        return Router.interface.encodeFunctionData("fillQuoteTokenToToken", [
             OPTIMISM_TOKENS.USDC,
             OPTIMISM_TOKENS.WETH,
             UNISWAP_V3_ROUTER,
@@ -261,14 +261,14 @@ describe("Permit2Proxy.executeAllowance (MiniKit v2 / AllowanceTransfer)", funct
             await stealMoney(usdcWhale, userAddress, OPTIMISM_TOKENS.USDC, sellAmount);
             await USDC.connect(user).approve(PERMIT2_ADDRESS, sellAmount);
 
-            const routerUsdcBefore = await USDC.balanceOf(rainbowAddress);
+            const routerUsdcBefore = await USDC.balanceOf(okuRouterAddress);
             const wethBefore = await WETH.balanceOf(userAddress);
 
             await miniKitBatch(user, sellAmount, feeAmount);
 
             // User received WETH; OkuRouter retained the USDC fee.
             expect(await WETH.balanceOf(userAddress)).to.be.gt(wethBefore);
-            const routerUsdcAfter = await USDC.balanceOf(rainbowAddress);
+            const routerUsdcAfter = await USDC.balanceOf(okuRouterAddress);
             expect(routerUsdcAfter - routerUsdcBefore).to.equal(feeAmount);
 
             // Proxy is clean.

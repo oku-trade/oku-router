@@ -48,7 +48,7 @@ describe("Permit2Proxy residual theft (Mid-01 regression)", function () {
     const version = "1.1";
     const usdcWhale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
-    let Rainbow: OkuRouter;
+    let Router: OkuRouter;
     let proxy: Permit2Proxy;
     let owner: Signer;
     let victim: Signer;
@@ -56,7 +56,7 @@ describe("Permit2Proxy residual theft (Mid-01 regression)", function () {
     let USDC: IERC20Metadata;
     let WETH: IERC20Metadata;
     let permit2: any;
-    let rainbowAddress: string;
+    let okuRouterAddress: string;
     let proxyAddress: string;
 
     before(async function () {
@@ -74,14 +74,14 @@ describe("Permit2Proxy residual theft (Mid-01 regression)", function () {
 
         const ownerAddress = await owner.getAddress();
 
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
-        await Rainbow.waitForDeployment();
-        rainbowAddress = await Rainbow.getAddress();
+        Router = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
+        await Router.waitForDeployment();
+        okuRouterAddress = await Router.getAddress();
 
-        await Rainbow.connect(owner).updateSwapTargets(UNISWAP_V3_ROUTER, true);
-        await Rainbow.connect(owner).updateValidSigner(ZeroAddress, true);
+        await Router.connect(owner).updateSwapTargets(UNISWAP_V3_ROUTER, true);
+        await Router.connect(owner).updateValidSigner(ZeroAddress, true);
 
-        proxy = await new Permit2Proxy__factory(owner).deploy(rainbowAddress);
+        proxy = await new Permit2Proxy__factory(owner).deploy(okuRouterAddress);
         await proxy.waitForDeployment();
         proxyAddress = await proxy.getAddress();
 
@@ -108,9 +108,9 @@ describe("Permit2Proxy residual theft (Mid-01 regression)", function () {
             OPTIMISM_TOKENS.USDC,
             OPTIMISM_TOKENS.WETH,
             calldataSellAmount,
-            rainbowAddress,
+            okuRouterAddress,
         );
-        return Rainbow.interface.encodeFunctionData("fillQuoteTokenToToken", [
+        return Router.interface.encodeFunctionData("fillQuoteTokenToToken", [
             OPTIMISM_TOKENS.USDC,
             OPTIMISM_TOKENS.WETH,
             UNISWAP_V3_ROUTER,
@@ -194,7 +194,7 @@ describe("Permit2Proxy residual theft (Mid-01 regression)", function () {
 
         // ...and no leftover proxy->router allowance for a later caller
         // to fold into their own swap.
-        expect(await USDC.allowance(proxyAddress, rainbowAddress)).to.equal(0n);
+        expect(await USDC.allowance(proxyAddress, okuRouterAddress)).to.equal(0n);
     });
 
     it("leaves nothing behind for a later caller to steal by wrapping a fresh swap", async function () {
@@ -216,7 +216,7 @@ describe("Permit2Proxy residual theft (Mid-01 regression)", function () {
         // that a subsequent caller could have wrapped into their own
         // swap (fresh + residual pulled from the proxy) no longer exists.
         expect(await USDC.balanceOf(proxyAddress)).to.equal(0n);
-        expect(await USDC.allowance(proxyAddress, rainbowAddress)).to.equal(0n);
+        expect(await USDC.allowance(proxyAddress, okuRouterAddress)).to.equal(0n);
 
         // A follow-up caller trying to claim a "residual" by overselling
         // relative to what they actually pull now simply fails, because

@@ -7,6 +7,7 @@ import { networkByName } from "@gfxlabs/oku-chains";
 import "./tasks/deploy";
 import "./tasks/deployPermit2Proxy";
 import "./tasks/predictAll";
+import "./tasks/verifyDeployments";
 
 
 dotEnvConfig();
@@ -101,11 +102,74 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     // Etherscan V2 API - single universal API key for all Etherscan-compatible chains.
-    // For Blockscout/Alchemy-explorer chains, customChains entries below route to
-    // their specific API endpoints (these accept any apiKey value).
+    //
+    // IMPORTANT: because `apiKey` here is a single string (not a per-network
+    // object), @nomicfoundation/hardhat-verify's `Etherscan.fromChainConfig`
+    // sets `isV2 = true` and *unconditionally* overrides `apiUrl` to
+    // `https://api.etherscan.io/v2/api?chainid=<id>` for every chain,
+    // ignoring the `urls.apiURL` set in the `customChains` entries below.
+    // (See node_modules/@nomicfoundation/hardhat-verify/internal/etherscan.js
+    // — `this.apiUrl = chainId === undefined ? apiUrl : ETHERSCAN_V2_API_URL`.)
+    //
+    // That means the Blockscout / Routescan / Teloscan / Alchemy-explorer
+    // `apiURL`s below are INERT for `npx hardhat verify` as long as `apiKey`
+    // stays a string — they only exist so `getCurrentChainConfig` can find a
+    // chainId match at all (its lookup checks `chainId`, not `apiURL`), and
+    // so `browserURL` prints a correct explorer link on success. Chains whose
+    // explorer isn't on Etherscan V2 (Blockscout, Routescan, Teloscan, Alchemy
+    // explorer, plasmascan.to, etc.) are verified out-of-band via
+    // `tasks/verifyDeployments.ts`, not via this `etherscan` block.
     apiKey: process.env.MAINNET_API_KEY || "",
     // Custom chains that are not part of Etherscan's v2 universal API
     customChains: [
+      // Monad (Etherscan V2 — chainId 143 is not yet in hardhat-verify's
+      // builtin chain list, so it needs an explicit entry to be found by
+      // getCurrentChainConfig; apiURL below is inert per the note above,
+      // v2 routing takes over once matched).
+      {
+        network: "monad",
+        chainId: 143,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://monadscan.com"
+        }
+      },
+      // HyperEVM (Etherscan V2 — same reason as monad)
+      {
+        network: "hyperevm",
+        chainId: 999,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://hyperevmscan.io"
+        }
+      },
+      // Plasma (Etherscan V2 — same reason as monad)
+      {
+        network: "plasma",
+        chainId: 9745,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://plasmascan.to"
+        }
+      },
+      // Sei (Etherscan V2 — same reason as monad)
+      {
+        network: "sei",
+        chainId: 1329,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://seitrace.com/pacific-1"
+        }
+      },
+      // Celo (Etherscan V2 — same reason as monad)
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://celoscan.io"
+        }
+      },
       // Worldchain (Alchemy Explorer)
       {
         network: "worldchain",

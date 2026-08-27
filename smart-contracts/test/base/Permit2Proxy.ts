@@ -76,17 +76,17 @@ async function signPermit2(
 }
 
 describe("Permit2Proxy", function () {
-    const name = "Rainbow Router";
+    const name = "Oku Router";
     const version = "1.0";
     const usdcWhale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
-    let Rainbow: OkuRouter;
+    let Router: OkuRouter;
     let proxy: Permit2Proxy;
     let owner: Signer;
     let user: Signer;
     let USDC: IERC20Metadata;
     let WETH: IERC20Metadata;
-    let rainbowAddress: string;
+    let okuRouterAddress: string;
     let proxyAddress: string;
     let chainId: bigint;
 
@@ -108,16 +108,16 @@ describe("Permit2Proxy", function () {
         const ownerAddress = await owner.getAddress();
 
         // Deploy OkuRouter
-        Rainbow = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
-        await Rainbow.waitForDeployment();
-        rainbowAddress = await Rainbow.getAddress();
+        Router = await new OkuRouter__factory(owner).deploy(name, version, ownerAddress, ZeroAddress);
+        await Router.waitForDeployment();
+        okuRouterAddress = await Router.getAddress();
 
         // Register swap target and valid signer
-        await Rainbow.connect(owner).updateSwapTargets(UNISWAP_V3_ROUTER, true);
-        await Rainbow.connect(owner).updateValidSigner(ZeroAddress, true);
+        await Router.connect(owner).updateSwapTargets(UNISWAP_V3_ROUTER, true);
+        await Router.connect(owner).updateValidSigner(ZeroAddress, true);
 
         // Deploy Permit2Proxy
-        proxy = await new Permit2Proxy__factory(owner).deploy(rainbowAddress);
+        proxy = await new Permit2Proxy__factory(owner).deploy(okuRouterAddress);
         await proxy.waitForDeployment();
         proxyAddress = await proxy.getAddress();
 
@@ -160,9 +160,9 @@ describe("Permit2Proxy", function () {
                 OPTIMISM_TOKENS.USDC,
                 OPTIMISM_TOKENS.WETH,
                 sellAmount,
-                rainbowAddress
+                okuRouterAddress
             );
-            const routerCalldata = Rainbow.interface.encodeFunctionData(
+            const routerCalldata = Router.interface.encodeFunctionData(
                 "fillQuoteTokenToToken",
                 [
                     OPTIMISM_TOKENS.USDC,
@@ -218,9 +218,9 @@ describe("Permit2Proxy", function () {
                 OPTIMISM_TOKENS.USDC,
                 OPTIMISM_TOKENS.WETH,
                 sellAmount - feeAmount,
-                rainbowAddress
+                okuRouterAddress
             );
-            const routerCalldata = Rainbow.interface.encodeFunctionData(
+            const routerCalldata = Router.interface.encodeFunctionData(
                 "fillQuoteTokenToToken",
                 [
                     OPTIMISM_TOKENS.USDC,
@@ -246,7 +246,7 @@ describe("Permit2Proxy", function () {
             expect(wethAfter).to.be.gt(wethBefore);
 
             // Fee tokens should be in OkuRouter (not proxy)
-            const routerUsdc = await USDC.balanceOf(rainbowAddress);
+            const routerUsdc = await USDC.balanceOf(okuRouterAddress);
             expect(routerUsdc).to.equal(feeAmount);
 
             // Proxy should be clean
@@ -291,9 +291,9 @@ describe("Permit2Proxy", function () {
                 OPTIMISM_TOKENS.USDC,
                 OPTIMISM_TOKENS.WETH,
                 sellAmount,
-                rainbowAddress
+                okuRouterAddress
             );
-            const routerCalldata = Rainbow.interface.encodeFunctionData(
+            const routerCalldata = Router.interface.encodeFunctionData(
                 "fillQuoteTokenToToken",
                 [
                     OPTIMISM_TOKENS.USDC,
@@ -334,9 +334,9 @@ describe("Permit2Proxy", function () {
                 OPTIMISM_TOKENS.USDC,
                 OPTIMISM_TOKENS.WETH,
                 sellAmount,
-                rainbowAddress
+                okuRouterAddress
             );
-            const routerCalldata = Rainbow.interface.encodeFunctionData(
+            const routerCalldata = Router.interface.encodeFunctionData(
                 "fillQuoteTokenToToken",
                 [
                     OPTIMISM_TOKENS.USDC,
@@ -389,7 +389,7 @@ describe("Permit2Proxy", function () {
 
     describe("Immutables", () => {
         it("Should return the correct okuRouter address", async function () {
-            expect(await proxy.okuRouter()).to.equal(rainbowAddress);
+            expect(await proxy.okuRouter()).to.equal(okuRouterAddress);
         });
 
         it("Should return the correct permit2 address", async function () {

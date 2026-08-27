@@ -7,7 +7,7 @@
  * overrides map for deployment-specific data that package does not (and
  * should not) carry:
  *
- *   - `ownerAddress`       — Rainbow Router constructor owner
+ *   - `ownerAddress`       — Oku Router constructor owner
  *   - `supportedRouters`   — backend router names to test/whitelist
  *   - `canonicalPermit2`   — whether this chain uses the canonical Uniswap
  *                            Permit2 deployment (0x000000000022D4730...)
@@ -22,12 +22,13 @@
  *
  * This module replaces `util/networkConfig.ts` (deprecated, see that file).
  *
- * `@gfxlabs/oku-chains` is installed from the published npm registry,
- * pinned to an exact version (currently 1.12.28) in `package.json` for
- * reproducible deploys. That version was confirmed to include the
- * marketRouters reconciliation (oneinch/unizen/propellerswap/binance/
- * native additions, telos's new marketRouters block, robinhood's full
- * router set) this migration depends on.
+ * `@gfxlabs/oku-chains` is installed from the published npm registry, range
+ * pinned in `package.json` (currently `^1.12.32`; installed 1.12.35 as of
+ * this writing) for reproducible-enough deploys while still picking up
+ * chain-config fixes. It was confirmed to include the marketRouters
+ * reconciliation (oneinch/unizen/propellerswap/binance/native additions,
+ * telos's new marketRouters block, robinhood's full router set) this
+ * migration depends on.
  */
 
 import {
@@ -77,7 +78,7 @@ interface DeploymentOverride {
   rpcUrl?: string;
 }
 
-// Every chain shares the same Rainbow Router constructor owner.
+// Every chain shares the same Oku Router constructor owner.
 const OWNER_ADDRESS = "0x3CB68a6762041aA05E762814A8791CA9d98E79A0";
 
 // Canonical Uniswap Permit2 deployment address, used as a fallback when
@@ -156,7 +157,13 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
   },
   scroll: {
     supportedRouters: ["odos","kyberswap","zeroex","icecreamswap","openocean"],
-    canonicalPermit2: false,
+    // chain-config has scroll's canonical Permit2 recorded (and it's
+    // confirmed on-chain at 0xb1f3a7B8… matching the canonical prediction),
+    // so this was a stale `false` left over from before that data existed.
+    // Harmless in practice (chain-config's `permit2` field wins via
+    // resolvePermit2Address()), but corrected so this flag isn't a trap for
+    // future readers.
+    canonicalPermit2: true,
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     rpcUrl: process.env.SCROLL_URL,
   },
@@ -316,7 +323,10 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
   },
   zerog: {
     supportedRouters: ["icecreamswap","uniswap"],
-    canonicalPermit2: false,
+    // Same stale-flag correction as scroll above -- chain-config has
+    // zerog's canonical Permit2 recorded and it's confirmed on-chain at
+    // 0xb1f3a7B8… matching the canonical prediction.
+    canonicalPermit2: true,
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     rpcUrl: process.env.ZEROG_URL,
   },

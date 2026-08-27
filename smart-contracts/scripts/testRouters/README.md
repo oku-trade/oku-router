@@ -1,14 +1,21 @@
 # Router Testing Scripts
 
-Network-specific router testing scripts for Rainbow Router deployments.
+Network-specific router testing scripts for Oku Router deployments.
+
+> Note: the network-specific scripts referenced below (`testRoutersOP.ts`,
+> `testRoutersBase.ts`, `testRoutersWorldchain.ts`, `sanityTestOP.ts`) have
+> since been consolidated into `testRouters.ts` / `testAllChains.ts` in this
+> directory. The addresses below have been refreshed to the current `2.0`
+> deployment but the per-network script names are stale; left as-is here
+> since untangling that is a separate cleanup from this pass.
 
 ## Test Types
 
-### Rainbow Router Tests
-Tests routers through the Rainbow Router contract (with `useOkuRouter=true`). These scripts validate the full Rainbow Router flow including whitelisting, permits, and warrant signatures.
+### Oku Router Tests
+Tests routers through the Oku Router contract (with `useOkuRouter=true`). These scripts validate the full Oku Router flow including whitelisting, permits, and warrant signatures.
 
 ### Sanity Tests
-Tests routers with direct DEX swaps (with `useOkuRouter=false`). These scripts validate that the backend returns correct DEX target addresses and transaction data without going through Rainbow Router.
+Tests routers with direct DEX swaps (with `useOkuRouter=false`). These scripts validate that the backend returns correct DEX target addresses and transaction data without going through Oku Router.
 
 ## Scripts
 
@@ -21,7 +28,7 @@ npx hardhat run scripts/testRouters/testRoutersOP.ts --network op
 ```
 
 **Configuration:**
-- Rainbow Router: `0x80dCD2C737cAFE9f86559bBCed9938eFfB7f7D1A`
+- Oku Router: `0xb1f3a7B816B0681188F54dFa400991B93ADf00ed`
 - Supported Routers: enso, icecreamswap, odos, oneinch, paraswap, kyberswap, unizen
 - Default Test: 0.001 ETH → WETH
 
@@ -34,7 +41,7 @@ npx hardhat run scripts/testRouters/testRoutersBase.ts --network base
 ```
 
 **Configuration:**
-- Rainbow Router: `0xA89A26c4d81A2cca4d0670F77f0FC88362b72248`
+- Oku Router: `0xb1f3a7B816B0681188F54dFa400991B93ADf00ed`
 - Supported Routers: kyberswap
 - Default Test: 0.001 ETH → WETH
 
@@ -47,12 +54,12 @@ npx hardhat run scripts/testRouters/testRoutersWorldchain.ts --network worldchai
 ```
 
 **Configuration:**
-- Rainbow Router: `0x25cf2128F603754179379351B805B4F8C0B8dCA4`
+- Oku Router: `0xb1f3a7B816B0681188F54dFa400991B93ADf00ed`
 - Supported Routers: icecreamswap, enso, kyberswap
 - Default Test: 0.001 ETH → WETH
 
 ### Optimism Sanity Test (`sanityTestOP.ts`)
-Tests routers with direct DEX swaps (no Rainbow Router) on Optimism.
+Tests routers with direct DEX swaps (no Oku Router) on Optimism.
 
 **Usage:**
 ```bash
@@ -60,7 +67,7 @@ npx hardhat run scripts/testRouters/sanityTestOP.ts --network op
 ```
 
 **Configuration:**
-- Direct user swaps (no Rainbow Router)
+- Direct user swaps (no Oku Router)
 - Validates backend returns correct DEX targets
 - Tests: enso, odos
 - Default Test: 0.001 ETH → WETH

@@ -44,7 +44,7 @@ export async function createDummySwapCalldata(
  */
 export async function createDummyWarrant(
     signer: Signer,
-    rainbowAddress: string,
+    okuRouterAddress: string,
     sellTokenAddress: string,
     buyTokenAddress: string,
     routerAddress: string,
@@ -70,7 +70,7 @@ export async function createDummyWarrant(
     const validAfter = options.validAfter ?? blockTimestamp - 300;
     const approvalTarget = options.approvalTarget ?? routerAddress;
     const recipient = options.recipient ?? ZeroAddress;
-    const name = options.name ?? "Rainbow Router";
+    const name = options.name ?? "Oku Router";
     const version = options.version ?? "1.0";
 
     const swapCallDataHash = ethers.keccak256(swapCallData);
@@ -97,7 +97,7 @@ export async function createDummyWarrant(
         name,
         version,
         chainId: (await ethers.provider.getNetwork()).chainId,
-        verifyingContract: rainbowAddress
+        verifyingContract: okuRouterAddress
     };
 
     const types = {
@@ -128,7 +128,7 @@ export async function createDummyWarrant(
  */
 export async function createInvalidTimestampWarrant(
     signer: Signer,
-    rainbowAddress: string,
+    okuRouterAddress: string,
     sellTokenAddress: string,
     buyTokenAddress: string,
     routerAddress: string,
@@ -163,7 +163,7 @@ export async function createInvalidTimestampWarrant(
 
     return await createDummyWarrant(
         signer,
-        rainbowAddress,
+        okuRouterAddress,
         sellTokenAddress,
         buyTokenAddress,
         routerAddress,
@@ -180,7 +180,7 @@ export async function createInvalidTimestampWarrant(
 export async function createWrongSignerWarrant(
     correctSigner: Signer,
     wrongSigner: Signer,
-    rainbowAddress: string,
+    okuRouterAddress: string,
     sellTokenAddress: string,
     buyTokenAddress: string,
     routerAddress: string,
@@ -210,10 +210,10 @@ export async function createWrongSignerWarrant(
     const packedValidationData = nonce | (BigInt(validBefore) << 160n) | (BigInt(validAfter) << 208n);
 
     const domain: TypedDataDomain = {
-        name: "Rainbow Router",
+        name: "Oku Router",
         version: "1.0",
         chainId: (await ethers.provider.getNetwork()).chainId,
-        verifyingContract: rainbowAddress
+        verifyingContract: okuRouterAddress
     };
 
     const types = {

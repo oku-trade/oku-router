@@ -134,9 +134,9 @@ Nothing functional in any production contract. The other diffs in this change se
   deployed to a live chain.
 - `tasks/deployPermit2Proxy.ts` — added `--deterministic` opt-in flag; default is now a plain nonce-based
   deploy (since the proxy is World Chain only and we don't need CREATE2 parity across chains).
-- `deployments/worldchain.json` — `current.Permit2Proxy` now points at the v1.1 proxy bonded to the
-  v1.1 router. The earlier testing-only proxy at `0x1B361B7c…` is no longer tracked here (the file
-  records active deployments only); it survives only in git history.
+- `deployments/worldchain.json` — `current.Permit2Proxy` now points at the proxy bonded to the
+  current `2.0` router. The earlier testing-only proxy at `0x1B361B7c…` is no longer tracked here
+  (the file records active deployments only); it survives only in git history.
 - `test/base/Permit2ProxyAllowance.ts` (new) — MiniKit v2 happy/fee/revert/reentrancy coverage on an
   Optimism fork (Permit2 is at the same canonical address on every chain, so OP fixture coverage is
   representative).
@@ -234,7 +234,7 @@ Bumping the version invalidates the prior CREATE2 salt and produces a new determ
    on that chain does not match `CONTRACT_VERSION`, and it overwrites
    `current.Permit2Proxy` with the new `{ address, okuRouter }` entry.
 
-   The v1.1 proxy supports both `execute` (Permit2 SignatureTransfer) and `executeAllowance`
+   The proxy supports both `execute` (Permit2 SignatureTransfer) and `executeAllowance`
    (Permit2 AllowanceTransfer / MiniKit v2). One deployment serves Safe wallets and World App
    users. Do not add `Permit2Proxy` entries to other networks' deployment files.
 6. Transfer ownership to the production multisig manually (Ownable2Step):

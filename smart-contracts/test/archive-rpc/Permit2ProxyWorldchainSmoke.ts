@@ -75,15 +75,15 @@ describe("Permit2Proxy.executeAllowance — World Chain smoke", function () {
         // Deploy router + proxy + token on the fork. We never call
         // OkuRouter from the smoke test, but constructing it keeps the
         // fixture honest with respect to the proxy's immutable binding.
-        const Rainbow: OkuRouter = await new OkuRouter__factory(owner).deploy(
+        const Router: OkuRouter = await new OkuRouter__factory(owner).deploy(
             "Oku Router",
             "1.1",
             ownerAddress,
             ethers.ZeroAddress,
         );
-        await Rainbow.waitForDeployment();
+        await Router.waitForDeployment();
 
-        proxy = await new Permit2Proxy__factory(owner).deploy(await Rainbow.getAddress());
+        proxy = await new Permit2Proxy__factory(owner).deploy(await Router.getAddress());
         await proxy.waitForDeployment();
         proxyAddress = await proxy.getAddress();
 

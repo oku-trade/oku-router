@@ -38,7 +38,7 @@ export interface TypedData {
     primaryType: string;
 }
 
-export interface RainbowExecutionInfo {
+export interface OkuExecutionInfo {
     // Response from execution_information API
     approvals?: any[];
     transactions?: any[];
@@ -125,7 +125,7 @@ export interface SwapQuoteResponse {
     timestamp: number;       // Unix timestamp
 }
 
-export type RainbwoDomainInfo = {
+export type OkuDomainInfo = {
     name: string,
     version: string,
     address: string
@@ -153,7 +153,7 @@ export enum MarketId {
     ICECREAMSWAP = 'icecreamswap'
 }
 
-export enum RainbowTxType {
+export enum OkuTxType {
     ETH2TOKEN = "ETH2TOKEN",
     TOKEN2TOKEN = "TOKEN2TOKEN",
     TOKEN2ETH = "TOKEN2ETH",
@@ -170,7 +170,7 @@ export type canoeParams = {
     outTokenAddress: string,
     inTokenAmount: string, //human readable terms
     slippage: number,
-    useOkuRouter?: boolean, // Optional flag for Oku Router (Rainbow Router) optimization
+    useOkuRouter?: boolean, // Optional flag for Oku Router optimization
     getCalldata?: boolean, // Optional flag to get calldata, needed for oneinch
     usePermit?: boolean, // Optional flag to enable EIP-2612 permit signatures (deprecated)
     usePermit2?: boolean // Optional flag to enable Permit2 signatures (recommended)
@@ -382,8 +382,8 @@ export const getRawCanoeQuote = async (market: string, params: canoeParams) => {
 export const constructCanoeSwap = async (
     signer: Signer,
     params: canoeParams,
-    RainbwoDomainInfo: RainbwoDomainInfo,
-    txType: RainbowTxType,
+    OkuDomainInfo: OkuDomainInfo,
+    txType: OkuTxType,
     market: MarketId,
     chainId?: number,//required to be set to currentNetwork by `await ethers.provider.getNetwork()` for testing
     retry?: boolean
@@ -408,7 +408,7 @@ export const constructCanoeSwap = async (
         if (chainId == undefined) {
             chainId = digest.chainId
         }
-        readyTx = await simulateSwap(signer, RainbwoDomainInfo, txType, market, digest, chainId)
+        readyTx = await simulateSwap(signer, OkuDomainInfo, txType, market, digest, chainId)
     }
 
     if (readyTx.success) {
@@ -435,7 +435,7 @@ export const constructCanoeSwap = async (
                     if (chainId == undefined) {
                         chainId = digest.chainId
                     }
-                    readyTx = await simulateSwap(signer, RainbwoDomainInfo, txType, tryMarket, newDigest, chainId)
+                    readyTx = await simulateSwap(signer, OkuDomainInfo, txType, tryMarket, newDigest, chainId)
                 }
                 i++
             }
@@ -446,7 +446,7 @@ export const constructCanoeSwap = async (
 }
 
 
-export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDomainInfo, txType: RainbowTxType, market: MarketId, digest: SwapQuoteResponse, chainId: number): Promise<SimResult> => {
+export const simulateSwap = async (signer: Signer, OkuDomainInfo: OkuDomainInfo, txType: OkuTxType, market: MarketId, digest: SwapQuoteResponse, chainId: number): Promise<SimResult> => {
 
     //format input amount
     const inputAmount = parseUnits(digest.inAmount, digest.inToken.decimals);
@@ -478,10 +478,10 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
 
 
     const warrantDomain = {
-        name: RainbwoDomainInfo.name,
-        version: RainbwoDomainInfo.version,
+        name: OkuDomainInfo.name,
+        version: OkuDomainInfo.version,
         chainId: chainId,
-        verifyingContract: RainbwoDomainInfo.address,
+        verifyingContract: OkuDomainInfo.address,
     };
 
     const warrantTypes = {
@@ -510,7 +510,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
 
 
     //sim tx
-    const Rainbow = OkuRouter__factory.connect(RainbwoDomainInfo.address, signer);
+    const Router = OkuRouter__factory.connect(OkuDomainInfo.address, signer);
 
 
     try {
@@ -520,18 +520,18 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
             txData: "0x"
         }
 
-        if (txType === RainbowTxType.TOKEN2TOKEN_PERMIT) {
+        if (txType === OkuTxType.TOKEN2TOKEN_PERMIT) {
             //format permit data
             const permitData = await generatePermitSignature(
                 signer,
                 chainId,
                 digest.inToken.address,
                 inputAmount,        // Raw BigInt amount
-                RainbwoDomainInfo.address
+                OkuDomainInfo.address
             );
 
             //simulate tx, this will revert if the inputs are bad
-            await Rainbow.connect(signer)["fillQuoteTokenToTokenWithPermit"].staticCall(
+            await Router.connect(signer)["fillQuoteTokenToTokenWithPermit"].staticCall(
                 digest.inToken.address,
                 digest.outToken.address,
                 digest.candidateTrade.to,
@@ -545,7 +545,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
             )
 
             //generate tx data so we can send the tx since it did not revert if we have reached this point
-            const txData = await Rainbow.connect(signer).fillQuoteTokenToTokenWithPermit.populateTransaction(
+            const txData = await Router.connect(signer).fillQuoteTokenToTokenWithPermit.populateTransaction(
                 digest.inToken.address,
                 digest.outToken.address,
                 digest.candidateTrade.to,
@@ -562,18 +562,18 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
             SimResult.txData = txData.data
         }
 
-        if (txType === RainbowTxType.TOKEN2ETH_PERMIT) {
+        if (txType === OkuTxType.TOKEN2ETH_PERMIT) {
             //format permit data
             const permitData = await generatePermitSignature(
                 signer,
                 chainId,
                 digest.inToken.address,
                 inputAmount,        // Raw BigInt amount
-                RainbwoDomainInfo.address
+                OkuDomainInfo.address
             );
 
             //simulate tx, this will revert if the inputs are bad
-            await Rainbow.connect(signer)["fillQuoteTokenToEthWithPermit"].staticCall(
+            await Router.connect(signer)["fillQuoteTokenToEthWithPermit"].staticCall(
                 digest.inToken.address,
                 digest.candidateTrade.to,
                 approvalTarget,
@@ -586,7 +586,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
             )
 
             //generate tx data so we can send the tx since it did not revert if we have reached this point
-            const txData = await Rainbow.connect(signer).fillQuoteTokenToEthWithPermit.populateTransaction(
+            const txData = await Router.connect(signer).fillQuoteTokenToEthWithPermit.populateTransaction(
                 digest.inToken.address,
                 digest.candidateTrade.to,
                 approvalTarget,
@@ -619,7 +619,7 @@ export const simulateSwap = async (signer: Signer, RainbwoDomainInfo: RainbwoDom
         if (error.data && error.data !== "0x") {
             //console.error(`Revert Data (from error.data): ${error.data}`);
             try {
-                const decodedError = Rainbow.interface.parseError(error.data);
+                const decodedError = Router.interface.parseError(error.data);
                 if (decodedError) {
                     console.error(`Decoded Custom Error: ${decodedError.name}(${decodedError.args.join(', ')})`);
                 } else {
@@ -676,7 +676,7 @@ export { BACKEND_WARRANT_SIGNER } from "./contractMeta";
 
 // Network and token setup
 export interface NetworkConfig {
-    rainbowAddress: string;
+    okuRouterAddress: string;
     ownerAddr: string;
     usdcAddress: string;
     wethAddress: string;
@@ -689,10 +689,13 @@ export const getNetworkConfig = (networkName: string): NetworkConfig => {
     const centralConfig = NETWORK_CONFIGS[networkName];
 
     if (!centralConfig) {
-        // Default to Optimism config if network not found
+        // Default to Optimism config if network not found. The router
+        // address is read from the on-disk registry (not hardcoded) so this
+        // fallback can't silently drift to a stale/redeployed address the
+        // way a hardcoded literal here previously did.
         console.warn(`⚠️  Network ${networkName} not found in centralized config, defaulting to Optimism`);
         return {
-            rainbowAddress: "0x80dCD2C737cAFE9f86559bBCed9938eFfB7f7D1A",
+            okuRouterAddress: getCurrentAddress("op", "OkuRouter") ?? ZERO_ADDRESS,
             ownerAddr: "0x3CB68a6762041aA05E762814A8791CA9d98E79A0",
             usdcAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
             wethAddress: "0x4200000000000000000000000000000000000006",
@@ -709,7 +712,7 @@ export const getNetworkConfig = (networkName: string): NetworkConfig => {
     const liveRouter =
         getCurrentAddress(networkName, "OkuRouter") ?? ZERO_ADDRESS;
     return {
-        rainbowAddress: liveRouter,
+        okuRouterAddress: liveRouter,
         ownerAddr: centralConfig.ownerAddress,
         usdcAddress: centralConfig.usdcAddress || "0x0000000000000000000000000000000000000000",
         wethAddress: centralConfig.wethAddress,
@@ -722,7 +725,7 @@ export interface TestSetup {
     testSigner: Signer;
     contractOwner: Signer;
     mainnet: boolean;
-    Rainbow: OkuRouter;
+    Router: OkuRouter;
     USDC: IERC20;
     WETH: IERC20;
     config: NetworkConfig;
@@ -781,7 +784,7 @@ export const setupTestEnvironment = async (): Promise<TestSetup> => {
     // Initialize contracts
     const USDC = IERC20__factory.connect(config.usdcAddress, testSigner);
     const WETH = IERC20__factory.connect(config.wethAddress, testSigner);
-    const Rainbow = OkuRouter__factory.connect(config.rainbowAddress, testSigner);
+    const Router = OkuRouter__factory.connect(config.okuRouterAddress, testSigner);
 
     // Fund test account if on fork
     if (!mainnet) {
@@ -795,7 +798,7 @@ export const setupTestEnvironment = async (): Promise<TestSetup> => {
         testSigner,
         contractOwner,
         mainnet,
-        Rainbow,
+        Router,
         USDC,
         WETH,
         config
@@ -854,12 +857,12 @@ export const getRouterQuote = async (market: string, params: any, baseUrl?: stri
     }
 };
 
-export const getRainbowExecution = async (
+export const getOkuExecution = async (
     coupon: Coupon,
     market: string,
     signingRequest?: any,
     baseUrl?: string
-): Promise<RainbowExecutionInfo> => {
+): Promise<OkuExecutionInfo> => {
     const url = baseUrl || `http://localhost:3333/market/${market}/execution_information`;
 
     const requestBody: ExecutionRequest = {
@@ -872,7 +875,7 @@ export const getRainbowExecution = async (
         const response = await axios.post(url, requestBody, {
             timeout: 30000 // 30 second timeout
         });
-        const executionInfo = response.data as RainbowExecutionInfo;
+        const executionInfo = response.data as OkuExecutionInfo;
         return executionInfo;
     } catch (error: any) {
         // Error will be caught and logged by caller if needed
@@ -881,24 +884,24 @@ export const getRainbowExecution = async (
 };
 
 // Contract interaction helpers
-export const ensureTargetIsWhitelisted = async (ownerSigner: Signer, Rainbow: OkuRouter, targetAddress: string) => {
+export const ensureTargetIsWhitelisted = async (ownerSigner: Signer, Router: OkuRouter, targetAddress: string) => {
     // Skip validation for zero address (native ETH)
     const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
     if (targetAddress.toLowerCase() === ZERO_ADDRESS.toLowerCase()) {
         return;
     }
 
-    const isWhitelisted = await Rainbow.swapTargets(targetAddress);
+    const isWhitelisted = await Router.swapTargets(targetAddress);
 
     if (isWhitelisted) {
         return;
     }
 
     try {
-        const tx = await Rainbow.connect(ownerSigner).updateSwapTargets(targetAddress, true);
+        const tx = await Router.connect(ownerSigner).updateSwapTargets(targetAddress, true);
         await tx.wait();
 
-        const nowWhitelisted = await Rainbow.swapTargets(targetAddress);
+        const nowWhitelisted = await Router.swapTargets(targetAddress);
         if (!nowWhitelisted) {
             throw new Error("Target whitelisting verification failed");
         }
@@ -908,18 +911,18 @@ export const ensureTargetIsWhitelisted = async (ownerSigner: Signer, Rainbow: Ok
     }
 };
 
-export const ensureSignerIsWhitelisted = async (ownerSigner: Signer, Rainbow: OkuRouter, signerAddress: string) => {
-    const isWhitelisted = await Rainbow.validSigners(signerAddress);
+export const ensureSignerIsWhitelisted = async (ownerSigner: Signer, Router: OkuRouter, signerAddress: string) => {
+    const isWhitelisted = await Router.validSigners(signerAddress);
 
     if (isWhitelisted) {
         return;
     }
 
     try {
-        const tx = await Rainbow.connect(ownerSigner).updateValidSigner(signerAddress, true);
+        const tx = await Router.connect(ownerSigner).updateValidSigner(signerAddress, true);
         await tx.wait();
 
-        const nowWhitelisted = await Rainbow.validSigners(signerAddress);
+        const nowWhitelisted = await Router.validSigners(signerAddress);
         if (!nowWhitelisted) {
             throw new Error("Signer whitelisting verification failed");
         }
@@ -970,21 +973,21 @@ export interface ExtractedTargets {
     functionName: string;
 }
 
-export const extractTargetFromRainbowData = (txData: string): string => {
-    const targets = extractTargetsFromRainbowData(txData);
+export const extractTargetFromRouterData = (txData: string): string => {
+    const targets = extractTargetsFromRouterData(txData);
     return targets.target;
 };
 
-export const extractTargetsFromRainbowData = (txData: string): ExtractedTargets => {
+export const extractTargetsFromRouterData = (txData: string): ExtractedTargets => {
     try {
-        const rainbowInterface = OkuRouter__factory.createInterface();
-        const decoded = rainbowInterface.parseTransaction({ data: txData });
+        const okuInterface = OkuRouter__factory.createInterface();
+        const decoded = okuInterface.parseTransaction({ data: txData });
 
         if (!decoded) {
             throw new Error("Failed to decode transaction data");
         }
 
-        // Handle different Rainbow Router function signatures
+        // Handle different Oku Router function signatures
         if (decoded.name === "fillQuoteTokenToToken" ||
             decoded.name === "fillQuoteTokenToTokenWithPermit") {
             // For token-to-token functions, target is the 3rd parameter (index 2), approvalTarget is 4th (index 3)
@@ -1014,14 +1017,14 @@ export const extractTargetsFromRainbowData = (txData: string): ExtractedTargets 
 
         throw new Error(`Unsupported function: ${decoded.name}`);
     } catch (error: any) {
-        throw new Error(`Failed to extract target from Rainbow data: ${error.message}`);
+        throw new Error(`Failed to extract target from Router data: ${error.message}`);
     }
 };
 
 export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string, modifiedWarrant: any): string => {
     try {
-        const rainbowInterface = OkuRouter__factory.createInterface();
-        const decoded = rainbowInterface.parseTransaction({ data: originalTxData });
+        const okuInterface = OkuRouter__factory.createInterface();
+        const decoded = okuInterface.parseTransaction({ data: originalTxData });
         
         if (decoded?.name === "fillQuoteTokenToToken") {
             const [sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, recipient, originalWarrant] = decoded.args;
@@ -1034,7 +1037,7 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
                 signature: originalWarrant.signature || modifiedWarrant.signature || "0x"
             };
 
-            const newTxData = rainbowInterface.encodeFunctionData("fillQuoteTokenToToken", [
+            const newTxData = okuInterface.encodeFunctionData("fillQuoteTokenToToken", [
                 sellToken, buyToken, target, approvalTarget, swapCallData, sellAmount, feeAmount, recipient, newWarrant
             ]);
 
@@ -1051,7 +1054,7 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
                 signature: originalWarrant.signature || modifiedWarrant.signature || "0x"
             };
 
-            const newTxData = rainbowInterface.encodeFunctionData("fillQuoteTokenToEth", [
+            const newTxData = okuInterface.encodeFunctionData("fillQuoteTokenToEth", [
                 sellToken, target, approvalTarget, swapCallData, sellAmount, feePercentageBasisPoints, recipient, newWarrant
             ]);
 
@@ -1069,7 +1072,7 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
                 signature: originalWarrant.signature || modifiedWarrant.signature || "0x"
             };
 
-            const newTxData = rainbowInterface.encodeFunctionData("fillQuoteEthToToken", [
+            const newTxData = okuInterface.encodeFunctionData("fillQuoteEthToToken", [
                 buyToken, target, swapCallData, feeAmount, recipient, newWarrant
             ]);
 
@@ -1086,15 +1089,15 @@ export const rebuildTransactionDataWithModifiedWarrant = (originalTxData: string
     }
 };
 
-export const executeRainbowTransaction = async (
+export const executeRouterTransaction = async (
     txSigner: Signer, 
     trade: any,
-    rainbowExecution: RainbowExecutionInfo, 
+    okuExecution: OkuExecutionInfo, 
     originalQuote: any,
-    rainbowAddress: string
+    okuRouterAddress: string
 ) => {
     const { to, data, value } = trade;
-    const warrant = rainbowExecution.warrant;
+    const warrant = okuExecution.warrant;
     
     if (warrant) {
         console.log("Warrant Signer:", warrant.verifyingSigner);
@@ -1105,9 +1108,9 @@ export const executeRainbowTransaction = async (
     const inputAmountBN = parseUnits(originalQuote.inAmount, originalQuote.inToken.decimals);
     const signerAddress = await txSigner.getAddress();
     
-    // Verify transaction target is Rainbow Router
-    if (to.toLowerCase() !== rainbowAddress.toLowerCase()) {
-        throw new Error(`Expected Rainbow Router address ${rainbowAddress}, got ${to}`);
+    // Verify transaction target is Oku Router
+    if (to.toLowerCase() !== okuRouterAddress.toLowerCase()) {
+        throw new Error(`Expected Oku Router address ${okuRouterAddress}, got ${to}`);
     }
     
     console.log(`🔄 Simulating swap transaction... (${(data.length / 2).toLocaleString()} bytes)`);
