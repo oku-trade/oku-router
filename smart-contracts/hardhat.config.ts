@@ -390,6 +390,12 @@ const config: HardhatUserConfig = {
       url: rpcUrl(process.env.XDC_URL, "xdc-mainnet", chainConfigRpc("xdc")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
       chainId: chainIdFor("xdc"),
+      // XDC's node rejects EIP-1559 txs that ethers auto-populates here
+      // (the balance pre-check fails even though gasLimit*maxFee is well
+      // under balance). chain-config marks xdc `transactionType: legacy`;
+      // force a legacy tx with an explicit gasPrice above base fee (base
+      // ~12.5 gwei; eth_gasPrice ~14 gwei -- use 25 gwei for headroom).
+      gasPrice: 25_000_000_000,
     },
     redbelly: {
       url: rpcUrl(process.env.REDBELLY_URL, "redbelly-mainnet", chainConfigRpc("redbelly")),

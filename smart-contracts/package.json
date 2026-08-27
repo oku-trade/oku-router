@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@gfxlabs/oku-chains": "1.12.28",
+    "@gfxlabs/oku-chains": "^1.12.32",
     "@nktkas/hyperliquid": "^0.33.3",
     "@noble/curves": "^1.6.0",
     "@openzeppelin/contracts": "5.0.2",

@@ -668,7 +668,11 @@ export const OKU_ROUTER_EIP712_NAME = "Oku Router";
 // a real signer using the correct version is operational.
 export const OKU_ROUTER_EIP712_VERSION = "2.0";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-export const BACKEND_WARRANT_SIGNER = "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf";
+// Re-exported from util/contractMeta.ts (a hardhat-free constants module) so
+// existing importers of BACKEND_WARRANT_SIGNER from this file keep working,
+// while tasks/deploy.ts can import it from contractMeta without dragging the
+// Hardhat runtime into config init. See contractMeta.ts for the definition.
+export { BACKEND_WARRANT_SIGNER } from "./contractMeta";
 
 // Network and token setup
 export interface NetworkConfig {

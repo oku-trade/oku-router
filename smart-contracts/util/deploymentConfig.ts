@@ -180,6 +180,7 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
   rootstock: {
     supportedRouters: ["openocean","icecreamswap","usor"],
     canonicalPermit2: false,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     rpcUrl: process.env.ROOTSTOCK_URL,
   },
   filecoin: {
@@ -214,6 +215,7 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
   xdc: {
     supportedRouters: ["icecreamswap","usor"],
     canonicalPermit2: false,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     rpcUrl: process.env.XDC_URL,
   },
   unichain: {
@@ -241,6 +243,7 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
   goat: {
     supportedRouters: ["icecreamswap","usor"],
     canonicalPermit2: false,
+    create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     rpcUrl: process.env.GOAT_URL,
   },
   mantle: {
@@ -289,7 +292,7 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
     rpcUrl: process.env.GENSYN_URL,
   },
   robinhood: {
-    supportedRouters: [],
+    supportedRouters: ["enso","fabric","icecreamswap","kyberswap","native","okx","openocean","uniswap","zeroex"],
     canonicalPermit2: true,
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
   },

@@ -9,9 +9,14 @@
  *   - mainnet (ethereum), saga, zerog, hyperevm: newly-added full-scope
  *     chains (see util/deploymentConfig.ts "Full-scope expansion additions").
  *
- * Deliberately EXCLUDED (deferred, per instruction): celo, pharos -- both
- * currently resolve zero `marketRouters` entries in chain-config (nothing to
- * whitelist), and pharos additionally lacks permit2 data.
+ * NOT covered here (handled elsewhere): celo, pharos, saga, and the newly
+ * onboarded rootstock/goat/xdc. celo, saga, and pharos are already deployed
+ * (see deployments/*.json) and their addresses are back-filled into
+ * chain-config's `oku.router`. rootstock/goat/xdc have their own dedicated
+ * dry-run harness, `scripts/testForkDeployNewChains.ts`. (Historical note:
+ * celo/pharos were previously deferred as "zero marketRouters / no permit2";
+ * that no longer holds -- celo now carries an openocean marketRouter in
+ * chain-config and pharos uses the canonical permit2.)
  *
  * Unlike the balance-honest `testForkDeployV2.ts` (which intentionally does
  * NOT fund the wallet, to prove "insufficient funds" is a real, expected

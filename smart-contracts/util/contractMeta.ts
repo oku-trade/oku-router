@@ -23,6 +23,22 @@ import { keccak256, toUtf8Bytes, solidityPacked, getAddress } from "ethers";
 export const CONTRACT_NAME = "Oku Router";
 
 /**
+ * Production backend warrant signer.
+ *
+ * This EOA signs Canoe warrants for the Oku backend and must be whitelisted
+ * via `updateValidSigner` on every deployed OkuRouter (new deploys handle
+ * this in tasks/deploy.ts; existing chains are backfilled by
+ * scripts/whitelistBackendSigner.ts).
+ *
+ * Lives here — a dependency-free constants module — rather than in
+ * util/canoeHelper.ts so that tasks/deploy.ts (loaded by hardhat.config.ts)
+ * can import it without pulling the whole Hardhat runtime into config
+ * initialization (which triggers HH9). canoeHelper.ts re-exports it for
+ * backwards compatibility.
+ */
+export const BACKEND_WARRANT_SIGNER = "0xB8Cb2AF1bF29c13e6F2882C8C1C66acf16027C22";
+
+/**
  * Deployment version.
  *
  * - "1.0" was the originally-audited deployment with `withdrawToken` and

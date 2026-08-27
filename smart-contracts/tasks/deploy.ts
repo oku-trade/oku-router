@@ -8,6 +8,7 @@ import {
   CONTRACT_NAME,
   CONTRACT_VERSION,
   SAFE_SINGLETON_FACTORY,
+  BACKEND_WARRANT_SIGNER,
   getOkuRouterSalt,
   computeCreate2Address,
 } from "../util/contractMeta";
@@ -406,6 +407,26 @@ task("deploy", "Deploy OkuRouter contract")
       console.log("✓ Zero address approved as valid signer");
     } else {
       console.log("✓ Zero address already approved as valid signer");
+    }
+
+    // Whitelist the production backend warrant signer. This is additive to
+    // (and independent of) the address(0) bypass above: once the backend is
+    // producing valid warrants on the correct EIP-712 version, the bypass
+    // can be removed in a separate cutover, leaving this signer as the sole
+    // authority. Idempotent — skipped if already whitelisted.
+    const isBackendSigner = await withRetry(
+      () => contract.validSigners(BACKEND_WARRANT_SIGNER),
+      `validSigners(${BACKEND_WARRANT_SIGNER})`,
+    );
+    if (!isBackendSigner) {
+      const backendSignerTx = await withRetry(
+        () => contract.updateValidSigner(BACKEND_WARRANT_SIGNER, true),
+        `updateValidSigner(${BACKEND_WARRANT_SIGNER})`,
+      );
+      await withRetry(() => backendSignerTx.wait(), `tx.wait(${backendSignerTx.hash})`);
+      console.log(`✓ Backend warrant signer ${BACKEND_WARRANT_SIGNER} approved as valid signer`);
+    } else {
+      console.log(`✓ Backend warrant signer ${BACKEND_WARRANT_SIGNER} already approved as valid signer`);
     }
 
     // Set max warrant duration to 5 minutes (300 seconds).

@@ -1,6 +1,6 @@
 {
-  "networkName": "zerog",
-  "chainId": 16661,
+  "networkName": "scroll",
+  "chainId": 534352,
   "current": {
     "OkuRouter": {
       "address": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
