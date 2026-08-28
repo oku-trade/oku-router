@@ -1,6 +1,20 @@
 /**
  * whitelistMarketRouters.ts
  *
+ * SUPERSEDED — kept only as a historical record of what this one-off pass
+ * registered. Use `npx hardhat whitelist-swap-targets` (tasks/whitelistSwapTargets.ts)
+ * instead.
+ *
+ * This script's original premise was that the entries below existed in
+ * chain-config's master branch but had not yet been published to
+ * `@gfxlabs/oku-chains`, so they could not be derived from the installed
+ * package. That premise no longer holds: the entries are published, and the
+ * repo now tracks a version that contains them. The replacement task derives
+ * the whitelist from chain-config directly and diffs it against on-chain
+ * state, so it never goes stale the way this hardcoded list does.
+ *
+ * ---- original description ----
+ *
  * One-off backfill: whitelist newly-confirmed aggregator market routers on the
  * already-deployed v2.0 OkuRouters, for entries that are present in
  * chain-config SOURCE (master) but not yet in the published

@@ -8,6 +8,7 @@ import "./tasks/deploy";
 import "./tasks/deployPermit2Proxy";
 import "./tasks/predictAll";
 import "./tasks/verifyDeployments";
+import "./tasks/whitelistSwapTargets";
 
 
 dotEnvConfig();
@@ -69,6 +70,10 @@ const PUBLIC_RPCS: Record<string, string> = {
   "taiko-mainnet":      "https://rpc.mainnet.taiko.xyz",
   "celo-mainnet":       "https://forno.celo.org",
   "rootstock-mainnet":  "https://public-node.rsk.co",
+  // chain-config's default xdc endpoints (rpc/erpc.xinfin.network) return an
+  // HTML error page, and the blocksscan one 403s automated clients, which
+  // made xdc unreadable during whitelist/verify sweeps. This one serves JSON-RPC.
+  "xdc-mainnet":        "https://rpc.xdcrpc.com",
 };
 
 // Resolve RPC URL: Alchemy if supported, else public fallback

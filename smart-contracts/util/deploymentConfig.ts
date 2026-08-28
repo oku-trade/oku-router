@@ -31,6 +31,7 @@
  * migration depends on.
  */
 
+import { getAddress } from "ethers";
 import {
   type IChainInfo,
   type MarketRouterName,
@@ -395,10 +396,26 @@ function resolvePermit2Address(
  * `SwapTarget`; `name` and `protocol` are both set to the market name since
  * chain-config groups addresses by market rather than tracking individual
  * per-address display names.
+ *
+ * Addresses are re-checksummed via `getAddress(addr.toLowerCase())` rather
+ * than passed through verbatim. chain-config is consumed by both Go and TS:
+ * Go's `common.HexToAddress` ignores EIP-55 casing entirely, so an address
+ * with a malformed mixed-case checksum round-trips fine there and can ship
+ * in a published package unnoticed. ethers v6, by contrast, *throws*
+ * ("bad address checksum") the moment such a string is encoded into a call.
+ *
+ * That is not hypothetical: `@gfxlabs/oku-chains@1.12.38` shipped mainnet's
+ * `marketRouters.fabric` as 0x4296339B4Ff8E67f07De40D97A49a680F2598e0F,
+ * whose correct EIP-55 form is 0x4296339B4FF8E67f07de40D97A49A680F2598e0f
+ * (same 20 bytes, wrong casing). Left unnormalized it would blow up both
+ * the swap-target whitelist and any subsequent mainnet deploy that calls
+ * `registerSwapTargets`. Lowercasing first discards the (untrusted) casing
+ * and lets ethers recompute the canonical checksum, so upstream casing bugs
+ * degrade to a no-op here instead of a hard failure.
  */
 function buildKnownSwapTargets(chain: IChainInfo): SwapTarget[] {
   return marketRouterEntries(chain).map(({ market, address }) => ({
-    address,
+    address: getAddress(address.toLowerCase()),
     name: market,
     protocol: market,
   }));
