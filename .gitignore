@@ -1,3 +1,10 @@
+node_modules
+.env
+.openzeppelin
+
+#Hardhat files
+cache
+artifacts
+
+# Editors
 .idea/**
-sdk/*.tgz
-node_modules/

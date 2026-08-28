@@ -14,8 +14,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat --network localhost  run scripts/deploy.ts",
-    "lint": "eslint . && prettier --list-different 'contracts/**/*.sol'",
-    "prettier-sol": "prettier --write 'contracts/**/*.sol'",
+    "lint": "eslint .",
     "test": "npx hardhat test test/base/*.ts",
     "test:archive": "npx hardhat test test/archive-rpc/*.ts"
   },
