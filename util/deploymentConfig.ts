@@ -23,12 +23,13 @@
  * This module replaces `util/networkConfig.ts` (deprecated, see that file).
  *
  * `@gfxlabs/oku-chains` is installed from the published npm registry, range
- * pinned in `package.json` (currently `^1.12.32`; installed 1.12.35 as of
+ * pinned in `package.json` (currently `^1.12.39`; installed 1.12.39 as of
  * this writing) for reproducible-enough deploys while still picking up
  * chain-config fixes. It was confirmed to include the marketRouters
  * reconciliation (oneinch/unizen/propellerswap/binance/native additions,
- * telos's new marketRouters block, robinhood's full router set) this
- * migration depends on.
+ * telos's new marketRouters block, robinhood's full router set) plus the
+ * fynd router addition (mainnet, arbitrum, base, bsc, polygon, unichain,
+ * robinhood) this migration depends on.
  */
 
 import { getAddress } from "ethers";
