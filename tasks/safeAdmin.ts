@@ -140,6 +140,13 @@ interface BundleChain {
   /** EIP-712 payload, for external/hardware signers. */
   eip712: unknown;
   signatures: { signer: string; signature: string }[];
+  /**
+   * Owners known to have signed already. Present only in the copy embedded
+   * into a distributed sign.html, where signature bytes are stripped -- it
+   * lets the page grey out completed rows without carrying authorization
+   * material.
+   */
+  signedBy?: string[];
   note?: string;
 }
 
@@ -332,6 +339,127 @@ function resolveChainMeta(chainId: number): BundleChainMeta | undefined {
     },
     blockExplorerUrl: n.blockExplorers?.default?.url,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Signature storage
+//
+// Signatures are kept in per-signer sidecar files, never inside the bundle:
+//
+//   safe-bundles/<name>.json                     transaction definition (committed)
+//   safe-bundles/<name>/signatures-<signer>.json signature material (gitignored)
+//
+// This split is what makes the bundle safe to commit. A bundle that has
+// accumulated `threshold` signatures is a bearer authorization -- anyone
+// holding it can execute it -- so it must never enter git history. The
+// definition on its own authorizes nothing, is derivable from public chain
+// state, and is genuinely useful to have under version control: it is the
+// record of exactly what was approved, and co-signers can pull it instead of
+// being emailed a file.
+//
+// `safe:exec` reads sidecars and merges them with any legacy in-bundle
+// signatures, so older bundles still work.
+// ---------------------------------------------------------------------------
+
+export interface SignatureEntry {
+  safeTxHash: string;
+  signer: string;
+  signature: string;
+}
+
+function sidecarDir(name: string): string {
+  return path.join(BUNDLE_DIR, name);
+}
+
+function sidecarFile(name: string, signer: string): string {
+  return path.join(sidecarDir(name), `signatures-${getAddress(signer)}.json`);
+}
+
+/** Read every per-signer sidecar for a bundle. */
+function readSidecars(name: string): SignatureEntry[] {
+  const dir = sidecarDir(name);
+  if (!fs.existsSync(dir)) return [];
+  const out: SignatureEntry[] = [];
+  for (const f of fs.readdirSync(dir)) {
+    if (!/^signatures-0x[0-9a-fA-F]{40}\.json$/.test(f)) continue;
+    try {
+      const arr = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+      if (Array.isArray(arr)) out.push(...arr);
+    } catch {
+      console.log(`  ⚠ ignoring unreadable sidecar ${f}`);
+    }
+  }
+  return out;
+}
+
+/** Merge new entries into the signer's sidecar, deduped. Returns count added. */
+function writeSidecar(name: string, entries: readonly SignatureEntry[]): number {
+  const bySigner = new Map<string, SignatureEntry[]>();
+  for (const e of entries) {
+    const s = getAddress(e.signer);
+    if (!bySigner.has(s)) bySigner.set(s, []);
+    bySigner.get(s)!.push({ ...e, signer: s });
+  }
+  let added = 0;
+  fs.mkdirSync(sidecarDir(name), { recursive: true });
+  for (const [signer, list] of bySigner) {
+    const file = sidecarFile(name, signer);
+    let existing: SignatureEntry[] = [];
+    if (fs.existsSync(file)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+        if (Array.isArray(parsed)) existing = parsed;
+      } catch {
+        existing = [];
+      }
+    }
+    for (const e of list) {
+      const dup = existing.some(
+        (x) =>
+          x.safeTxHash.toLowerCase() === e.safeTxHash.toLowerCase() &&
+          getAddress(x.signer) === signer,
+      );
+      if (!dup) {
+        existing.push(e);
+        added++;
+      }
+    }
+    const tmp = `${file}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(existing, null, 2) + "\n", "utf8");
+    fs.renameSync(tmp, file);
+  }
+  return added;
+}
+
+/**
+ * All valid signatures for one chain: sidecars plus any legacy in-bundle
+ * entries, deduped by signer and filtered to current owners.
+ */
+function signaturesFor(
+  bundle: Bundle,
+  chain: BundleChain,
+  sidecars: readonly SignatureEntry[],
+): { signer: string; signature: string }[] {
+  const owners = new Set(bundle.owners.map((o) => getAddress(o)));
+  const out: { signer: string; signature: string }[] = [];
+  const seen = new Set<string>();
+  const consider = [
+    ...chain.signatures.map((s) => ({ ...s, safeTxHash: chain.safeTxHash })),
+    ...sidecars,
+  ];
+  for (const e of consider) {
+    if (e.safeTxHash.toLowerCase() !== chain.safeTxHash.toLowerCase()) continue;
+    let signer: string;
+    try {
+      signer = getAddress(e.signer);
+    } catch {
+      continue;
+    }
+    if (!owners.has(signer) || seen.has(signer)) continue;
+    seen.add(signer);
+    out.push({ signer, signature: e.signature });
+  }
+  return out;
 }
 
 function bundlePath(name: string): string {
@@ -607,12 +735,34 @@ task(
     }
     let html = fs.readFileSync(tpl, "utf8");
 
-    // Inject the bundle ahead of the main script so autoloadBundle() finds it
-    // in window.__BUNDLE__ and never needs to fetch or prompt. JSON is
-    // embedded via a JSON-typed script tag rather than a JS literal so that
-    // no bundle content can be interpreted as code -- and "</" is escaped so
-    // a nested string can never terminate the tag early.
-    const json = JSON.stringify(bundle).replace(/<\//g, "<\\/");
+    // Strip signature material from the embedded copy.
+    //
+    // This file gets emailed or Slacked to co-signers, so it should carry no
+    // authorization material at all. The page does not need other signers'
+    // signature bytes -- it only needs to know WHICH owners have already
+    // signed each chain, so it can grey those rows out. `signedBy` carries
+    // exactly that and nothing more.
+    //
+    // Without this, `sign.html` would embed every signature collected so far
+    // (32 of them once the first signer imports), turning a file meant for
+    // distribution into a partial authorization set.
+    const sidecars = readSidecars(bundle.name);
+    const shared: Bundle = {
+      ...bundle,
+      chains: bundle.chains.map((c) => ({
+        ...c,
+        signatures: [],
+        signedBy: signaturesFor(bundle, c, sidecars).map((s) => s.signer),
+      })),
+    };
+    const embeddedSigs = shared.chains.reduce((a, c) => a + c.signatures.length, 0);
+
+    // Injected ahead of the main script so autoloadBundle() finds it in
+    // window.__BUNDLE__ and never needs to fetch or prompt. Embedded via a
+    // JSON-typed script tag rather than a JS literal so no bundle content can
+    // be interpreted as code -- and "</" is escaped so a nested string cannot
+    // terminate the tag early.
+    const json = JSON.stringify(shared).replace(/<\//g, "<\\/");
     const inject =
       `<script id="__bundle_json" type="application/json">${json}</script>\n` +
       `<script>window.__BUNDLE__ = JSON.parse(` +
@@ -630,13 +780,25 @@ task(
 
     const chains = bundle.chains.length;
     const need = bundle.chains.filter(
-      (c) => c.signatures.length < bundle.threshold,
+      (c) => signaturesFor(bundle, c, sidecars).length < bundle.threshold,
     ).length;
+    const alreadySigned = new Set(
+      bundle.chains.flatMap((c) =>
+        signaturesFor(bundle, c, sidecars).map((s) => s.signer),
+      ),
+    );
     console.log("");
     console.log(`Self-contained signing page written:`);
     console.log(`  ${out}`);
-    console.log(`  bundle embedded : ${bundle.name} (${chains} chain(s), ${need} still short)`);
-    console.log(`  safe            : ${bundle.safe}  ${bundle.threshold} of ${bundle.owners.length}`);
+    console.log(`  bundle embedded  : ${bundle.name} (${chains} chain(s), ${need} still short)`);
+    console.log(`  safe             : ${bundle.safe}  ${bundle.threshold} of ${bundle.owners.length}`);
+    console.log(`  signatures inside: ${embeddedSigs}  (stripped -- safe to distribute)`);
+    if (alreadySigned.size) {
+      console.log(
+        `  already signed by: ${[...alreadySigned].join(", ")}` +
+          `  (recorded as signedBy, no signature bytes)`,
+      );
+    }
     console.log("");
     console.log(`Next:`);
     console.log(`  npm run sign-page`);
@@ -649,8 +811,8 @@ task(
     );
     console.log("");
     console.log(
-      `This file contains the full transaction set but NO signatures and NO keys.\n` +
-        `It is safe to hand to each signer. Their output goes back through:\n` +
+      `This file contains the full transaction set but NO signature bytes and NO\n` +
+        `keys, so it is safe to send to a co-signer. Their output comes back via:\n` +
         `  npx hardhat safe:sign --name ${bundle.name} --import <signatures.json>`,
     );
     console.log("");
@@ -671,6 +833,8 @@ task("safe:sign", "Attach signatures to a bundle (local key, or import external 
     assertOkuSafeConfig();
     const bundle = readBundle(String(taskArgs.name));
     const owners = new Set(bundle.owners.map((o) => getAddress(o)));
+    const existing = readSidecars(bundle.name);
+    const collected: SignatureEntry[] = [];
 
     let added = 0;
     let skipped = 0;
@@ -697,7 +861,7 @@ task("safe:sign", "Attach signatures to a bundle (local key, or import external 
               `!= recomputed ${localHash}. Refusing to sign.`,
           );
         }
-        if (c.signatures.some((s) => getAddress(s.signer) === signer)) {
+        if (signaturesFor(bundle, c, existing).some((s) => s.signer === signer)) {
           skipped++;
           continue;
         }
@@ -709,7 +873,7 @@ task("safe:sign", "Attach signatures to a bundle (local key, or import external 
         if (recoverSafeTxSigner(localHash, signature) !== signer) {
           throw new Error(`self-check failed: signature does not recover to ${signer}`);
         }
-        c.signatures.push({ signer, signature });
+        collected.push({ safeTxHash: localHash, signer, signature });
         added++;
         console.log(`  ✓ ${pad(c.network, 12)} ${localHash.slice(0, 18)}…`);
       }
@@ -745,11 +909,15 @@ task("safe:sign", "Attach signatures to a bundle (local key, or import external 
           );
           continue;
         }
-        if (target.signatures.some((s) => getAddress(s.signer) === recovered)) {
+        if (signaturesFor(bundle, target, existing).some((s) => s.signer === recovered)) {
           skipped++;
           continue;
         }
-        target.signatures.push({ signer: recovered, signature: entry.signature });
+        collected.push({
+          safeTxHash: target.safeTxHash,
+          signer: recovered,
+          signature: entry.signature,
+        });
         added++;
         console.log(`  ✓ ${pad(target.network, 12)} from ${recovered}`);
       }
@@ -759,18 +927,28 @@ task("safe:sign", "Attach signatures to a bundle (local key, or import external 
       throw new Error("provide --key-env or --import");
     }
 
-    writeBundle(bundle);
-    const ready = bundle.chains.filter((c) => c.signatures.length >= bundle.threshold).length;
+    // Signatures go into per-signer sidecars, never into the bundle -- that
+    // is what keeps the bundle committable. See the Signature storage note.
+    if (collected.length) writeSidecar(bundle.name, collected);
+    const all = readSidecars(bundle.name);
+    const count = (c: BundleChain) => signaturesFor(bundle, c, all).length;
+    const ready = bundle.chains.filter((c) => count(c) >= bundle.threshold).length;
     console.log("\n" + "-".repeat(96));
     console.log(`added ${added}, skipped ${skipped} (already signed)`);
+    if (collected.length) {
+      const signers = [...new Set(collected.map((c) => c.signer))];
+      for (const s of signers) {
+        console.log(`  written to ${path.relative(process.cwd(), sidecarFile(bundle.name, s))}`);
+      }
+    }
     console.log(
       `${ready}/${bundle.chains.length} chains now have the ${bundle.threshold} ` +
         `signature(s) needed to execute`,
     );
     if (ready < bundle.chains.length) {
       const short = bundle.chains
-        .filter((c) => c.signatures.length < bundle.threshold)
-        .map((c) => `${c.network}(${c.signatures.length}/${bundle.threshold})`);
+        .filter((c) => count(c) < bundle.threshold)
+        .map((c) => `${c.network}(${count(c)}/${bundle.threshold})`);
       console.log(`still short: ${short.join(", ")}`);
     }
     console.log("");
@@ -800,6 +978,8 @@ task("safe:exec", "Broadcast a signed bundle from the hot relayer (DRY RUN unles
 
     const allChains = listSafeChains(hre);
     const byNetwork = new Map(allChains.map((c) => [c.network, c]));
+    // Signatures live in per-signer sidecars alongside the bundle.
+    const sidecars = readSidecars(bundle.name);
 
     console.log("\n" + "=".repeat(96));
     console.log(
@@ -853,17 +1033,26 @@ task("safe:exec", "Broadcast a signed bundle from the hot relayer (DRY RUN unles
           continue;
         }
 
-        let sigs = c.signatures;
+        let sigs = signaturesFor(bundle, c, sidecars);
         if (taskArgs.fromService) {
           const fetched = await fetchServiceSignatures(c, bundle);
           if (fetched.length) {
             console.log(`\n=== ${c.network}: pulled ${fetched.length} signature(s) from tx service`);
             const merged = [...sigs];
+            const persist: SignatureEntry[] = [];
             for (const f of fetched) {
               if (!merged.some((s) => getAddress(s.signer) === getAddress(f.signer))) {
                 merged.push(f);
+                persist.push({
+                  safeTxHash: c.safeTxHash,
+                  signer: getAddress(f.signer),
+                  signature: f.signature,
+                });
               }
             }
+            // Cache them in the sidecar so a re-run does not depend on the
+            // hosted service being reachable.
+            if (persist.length) writeSidecar(bundle.name, persist);
             sigs = merged;
           }
         }
@@ -987,7 +1176,6 @@ task("safe:exec", "Broadcast a signed bundle from the hot relayer (DRY RUN unles
       }
     }
 
-    if (taskArgs.fromService) writeBundle(bundle);
 
     console.log("\n" + "-".repeat(96));
     console.log(

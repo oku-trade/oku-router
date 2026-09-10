@@ -451,6 +451,20 @@ npx hardhat safe:refresh-registry
 > anything else through a Safe before its acceptance lands will invalidate that chain's
 > signatures and require a rebuild. Do not push other Safe transactions during this window.
 
+Bundles and signatures are stored separately, and only one of them is committed:
+
+| path | contents | git |
+| --- | --- | --- |
+| `safe-bundles/<name>.json` | transaction definition — authorizes nothing | **committed** |
+| `safe-bundles/<name>/signatures-0x<addr>.json` | signature material — a `threshold` set is a bearer authorization | gitignored |
+| `safe-bundles/<name>/{sign.html,tx-builder,eip712}` | generated, reproducible from the bundle | gitignored |
+
+Committing the definition gives an auditable record of exactly what was approved, lets
+co-signers `git pull` instead of being sent a file, and protects work in progress from
+`git clean -fdx`. Signatures never enter git history, which cannot be un-published — the
+rule is unconditional because it matters far more for a future `sweepAll` or `pause`
+bundle than for an `acceptOwnership` batch.
+
 ### Deployment status
 
 Live on **33 of 34 chains** at the address above, all verified for owner set, threshold,
@@ -531,6 +545,8 @@ useful for testing. Two production routes, both supported:
 
 Full operator guide, including the security model and troubleshooting:
 **[`scripts/safeSignPage/README.md`](scripts/safeSignPage/README.md)**.
+Step-by-step instructions to hand to a non-technical co-signer:
+**[`scripts/safeSignPage/SIGNER-GUIDE.md`](scripts/safeSignPage/SIGNER-GUIDE.md)**.
 
 Generate a self-contained page with the bundle already embedded, then serve it:
 

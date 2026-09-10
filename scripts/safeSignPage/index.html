@@ -277,9 +277,7 @@ function renderTable() {
   if (!bundle) return;
   bundle.chains.forEach(function (c, i) {
     var tr = document.createElement("tr");
-    var already = account && (c.signatures || []).some(function (s) {
-      return eq(s.signer, account);
-    });
+    var already = account && hasSignedAlready(c, account);
     var have = results.some(function (r) { return eq(r.safeTxHash, c.safeTxHash); });
     var status = have ? '<span class="ok">signed now</span>'
                : already ? '<span class="dim">already in bundle</span>'
@@ -303,6 +301,18 @@ function renderTable() {
       });
     });
   });
+}
+
+/**
+ * Has `who` already signed this chain?
+ *
+ * A distributed sign.html carries `signedBy` (addresses only) instead of
+ * signature bytes, so check both shapes.
+ */
+function hasSignedAlready(c, who) {
+  if (!who) return false;
+  if ((c.signedBy || []).some(function (a) { return eq(a, who); })) return true;
+  return (c.signatures || []).some(function (s) { return eq(s.signer, who); });
 }
 
 function setStatus(i, html) {
@@ -681,8 +691,8 @@ async function signAll() {
   var done = 0, failed = 0;
   for (var i = 0; i < bundle.chains.length; i++) {
     var c = bundle.chains[i];
-    var already = (c.signatures || []).some(function (s) { return eq(s.signer, account); });
-    if (already || results.some(function (r) { return eq(r.safeTxHash, c.safeTxHash); })) continue;
+    if (hasSignedAlready(c, account) ||
+        results.some(function (r) { return eq(r.safeTxHash, c.safeTxHash); })) continue;
     try {
       await signOne(i);
       done++;

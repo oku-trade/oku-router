@@ -8,7 +8,8 @@ operation lives in this directory.
 | `index.html` | the signing page. Hand-written HTML + JS, no dependencies, no build step |
 | `serve.js` | local static server + signature autosave endpoint. Plain node, no dependencies |
 | `check.js` | static self-check of the page's security properties (`npm run check:sign-page`) |
-| `README.md` | this file |
+| `README.md` | this file — operator guide |
+| `SIGNER-GUIDE.md` | step-by-step instructions to send to a co-signer (assumes no terminal experience) |
 
 Generated artifacts live under `safe-bundles/` (gitignored) — see
 [Where things end up](#where-things-end-up).
@@ -35,6 +36,20 @@ injected wallet → hardware device — and points it at our own payloads, so on
 signer can clear all 32 chains in a single sitting with no gas.
 
 ---
+
+## Sending this to a co-signer
+
+Hand them **[`SIGNER-GUIDE.md`](SIGNER-GUIDE.md)** plus two things:
+
+1. the repository
+2. the bundle file `safe-bundles/<name>.json`
+
+They need **no keys and no `.env`** — `hardhat.config.ts` falls back to a
+zero-key sentinel, so every task they run works without secrets (verified).
+
+The bundle never contains signature bytes — see
+[Signature storage](#signature-storage) — so both the bundle and the generated
+`sign.html` are always safe to distribute.
 
 ## Quick start
 
@@ -184,6 +199,34 @@ Override the port with `PORT=8548 npm run sign-page`.
 
 ---
 
+## Signature storage
+
+Signatures and the transaction definition are stored separately, on purpose:
+
+```
+safe-bundles/accept-all.json                     definition   -- COMMITTED to git
+safe-bundles/accept-all/signatures-0x<addr>.json signatures   -- gitignored, local only
+```
+
+**The bundle is committed.** It authorizes nothing on its own, every value in
+it is derivable from public chain state, and having it under version control
+gives three things: an auditable record of exactly what was approved,
+co-signers who can `git pull` instead of being emailed a file, and immunity
+from `git clean -fdx` wiping work in progress.
+
+**Signature material is never committed.** A set of `threshold` signatures is
+a *bearer authorization*: anyone holding it can execute the transaction. For
+an `acceptOwnership` batch that is close to harmless — the worst outcome is a
+stranger paying gas to complete a migration you wanted anyway. For a
+`sweepAll` or `pause` bundle it would be severe. Git history is permanent and
+cannot be un-published, so the rule is unconditional rather than judged
+case-by-case under time pressure.
+
+`safe:sign` writes to the per-signer sidecar; `safe:exec` reads sidecars and
+merges them with any legacy in-bundle signatures, so older bundles still work.
+`safe:sign-page` embeds `signedBy` (addresses only) so completed rows grey out
+without carrying signature bytes.
+
 ## Where things end up
 
 All under `safe-bundles/`, which is **gitignored** — a signed bundle is a
@@ -191,13 +234,16 @@ bearer authorization and must never be committed.
 
 ```
 safe-bundles/
-  accept-all.json                        the bundle (authoritative; accumulates signatures)
+  accept-all.json                        transaction definition          [COMMITTED]
   accept-all/
-    sign.html                            self-contained page, bundle embedded, no signatures
-    signatures-0x<signer>.json           autosaved per signer  <-- feeds safe:sign --import
-    tx-builder/<chain>.json              importable at app.safe.global (tx-service chains only)
-    eip712/<chain>.json                  raw payloads for safe-cli / offline signers
+    signatures-0x<signer>.json           signature material              [gitignored]
+    sign.html                            self-contained signing page     [gitignored, generated]
+    tx-builder/<chain>.json              importable at app.safe.global   [gitignored, generated]
+    eip712/<chain>.json                  payloads for safe-cli/offline   [gitignored, generated]
 ```
+
+Everything except the bundle is either signature material or reproducible from
+the bundle with `safe:sign-page` / `safe:build`.
 
 `sign.html` contains the full transaction set but **no signatures and no
 keys**, so it is safe to hand to each signer.

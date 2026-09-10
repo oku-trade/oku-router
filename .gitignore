@@ -9,6 +9,21 @@ artifacts
 # Editors
 .idea/**
 
-# Signed Safe bundles are bearer authorizations: anyone holding a bundle with
-# `threshold` signatures can execute it. Never commit these.
-safe-bundles/
+# Safe operations.
+#
+# The bundle itself (safe-bundles/<name>.json) IS committed: it is the record
+# of exactly what was authorized, authorizes nothing on its own, and is
+# derivable from public chain state. Co-signers can pull it rather than being
+# emailed a file, and it is no longer at risk from `git clean -fdx`.
+#
+# Signature material is NEVER committed. A set of `threshold` signatures is a
+# bearer authorization -- anyone holding it can execute the transaction. This
+# matters far more for future bundles (sweepAll, pause) than for an
+# acceptOwnership batch, so the rule is unconditional. Signatures live in
+# per-signer sidecars, which stay local.
+safe-bundles/*/signatures-*.json
+# Generated artifacts, all reproducible from the bundle with
+# `safe:sign-page` / `safe:build`.
+safe-bundles/*/sign.html
+safe-bundles/*/tx-builder/
+safe-bundles/*/eip712/

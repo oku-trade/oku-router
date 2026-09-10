@@ -1,0 +1,3567 @@
+{
+  "name": "accept-all",
+  "intent": "accept-ownership",
+  "params": {},
+  "safe": "0xdC91978e0617CcA2EE1E658d0A1CA3F63CF10f1F",
+  "threshold": 2,
+  "owners": [
+    "0x9B68c14e936104e9a7a24c712BEecdc220002984",
+    "0x5227a7404631Eb7De411232535E36dE8dad318f0",
+    "0x43A9beCdC1323c1dFcfA776cE9bF57F9F8Ce8200"
+  ],
+  "createdAt": "2026-09-10T17:50:13.226Z",
+  "chains": [
+    {
+      "network": "mainnet",
+      "chainId": 1,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Ethereum",
+        "rpcUrl": "https://eth.drpc.org",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://etherscan.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x83fc9b9ab07e3d6ccd4fcb8d6e7831f836c33cc6b3f099243009235d8250c5f9",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x1",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "op",
+      "chainId": 10,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Optimism",
+        "rpcUrl": "https://mainnet.optimism.io",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://optimistic.etherscan.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xca1684ed2a0219aa1a850da336800a2ece1a2ef3ecef1333badb2848384e4d44",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xa",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "rootstock",
+      "chainId": 30,
+      "router": "0x0906896E8564c61F40778E2B7A46E1269Aaa681e",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Rootstock",
+        "rpcUrl": "https://public-node.rsk.co",
+        "nativeCurrency": {
+          "name": "Rootstock Bitcoin",
+          "symbol": "RBTC",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://rootstock.blockscout.com"
+      },
+      "calls": [
+        {
+          "to": "0x0906896E8564c61F40778E2B7A46E1269Aaa681e",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x0906896E8564c61F40778E2B7A46E1269Aaa681e"
+        }
+      ],
+      "tx": {
+        "to": "0x0906896E8564c61F40778E2B7A46E1269Aaa681e",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xf5f201f22fd521d96483cd7edaf63aa39835929ab923e3133dbb466c57384fac",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x1e",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x0906896e8564c61f40778e2b7a46e1269aaa681e",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "telos",
+      "chainId": 40,
+      "router": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Telos",
+        "rpcUrl": "https://rpc.telos.net",
+        "nativeCurrency": {
+          "name": "Telos",
+          "symbol": "TLOS",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://www.teloscan.io/"
+      },
+      "calls": [
+        {
+          "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7B060A98BA242Ae42D6027a60937787eBe33DEBe"
+        }
+      ],
+      "tx": {
+        "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x81a3b84ec72faacbcfaeff871bf5e86a05787c2af9b30c0e5ee104d4307be5bf",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x28",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7b060a98ba242ae42d6027a60937787ebe33debe",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "xdc",
+      "chainId": 50,
+      "router": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "XDC",
+        "rpcUrl": "https://erpc.xinfin.network",
+        "nativeCurrency": {
+          "name": "XDC",
+          "symbol": "XDC",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://xdcscan.com"
+      },
+      "calls": [
+        {
+          "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7B060A98BA242Ae42D6027a60937787eBe33DEBe"
+        }
+      ],
+      "tx": {
+        "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xc1bd8ff2a9cd3917bcc3e3053b1d3fef80515742aaf045c6b4403860fc91483c",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x32",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7b060a98ba242ae42d6027a60937787ebe33debe",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "bsc",
+      "chainId": 56,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "BNB",
+        "rpcUrl": "https://56.rpc.thirdweb.com",
+        "nativeCurrency": {
+          "name": "BNB",
+          "symbol": "BNB",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://bscscan.com"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x5325d47e8456546962396512fec4093e205a744996aef71d1c19845bb2cc93e4",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x38",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "gnosis",
+      "chainId": 100,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Gnosis",
+        "rpcUrl": "https://rpc.gnosischain.com",
+        "nativeCurrency": {
+          "name": "xDAI",
+          "symbol": "XDAI",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://gnosisscan.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x15fd4bf396c85edec1a07c489a14fb4c75bc10b35eb531b3b7a56d40e0d689a1",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x64",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "unichain",
+      "chainId": 130,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Unichain",
+        "rpcUrl": "https://mainnet.unichain.org/",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://uniscan.xyz"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xb4a16c86c4f60930c0d243679475df0d1f7a0ea1ae3e067f78d0baeb344cc67a",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x82",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "polygon",
+      "chainId": 137,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Polygon",
+        "rpcUrl": "https://polygon.drpc.org",
+        "nativeCurrency": {
+          "name": "POL",
+          "symbol": "POL",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://polygonscan.com"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x6f4841f9a3aabbf2ee86c9e688042bdf14cc63aa37c72f194945ff8a644be41e",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x89",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "monad",
+      "chainId": 143,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Monad",
+        "rpcUrl": "https://rpc.monad.xyz",
+        "nativeCurrency": {
+          "name": "Monad",
+          "symbol": "MON",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://monadscan.com"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xf8fa015d200bcc621d773f24f72b123e840f1a23bfc556bb46d3a716de111e49",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x8f",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "redbelly",
+      "chainId": 151,
+      "router": "0x44a81236E892faEdc1f7c08362a4A0eC90dDd203",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Redbelly",
+        "rpcUrl": "https://governors.mainnet.redbelly.network",
+        "nativeCurrency": {
+          "name": "Redbelly Native Coin",
+          "symbol": "RBNT",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://redbelly.routescan.io"
+      },
+      "calls": [
+        {
+          "to": "0x44a81236E892faEdc1f7c08362a4A0eC90dDd203",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x44a81236E892faEdc1f7c08362a4A0eC90dDd203"
+        }
+      ],
+      "tx": {
+        "to": "0x44a81236E892faEdc1f7c08362a4A0eC90dDd203",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x13ad809195852bc3c8325b5a31b135aa22222319220f5b54570c7d83242b72a2",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x97",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x44a81236e892faedc1f7c08362a4a0ec90ddd203",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "boba",
+      "chainId": 288,
+      "router": "0x7bf7770Ecd4fd573C32272Ef80c8818A8E8e289A",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Boba",
+        "rpcUrl": "https://mainnet.boba.network",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://bobascan.com"
+      },
+      "calls": [
+        {
+          "to": "0x7bf7770Ecd4fd573C32272Ef80c8818A8E8e289A",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7bf7770Ecd4fd573C32272Ef80c8818A8E8e289A"
+        }
+      ],
+      "tx": {
+        "to": "0x7bf7770Ecd4fd573C32272Ef80c8818A8E8e289A",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x7ca63f8f0b96910c1ddb72e0fd26b60ac5ae7b137aec4bcda99ff2cec23aa294",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x120",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7bf7770ecd4fd573c32272ef80c8818a8e8e289a",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "filecoin",
+      "chainId": 314,
+      "router": "0x4Ae4041BFa135413A845b803226943198a2F1BeE",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Filecoin",
+        "rpcUrl": "https://api.node.glif.io/rpc/v1",
+        "nativeCurrency": {
+          "name": "filecoin",
+          "symbol": "FIL",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://filecoin.blockscout.com"
+      },
+      "calls": [
+        {
+          "to": "0x4Ae4041BFa135413A845b803226943198a2F1BeE",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x4Ae4041BFa135413A845b803226943198a2F1BeE"
+        }
+      ],
+      "tx": {
+        "to": "0x4Ae4041BFa135413A845b803226943198a2F1BeE",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x43f142bb77513fc848b6b8b4e5cd53077c624c8659f1124a8c53bfb4bd2454bc",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x13a",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x4ae4041bfa135413a845b803226943198a2f1bee",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "worldchain",
+      "chainId": 480,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "World Chain",
+        "rpcUrl": "https://worldchain-mainnet.g.alchemy.com/public",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://worldscan.org"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xe399b5c20a00b481f7c443d76d9c87a275dbfaf0312afc72db21458bc8f8f8bd",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x1e0",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "hyperevm",
+      "chainId": 999,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "HyperEVM",
+        "rpcUrl": "https://rpc.hyperliquid.xyz/evm",
+        "nativeCurrency": {
+          "name": "HYPE",
+          "symbol": "HYPE",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://hyperevmscan.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x512f0ffb773204c7966eec0aedff243c10cda56bad2dd487e36934e7b7e2f452",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x3e7",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "sei",
+      "chainId": 1329,
+      "router": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Sei Network",
+        "rpcUrl": "https://evm-rpc.sei-apis.com/",
+        "nativeCurrency": {
+          "name": "Sei",
+          "symbol": "SEI",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://seitrace.com"
+      },
+      "calls": [
+        {
+          "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7B060A98BA242Ae42D6027a60937787eBe33DEBe"
+        }
+      ],
+      "tx": {
+        "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x8c918a654feaccc3f0d8b8fb1a35d02cacbcdf49f6f32f051066446bd84e9a32",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x531",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7b060a98ba242ae42d6027a60937787ebe33debe",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "pharos",
+      "chainId": 1672,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Pharos",
+        "rpcUrl": "https://rpc.pharos.xyz",
+        "nativeCurrency": {
+          "name": "Pharos",
+          "symbol": "PROS",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://pharos.socialscan.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x7b5e8f1114f2a07a0bcb49a664d46522a981325565361c4eb9be3519edaaf609",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x688",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "goat",
+      "chainId": 2345,
+      "router": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "GOAT Network",
+        "rpcUrl": "https://rpc.goat.network",
+        "nativeCurrency": {
+          "name": "Bitcoin",
+          "symbol": "BTC",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://explorer.goat.network"
+      },
+      "calls": [
+        {
+          "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7B060A98BA242Ae42D6027a60937787eBe33DEBe"
+        }
+      ],
+      "tx": {
+        "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xda070f52291a74b3d2730281efd0d1802eb858d87a35d68e1c3ef165b3543308",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x929",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7b060a98ba242ae42d6027a60937787ebe33debe",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "saga",
+      "chainId": 5464,
+      "router": "0x2D8261402d4777975AE43877A189b0Ab6b526e26",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Saga EVM",
+        "rpcUrl": "https://sagaevm.jsonrpc.sagarpc.io",
+        "nativeCurrency": {
+          "name": "gas",
+          "symbol": "GAS",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://sagaevm.sagaexplorer.io"
+      },
+      "calls": [
+        {
+          "to": "0x2D8261402d4777975AE43877A189b0Ab6b526e26",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x2D8261402d4777975AE43877A189b0Ab6b526e26"
+        }
+      ],
+      "tx": {
+        "to": "0x2D8261402d4777975AE43877A189b0Ab6b526e26",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x504db3c961785f831cc95fbc83d9d05140745d2b98ed12ca2f90d0cf05894ba8",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x1558",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x2d8261402d4777975ae43877a189b0ab6b526e26",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "nibiru",
+      "chainId": 6900,
+      "router": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Nibiru",
+        "rpcUrl": "https://evm-rpc.nibiru.fi",
+        "nativeCurrency": {
+          "name": "NIBI",
+          "symbol": "NIBI",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://nibiscan.io"
+      },
+      "calls": [
+        {
+          "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7B060A98BA242Ae42D6027a60937787eBe33DEBe"
+        }
+      ],
+      "tx": {
+        "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xb171628fdab01a7ea35fde4c634f8ba5d864a8322b588bfe981c0bd6aa4a2444",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x1af4",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7b060a98ba242ae42d6027a60937787ebe33debe",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "base",
+      "chainId": 8453,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Base",
+        "rpcUrl": "https://mainnet.base.org",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://basescan.org"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xb5c9396e05389cabcaa1ff0277b4949e70e84cd7f141ba3d7f9b5de5316adfd0",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x2105",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "plasma",
+      "chainId": 9745,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Plasma",
+        "rpcUrl": "https://rpc.plasma.to",
+        "nativeCurrency": {
+          "name": "Plasma",
+          "symbol": "XPL",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://plasmascan.to"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x084b6b9b85f6ff143d6d6edc57dbdac5a15c22e1e81abaf01c6437ad04bedc27",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x2611",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "zerog",
+      "chainId": 16661,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "0G",
+        "rpcUrl": "https://evmrpc.0g.ai",
+        "nativeCurrency": {
+          "name": "0G",
+          "symbol": "0G",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://chainscan.0g.ai"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x4adb285adf4fbd06930fb47c1f232cf0b3c59ddbacdc7b4f869f19be377550b2",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x4115",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "arbitrum",
+      "chainId": 42161,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Arbitrum",
+        "rpcUrl": "https://arb1.arbitrum.io/rpc",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://arbiscan.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x7416993dc0ee0ecbb934842dc13920078db7cade470c1bf5311437fbdd46b054",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xa4b1",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "celo",
+      "chainId": 42220,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Celo",
+        "rpcUrl": "https://forno.celo.org",
+        "nativeCurrency": {
+          "name": "CELO",
+          "symbol": "CELO",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://celoscan.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xc05403ccbfba0f65e43496fe7da9021f1dcf0f54b1848546a8fe41ad599763dc",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xa4ec",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "etherlink",
+      "chainId": 42793,
+      "router": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Etherlink",
+        "rpcUrl": "https://node.mainnet.etherlink.com",
+        "nativeCurrency": {
+          "name": "Tez",
+          "symbol": "XTZ",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://explorer.etherlink.com"
+      },
+      "calls": [
+        {
+          "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7B060A98BA242Ae42D6027a60937787eBe33DEBe"
+        }
+      ],
+      "tx": {
+        "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x448490cc57d182c7b7200312d3638163f7c8ed0ef0402083b27f9e1bbe9a32d8",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xa729",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7b060a98ba242ae42d6027a60937787ebe33debe",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "hemi",
+      "chainId": 43111,
+      "router": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Hemi",
+        "rpcUrl": "https://rpc.hemi.network/rpc",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://explorer.hemi.xyz"
+      },
+      "calls": [
+        {
+          "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x7B060A98BA242Ae42D6027a60937787eBe33DEBe"
+        }
+      ],
+      "tx": {
+        "to": "0x7B060A98BA242Ae42D6027a60937787eBe33DEBe",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x66da559a5cfc1d2a99cf7721e5c976355728e0b4fa821d5e9cc4b99562541b97",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xa867",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x7b060a98ba242ae42d6027a60937787ebe33debe",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "avax",
+      "chainId": 43114,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Avalanche",
+        "rpcUrl": "https://api.avax.network/ext/bc/C/rpc",
+        "nativeCurrency": {
+          "name": "Avalanche",
+          "symbol": "AVAX",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://snowtrace.io"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xe1579c5a8944ef0e60228a1309cf1a5dd837f3f2c7244e72e10aa572f4e6cefe",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xa86a",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "linea",
+      "chainId": 59144,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Linea",
+        "rpcUrl": "https://rpc.linea.build",
+        "nativeCurrency": {
+          "name": "Linea Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://lineascan.build"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xdbb1181ecb0fe9e19a9da8e9926f93ce23355ddb8aa5a671a96dafac648322a9",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xe708",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "bob",
+      "chainId": 60808,
+      "router": "0x3132f599bde0e251ba12d5FF95E256FbBeCbDA83",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "BOB",
+        "rpcUrl": "https://rpc.gobob.xyz",
+        "nativeCurrency": {
+          "name": "ETH",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://explorer.gobob.xyz"
+      },
+      "calls": [
+        {
+          "to": "0x3132f599bde0e251ba12d5FF95E256FbBeCbDA83",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0x3132f599bde0e251ba12d5FF95E256FbBeCbDA83"
+        }
+      ],
+      "tx": {
+        "to": "0x3132f599bde0e251ba12d5FF95E256FbBeCbDA83",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x8f9b991dfe227967b0c64068b01f850b606d306a9d5f70e07f86c3cb3e89d339",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xed88",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0x3132f599bde0e251ba12d5ff95e256fbbecbda83",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "scroll",
+      "chainId": 534352,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Scroll",
+        "rpcUrl": "https://rpc.scroll.io",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://scrollscan.com"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0xa67476c4e844144ad304cf19b697fd65c8148524459976634ec9a772a66de3ec",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x82750",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    },
+    {
+      "network": "gensyn",
+      "chainId": 685689,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Gensyn",
+        "rpcUrl": "https://gensyn-mainnet.g.alchemy.com/public",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://gensyn-mainnet.explorer.alchemy.com"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x3c2c8b4fcf037031285e2fdc361e430f99112e9ff34b354854b50b9ff703e771",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0xa7679",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    }
+  ]
+}
