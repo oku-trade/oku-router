@@ -23,13 +23,18 @@
  * This module replaces `util/networkConfig.ts` (deprecated, see that file).
  *
  * `@gfxlabs/oku-chains` is installed from the published npm registry, range
- * pinned in `package.json` (currently `^1.12.39`; installed 1.12.39 as of
+ * pinned in `package.json` (currently `^1.12.42`; installed 1.12.42 as of
  * this writing) for reproducible-enough deploys while still picking up
  * chain-config fixes. It was confirmed to include the marketRouters
  * reconciliation (oneinch/unizen/propellerswap/binance/native additions,
- * telos's new marketRouters block, robinhood's full router set) plus the
- * fynd router addition (mainnet, arbitrum, base, bsc, polygon, unichain,
- * robinhood) this migration depends on.
+ * telos's new marketRouters block, robinhood's full router set), the fynd
+ * router addition, and the bitget router addition (mainnet, arbitrum, base,
+ * bsc, polygon, avalanche, hyperevm) this migration depends on.
+ *
+ * Note that 1.12.40 filed the TychoRouterV3 addresses under `fynd` rather
+ * than `propellerswap`, so `marketRouters.fynd` on those chains holds two
+ * unrelated vendors' routers. That only affects per-market attribution --
+ * the on-chain whitelist is keyed on address alone, so it is harmless here.
  */
 
 import { getAddress } from "ethers";

@@ -10,6 +10,16 @@
     "Permit2Proxy": {
       "address": "0x0E4d4719e8226AFd05D774eC0774a1D36bA1A029",
       "okuRouter": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+    },
+    "Safe": {
+      "address": "0xdC91978e0617CcA2EE1E658d0A1CA3F63CF10f1F",
+      "version": "1.4.1+L2",
+      "threshold": 2,
+      "owners": [
+        "0x9B68c14e936104e9a7a24c712BEecdc220002984",
+        "0x5227a7404631Eb7De411232535E36dE8dad318f0",
+        "0x43A9beCdC1323c1dFcfA776cE9bF57F9F8Ce8200"
+      ]
     }
   }
 }

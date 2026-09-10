@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'" />
+<title>Oku Safe — batch signer</title>
+<!--
+  Oku Safe batch signer
+  =====================
+
+  Produces off-chain EIP-712 SafeTx signatures for every chain in a
+  `safe:build` bundle, in one sitting, using whatever wallet the signer
+  already trusts (MetaMask / Rabby, with a Trezor or Ledger behind it).
+
+  Why this exists
+  ---------------
+  Signature collection is the one part of a 34-chain Safe operation that
+  cannot be batched on-chain: chainId is inside the SafeTx EIP-712 domain and
+  the nonce is per-chain, so each chain needs its own signature from each
+  signer. app.safe.global can collect them, but only on the 22 chains it
+  supports, and only one network at a time. safe-cli covers the rest but is
+  interactive per chain and tends to fall back to on-chain `approveHash`,
+  which costs the signer gas on every chain.
+
+  This page reuses the exact path that is already proven against the
+  production Safe (browser -> injected wallet -> hardware device) and points
+  it at our own payloads instead.
+
+  Security properties -- deliberately narrow
+  ------------------------------------------
+    * It NEVER broadcasts a transaction. It only calls
+      eth_signTypedData_v4. A signature is an authorization, not an action;
+      nothing happens until `safe:exec` relays it.
+    * It NEVER sees or asks for a private key or seed phrase.
+    * It makes NO network requests of its own. The CSP above hard-blocks
+      connect-src, so even a bug cannot exfiltrate a bundle or a signature.
+      All chain access happens inside the wallet extension.
+    * It has NO dependencies and no build step -- nothing to supply-chain.
+    * Every signature it emits is re-verified downstream:
+      `safe:sign --import` recovers the signer and rejects anything that does
+      not map to a current Safe owner, and `safe:exec` re-derives each hash
+      and re-validates every signature before spending gas. This page is
+      therefore not trusted; it is merely convenient.
+
+  What the signer must verify on their device
+  -------------------------------------------
+  For each chain the page shows the expected safeTxHash from the bundle.
+  Confirm the device shows the same digest, and that the domain's
+  verifyingContract is the Safe and chainId is the intended chain. On exotic
+  chains a Trezor may display "unknown network" -- the domain fields are the
+  real check, not the chain name.
+
+  Usage
+  -----
+    1. open this file directly (file://) -- no server needed
+    2. load safe-bundles/<name>.json
+    3. connect wallet, confirm the account is a Safe owner
+    4. Sign all (or one chain at a time)
+    5. download signatures.json
+    6. npx hardhat safe:sign --name <bundle> --import signatures.json
+-->
+<style>
+  :root { color-scheme: dark; }
+  body { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+         background: #14161a; color: #e6e6e6; margin: 0; padding: 24px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: #8a8f98; margin-bottom: 20px; }
+  .card { background: #1b1e24; border: 1px solid #2a2f38; border-radius: 8px;
+          padding: 16px; margin-bottom: 16px; }
+  button { font: inherit; background: #2f6feb; color: #fff; border: 0;
+           border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+  button:disabled { background: #363b45; color: #777; cursor: not-allowed; }
+  button.sec { background: #363b45; }
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #262b33;
+           font-size: 12px; vertical-align: top; }
+  th { color: #8a8f98; font-weight: normal; }
+  .mono { font-family: inherit; word-break: break-all; }
+  .ok { color: #3fb950; } .bad { color: #f85149; } .warn { color: #d29922; }
+  .dim { color: #8a8f98; }
+  .pill { display: inline-block; padding: 1px 6px; border-radius: 10px;
+          font-size: 11px; background: #363b45; }
+  input[type=file] { font: inherit; }
+  #log { white-space: pre-wrap; max-height: 220px; overflow: auto;
+         background: #0f1115; border: 1px solid #262b33; border-radius: 6px;
+         padding: 10px; font-size: 12px; margin-top: 12px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<h1>Oku Safe — batch signer</h1>
+<div class="sub">
+  Signs SafeTx payloads off-chain, one signature per chain. Never broadcasts.
+  Never touches a key. Makes no network requests of its own.
+</div>
+
+<div class="card">
+  <div class="row">
+    <input type="file" id="file" accept="application/json" />
+    <span id="bundleInfo" class="dim">no bundle loaded</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <button id="connect">Connect wallet</button>
+    <span id="acct" class="dim">not connected</span>
+    <span id="ownerState"></span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <button id="signAll" disabled>Sign all remaining</button>
+    <button id="download" class="sec" disabled>Download signatures.json</button>
+    <span id="progress" class="dim"></span>
+  </div>
+  <div id="log" hidden></div>
+</div>
+
+<div class="card">
+  <table id="tbl">
+    <thead>
+      <tr><th>#</th><th>chain</th><th>id</th><th>action</th>
+          <th>expected safeTxHash</th><th>status</th><th></th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+"use strict";
+
+var bundle = null;
+var account = null;
+var results = [];   // { safeTxHash, signer, signature, network }
+
+function el(id) { return document.getElementById(id); }
+function log(msg, cls) {
+  var box = el("log"); box.hidden = false;
+  var line = document.createElement("div");
+  if (cls) line.className = cls;
+  line.textContent = new Date().toISOString().slice(11, 19) + "  " + msg;
+  box.appendChild(line); box.scrollTop = box.scrollHeight;
+}
+function eq(a, b) { return String(a).toLowerCase() === String(b).toLowerCase(); }
+
+/* ---------------- bundle loading ---------------- */
+
+el("file").addEventListener("change", function (ev) {
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    try {
+      bundle = JSON.parse(String(reader.result));
+    } catch (e) {
+      el("bundleInfo").textContent = "invalid JSON";
+      el("bundleInfo").className = "bad";
+      return;
+    }
+    if (!bundle.chains || !bundle.safe) {
+      el("bundleInfo").textContent = "not a safe:build bundle";
+      el("bundleInfo").className = "bad";
+      bundle = null; return;
+    }
+    results = [];
+    el("bundleInfo").className = "";
+    el("bundleInfo").innerHTML =
+      '<span class="pill">' + bundle.intent + "</span> " +
+      bundle.chains.length + " chain(s) &nbsp; safe " +
+      bundle.safe + " &nbsp; " + bundle.threshold + " of " + bundle.owners.length;
+    renderTable();
+    refreshOwnerState();
+    updateButtons();
+    log("loaded bundle \"" + bundle.name + "\" with " + bundle.chains.length + " chain(s)");
+  };
+  reader.readAsText(f);
+});
+
+function renderTable() {
+  var tb = el("tbl").querySelector("tbody");
+  tb.innerHTML = "";
+  if (!bundle) return;
+  bundle.chains.forEach(function (c, i) {
+    var tr = document.createElement("tr");
+    var already = account && (c.signatures || []).some(function (s) {
+      return eq(s.signer, account);
+    });
+    var have = results.some(function (r) { return eq(r.safeTxHash, c.safeTxHash); });
+    var status = have ? '<span class="ok">signed now</span>'
+               : already ? '<span class="dim">already in bundle</span>'
+               : '<span class="dim">pending</span>';
+    tr.innerHTML =
+      "<td>" + (i + 1) + "</td>" +
+      "<td>" + c.network + "</td>" +
+      "<td>" + c.chainId + "</td>" +
+      '<td class="dim">' + (c.calls || []).map(function (x) {
+        return String(x.label).replace(/</g, "&lt;");
+      }).join("<br>") + "</td>" +
+      '<td class="mono">' + c.safeTxHash + "</td>" +
+      '<td id="st' + i + '">' + status + "</td>" +
+      '<td><button class="sec" data-i="' + i + '">sign</button></td>';
+    tb.appendChild(tr);
+  });
+  Array.prototype.forEach.call(tb.querySelectorAll("button[data-i]"), function (b) {
+    b.addEventListener("click", function () {
+      signOne(Number(b.getAttribute("data-i"))).catch(function (e) {
+        log("error: " + (e && e.message ? e.message : e), "bad");
+      });
+    });
+  });
+}
+
+function setStatus(i, html) {
+  var cell = el("st" + i);
+  if (cell) cell.innerHTML = html;
+}
+
+/* ---------------- wallet ---------------- */
+
+el("connect").addEventListener("click", function () {
+  connect().catch(function (e) {
+    log("connect failed: " + (e && e.message ? e.message : e), "bad");
+  });
+});
+
+async function connect() {
+  if (!window.ethereum) {
+    log("no injected wallet found. Install MetaMask or Rabby, with your hardware device connected through it.", "bad");
+    return;
+  }
+  var accts = await window.ethereum.request({ method: "eth_requestAccounts" });
+  account = accts && accts[0];
+  el("acct").textContent = account || "not connected";
+  refreshOwnerState();
+  renderTable();
+  updateButtons();
+  log("connected as " + account);
+  if (window.ethereum.on) {
+    window.ethereum.on("accountsChanged", function (a) {
+      account = a && a[0];
+      el("acct").textContent = account || "not connected";
+      refreshOwnerState(); renderTable(); updateButtons();
+      log("account changed to " + account, "warn");
+    });
+  }
+}
+
+function refreshOwnerState() {
+  var span = el("ownerState");
+  if (!bundle || !account) { span.textContent = ""; return; }
+  var isOwner = bundle.owners.some(function (o) { return eq(o, account); });
+  span.innerHTML = isOwner
+    ? '<span class="ok">✓ Safe owner</span>'
+    : '<span class="bad">✗ NOT a Safe owner — signatures from this account will be rejected</span>';
+}
+
+function updateButtons() {
+  var ready = !!(bundle && account);
+  el("signAll").disabled = !ready;
+  el("download").disabled = results.length === 0;
+  el("progress").textContent = results.length
+    ? results.length + " signature(s) collected" : "";
+}
+
+/**
+ * Switch the wallet to `chainId`, adding the network first if the wallet has
+ * never seen it. eth_signTypedData_v4 is refused by MetaMask when the active
+ * chain does not match the SafeTx domain, so this is mandatory rather than
+ * cosmetic.
+ */
+async function ensureChain(c) {
+  var hexId = "0x" + Number(c.chainId).toString(16);
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: hexId }],
+    });
+    return;
+  } catch (e) {
+    // 4902 = unrecognized chain. Anything else is a real failure.
+    var code = e && (e.code || (e.data && e.data.originalError && e.data.originalError.code));
+    if (code !== 4902) throw e;
+  }
+  if (!c.chainMeta) {
+    throw new Error(
+      "wallet does not know chain " + c.chainId +
+      " and the bundle carries no chainMeta; add the network manually and retry"
+    );
+  }
+  log("adding network " + c.chainMeta.chainName + " (" + c.chainId + ") to wallet");
+  await window.ethereum.request({
+    method: "wallet_addEthereumChain",
+    params: [{
+      chainId: hexId,
+      chainName: c.chainMeta.chainName,
+      rpcUrls: [c.chainMeta.rpcUrl],
+      nativeCurrency: c.chainMeta.nativeCurrency,
+      blockExplorerUrls: c.chainMeta.blockExplorerUrl
+        ? [c.chainMeta.blockExplorerUrl] : undefined,
+    }],
+  });
+  await window.ethereum.request({
+    method: "wallet_switchEthereumChain",
+    params: [{ chainId: hexId }],
+  });
+}
+
+async function signOne(i) {
+  var c = bundle.chains[i];
+  if (results.some(function (r) { return eq(r.safeTxHash, c.safeTxHash); })) {
+    log(c.network + ": already signed in this session, skipping");
+    return;
+  }
+  setStatus(i, '<span class="warn">switching…</span>');
+  await ensureChain(c);
+
+  // Confirm the wallet really is on the expected chain before asking the
+  // device to sign; a silent mismatch would produce a signature over the
+  // wrong domain.
+  var active = await window.ethereum.request({ method: "eth_chainId" });
+  if (parseInt(active, 16) !== Number(c.chainId)) {
+    setStatus(i, '<span class="bad">wrong chain</span>');
+    throw new Error(
+      c.network + ": wallet is on chainId " + parseInt(active, 16) +
+      " but this payload is for " + c.chainId
+    );
+  }
+
+  setStatus(i, '<span class="warn">confirm on device…</span>');
+  log(c.network + " (" + c.chainId + "): expect digest " + c.safeTxHash);
+
+  var sig = await window.ethereum.request({
+    method: "eth_signTypedData_v4",
+    params: [account, JSON.stringify(c.eip712)],
+  });
+
+  if (typeof sig !== "string" || !/^0x[0-9a-fA-F]{130}$/.test(sig)) {
+    setStatus(i, '<span class="bad">bad signature</span>');
+    throw new Error(c.network + ": wallet returned a malformed signature");
+  }
+
+  results.push({
+    safeTxHash: c.safeTxHash,
+    signer: account,
+    signature: sig,
+    network: c.network,
+  });
+  setStatus(i, '<span class="ok">signed now</span>');
+  log(c.network + ": signed ✓", "ok");
+  updateButtons();
+}
+
+el("signAll").addEventListener("click", function () {
+  signAll().catch(function (e) {
+    log("stopped: " + (e && e.message ? e.message : e), "bad");
+  });
+});
+
+async function signAll() {
+  el("signAll").disabled = true;
+  var done = 0, failed = 0;
+  for (var i = 0; i < bundle.chains.length; i++) {
+    var c = bundle.chains[i];
+    var already = (c.signatures || []).some(function (s) { return eq(s.signer, account); });
+    if (already || results.some(function (r) { return eq(r.safeTxHash, c.safeTxHash); })) continue;
+    try {
+      await signOne(i);
+      done++;
+    } catch (e) {
+      failed++;
+      var msg = e && e.message ? e.message : String(e);
+      setStatus(i, '<span class="bad">failed</span>');
+      log(c.network + ": " + msg, "bad");
+      // A user rejection is deliberate -- stop rather than spamming the
+      // device with 30 more prompts.
+      if (/reject|denied|4001/i.test(msg)) {
+        log("user rejected — stopping. Re-run to continue where you left off.", "warn");
+        break;
+      }
+    }
+  }
+  el("signAll").disabled = false;
+  updateButtons();
+  log("session complete: " + done + " signed, " + failed + " failed, " +
+      results.length + " total collected", done ? "ok" : "warn");
+}
+
+/* ---------------- export ---------------- */
+
+el("download").addEventListener("click", function () {
+  var out = results.map(function (r) {
+    return { safeTxHash: r.safeTxHash, signer: r.signer, signature: r.signature };
+  });
+  var blob = new Blob([JSON.stringify(out, null, 2) + "\n"], { type: "application/json" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "signatures-" + (bundle ? bundle.name : "bundle") + "-" +
+               (account ? account.slice(0, 10) : "unknown") + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log("exported " + out.length + " signature(s). Import with:  npx hardhat safe:sign --name " +
+      (bundle ? bundle.name : "<bundle>") + " --import <file>");
+});
+</script>
+</body>
+</html>

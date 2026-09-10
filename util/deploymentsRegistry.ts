@@ -29,6 +29,12 @@
  *       "Permit2Proxy": {            // worldchain-only; do NOT add to other networks
  *         "address":   "0x...",
  *         "okuRouter": "0x..."       // the OkuRouter this proxy is bonded to (immutable in bytecode)
+ *       },
+ *       "Safe": {                    // production 2-of-3 multisig owner
+ *         "address":   "0x...",      // identical on every chain (CREATE2)
+ *         "version":   "1.4.1+L2",   // live VERSION() + singleton flavour
+ *         "threshold": 2,
+ *         "owners":    ["0x...", "0x...", "0x..."]
  *       }
  *     }
  *   }
@@ -39,12 +45,16 @@
  *     omitted (the contract is not Ownable).
  *   - Permit2Proxy is intentionally only tracked on worldchain. Do not add
  *     a Permit2Proxy entry to other networks' files.
+ *   - Safe entries: `address`, `version`, `threshold`, `owners` are required.
+ *     `owner` is omitted -- a Safe has owners (plural), not an owner. The
+ *     recorded owners/threshold are a snapshot of the live on-chain values at
+ *     write time; refresh after any addOwner/swapOwner/changeThreshold.
  */
 import * as fs from "fs";
 import * as path from "path";
 
 /** Contract identifiers tracked in the registry. */
-export type ContractKind = "OkuRouter" | "Permit2Proxy";
+export type ContractKind = "OkuRouter" | "Permit2Proxy" | "Safe";
 
 /**
  * A live deployment entry. Field presence depends on `contract`:
@@ -68,6 +78,14 @@ export interface DeploymentEntry {
    * bytecode at construction time, so this address can never change).
    */
   okuRouter?: string;
+  /** For Safe: signatures required to execute (live getThreshold()). */
+  threshold?: number;
+  /**
+   * For Safe: the live owner set (getOwners()). Order is as returned by the
+   * contract's linked-list traversal, which is NOT the order passed to
+   * setup(); do not feed this back into buildSafeInitializer().
+   */
+  owners?: string[];
 }
 
 export interface NetworkRegistry {
@@ -189,6 +207,30 @@ function validateEntry(contract: ContractKind, entry: DeploymentEntry): void {
       throw new Error(
         "recordDeployment(Permit2Proxy): version is implied by the bonded OkuRouter; omit it",
       );
+    }
+  } else if (contract === "Safe") {
+    if (!entry.version) {
+      throw new Error("recordDeployment(Safe): version is required");
+    }
+    if (entry.threshold === undefined) {
+      throw new Error("recordDeployment(Safe): threshold is required");
+    }
+    if (!entry.owners || entry.owners.length === 0) {
+      throw new Error("recordDeployment(Safe): owners is required and must be non-empty");
+    }
+    if (entry.threshold < 1 || entry.threshold > entry.owners.length) {
+      throw new Error(
+        `recordDeployment(Safe): threshold ${entry.threshold} out of range for ` +
+          `${entry.owners.length} owners`,
+      );
+    }
+    if (entry.owner !== undefined) {
+      throw new Error(
+        "recordDeployment(Safe): a Safe has owners (plural); use `owners` and omit `owner`",
+      );
+    }
+    if (entry.okuRouter !== undefined) {
+      throw new Error("recordDeployment(Safe): okuRouter field is only valid for Permit2Proxy");
     }
   }
 }

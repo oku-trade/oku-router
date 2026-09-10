@@ -8,3 +8,7 @@ artifacts
 
 # Editors
 .idea/**
+
+# Signed Safe bundles are bearer authorizations: anyone holding a bundle with
+# `threshold` signatures can execute it. Never commit these.
+safe-bundles/

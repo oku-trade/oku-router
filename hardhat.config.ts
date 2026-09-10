@@ -9,6 +9,11 @@ import "./tasks/deployPermit2Proxy";
 import "./tasks/predictAll";
 import "./tasks/verifyDeployments";
 import "./tasks/whitelistSwapTargets";
+import "./tasks/safePreflight";
+import "./tasks/safeDeploy";
+import "./tasks/safeAdmin";
+import "./tasks/safeHandover";
+import "./tasks/safeProposer";
 
 
 dotEnvConfig();

@@ -6,6 +6,16 @@
       "address": "0x3132f599bde0e251ba12d5FF95E256FbBeCbDA83",
       "version": "2.0",
       "owner": "0x3CB68a6762041aA05E762814A8791CA9d98E79A0"
+    },
+    "Safe": {
+      "address": "0xdC91978e0617CcA2EE1E658d0A1CA3F63CF10f1F",
+      "version": "1.4.1+L2",
+      "threshold": 2,
+      "owners": [
+        "0x9B68c14e936104e9a7a24c712BEecdc220002984",
+        "0x5227a7404631Eb7De411232535E36dE8dad318f0",
+        "0x43A9beCdC1323c1dFcfA776cE9bF57F9F8Ce8200"
+      ]
     }
   }
 }
