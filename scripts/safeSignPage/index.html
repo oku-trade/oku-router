@@ -147,6 +147,7 @@
     <button id="download" class="sec" disabled>Download signatures.json</button>
     <span id="progress" class="dim"></span>
   </div>
+  <div id="persist" class="dim" style="margin-top:10px;font-size:12px"></div>
   <div id="log" hidden></div>
 </div>
 
@@ -165,7 +166,10 @@
 
 var bundle = null;
 var account = null;
-var results = [];   // { safeTxHash, signer, signature, network }
+var results = [];       // { safeTxHash, signer, signature, network }
+var remoteOk = null;    // null = unknown, true = last save hit disk, false = not
+var savedOnDisk = 0;    // count reported by the server
+var diskFile = null;    // where the server is writing
 
 function el(id) { return document.getElementById(id); }
 function log(msg, cls) {
@@ -427,6 +431,7 @@ async function connect() {
   el("acct").textContent = account || "not connected";
   refreshOwnerState();
   renderTable();
+  restoreLocal();
   updateButtons();
   log("connected as " + account + " via " +
       (providers.find(function (p) { return p.provider === provider; }) || {}).label);
@@ -458,7 +463,25 @@ function updateButtons() {
   el("signAll").disabled = !ready;
   el("download").disabled = results.length === 0;
   el("progress").textContent = results.length
-    ? results.length + " signature(s) collected" : "";
+    ? results.length + " signature(s) this session" : "";
+
+  var p = el("persist");
+  if (!results.length) {
+    p.innerHTML = location.protocol === "file:"
+      ? '<span class="warn">file:// — autosave to disk is unavailable. ' +
+        'Serve with <code>npm run sign-page</code>, or remember to Download.</span>'
+      : "autosave: signatures are written to disk as each one is produced";
+    return;
+  }
+  if (remoteOk === true) {
+    p.innerHTML = '<span class="ok">✓ autosaved to disk</span> — ' +
+      savedOnDisk + " signature(s) in <code>" + (diskFile || "safe-bundles/…") + "</code>" +
+      ' &nbsp;<span class="dim">(Download is optional)</span>';
+  } else {
+    p.innerHTML = '<span class="bad">⚠ NOT saved to disk</span> — ' + results.length +
+      " signature(s) exist only in this tab and in this browser's storage. " +
+      "<b>Use Download before closing.</b>";
+  }
 }
 
 /**
@@ -538,15 +561,113 @@ async function signOne(i) {
     throw new Error(c.network + ": wallet returned a malformed signature");
   }
 
-  results.push({
+  var record = {
     safeTxHash: c.safeTxHash,
     signer: account,
     signature: sig,
     network: c.network,
-  });
-  setStatus(i, '<span class="ok">signed now</span>');
-  log(c.network + ": signed ✓", "ok");
+  };
+  results.push(record);
+
+  // Persist immediately, in two independent places, before moving on. A
+  // signature that exists only in this tab is lost on any reload -- which is
+  // exactly how an earlier revision of this page lost a real signature.
+  saveLocal();
+  var saved = await persistRemote(record);
+
+  setStatus(i, saved
+    ? '<span class="ok">signed · saved ✓</span>'
+    : '<span class="warn">signed · MEMORY ONLY</span>');
+  log(c.network + ": signed ✓" + (saved ? " and written to disk" : " (NOT on disk)"),
+      saved ? "ok" : "warn");
   updateButtons();
+}
+
+/* ---------------- persistence ---------------- */
+
+function lsKey() {
+  return "okuSafeSigs:" + (bundle ? bundle.name : "?") + ":" +
+         (account ? String(account).toLowerCase() : "?");
+}
+
+/** Mirror the session into localStorage so a reload cannot lose work. */
+function saveLocal() {
+  try {
+    window.localStorage.setItem(lsKey(), JSON.stringify(results));
+  } catch (e) {
+    log("localStorage unavailable: " + (e && e.message ? e.message : e), "warn");
+  }
+}
+
+/** Restore anything this browser already holds for this bundle+signer. */
+function restoreLocal() {
+  if (!bundle || !account) return;
+  try {
+    var raw = window.localStorage.getItem(lsKey());
+    if (!raw) return;
+    var prior = JSON.parse(raw);
+    if (!Array.isArray(prior) || !prior.length) return;
+    var added = 0;
+    prior.forEach(function (p) {
+      if (!p || !p.safeTxHash || !p.signature) return;
+      if (results.some(function (r) { return eq(r.safeTxHash, p.safeTxHash); })) return;
+      // Only restore records that still correspond to this bundle.
+      if (!bundle.chains.some(function (c) { return eq(c.safeTxHash, p.safeTxHash); })) return;
+      results.push(p);
+      added++;
+    });
+    if (added) {
+      log("restored " + added + " signature(s) from this browser for " + account, "ok");
+      renderTable();
+      updateButtons();
+    }
+  } catch (e) {
+    log("could not restore from localStorage: " + (e && e.message ? e.message : e), "warn");
+  }
+}
+
+/**
+ * POST one signature to the local server, which verifies it against the
+ * Safe's owner list and appends it to
+ * safe-bundles/<bundle>/signatures-<signer>.json.
+ *
+ * Returns true only if it is definitely on disk. A failure is surfaced loudly
+ * rather than swallowed -- the signer needs to know their work is only in the
+ * browser so they remember to use Download.
+ */
+async function persistRemote(record) {
+  if (location.protocol === "file:") {
+    remoteOk = false;
+    return false;
+  }
+  try {
+    var res = await fetch("/api/signature", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bundle: bundle.name,
+        safeTxHash: record.safeTxHash,
+        signer: record.signer,
+        signature: record.signature,
+      }),
+    });
+    var body = await res.json().catch(function () { return {}; });
+    if (!res.ok || !body.ok) {
+      remoteOk = false;
+      log("server REJECTED the signature: " + (body.error || ("HTTP " + res.status)), "bad");
+      return false;
+    }
+    remoteOk = true;
+    savedOnDisk = body.saved;
+    diskFile = body.file;
+    return true;
+  } catch (e) {
+    remoteOk = false;
+    log("could not reach the local server to save: " +
+        (e && e.message ? e.message : e) +
+        " — signatures are in this tab only, use Download before closing it", "bad");
+    return false;
+  }
 }
 
 el("signAll").addEventListener("click", function () {
@@ -597,6 +718,7 @@ el("download").addEventListener("click", function () {
                (account ? account.slice(0, 10) : "unknown") + ".json";
   a.click();
   URL.revokeObjectURL(a.href);
+  saveLocal();
   log("exported " + out.length + " signature(s). Import with:  npx hardhat safe:sign --name " +
       (bundle ? bundle.name : "<bundle>") + " --import <file>");
 });

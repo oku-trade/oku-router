@@ -99,17 +99,42 @@ check("no eval / new Function", !/\beval\s*\(|new\s+Function\s*\(/.test(codeBare
 check("no dynamic import()", !/\bimport\s*\(/.test(codeBare));
 check("no remote <script src>", !/<script[^>]+src=/.test(htmlBare));
 
-// fetch is permitted, but only for the local bundle autoload.
+// fetch is permitted for exactly two same-origin uses: reading the local
+// bundle, and POSTing a signature to the local autosave endpoint. Anything
+// beyond that is a capability regression.
 const fetchCalls = (codeBare.match(/fetch\s*\(/g) || []).length;
 check(
-  "fetch used at most once (local bundle autoload only)",
-  fetchCalls <= 1,
+  "fetch used at most twice (bundle autoload + signature autosave)",
+  fetchCalls <= 2,
   `found ${fetchCalls} call(s)`,
 );
 check(
   "no absolute/remote URL passed to fetch",
-  !/fetch\s*\(\s*["'`]?https?:/i.test(codeBare),
+  !/fetch\s*\(\s*["'`]?\s*(https?:|\/\/)/i.test(codeBare),
 );
+// Every fetch target must be a relative path or the known local endpoint.
+const fetchTargets = (codeBare.match(/fetch\s*\(\s*([^,)]+)/g) || []).map((m) =>
+  m.replace(/^fetch\s*\(\s*/, "").trim(),
+);
+check(
+  "all fetch targets are relative paths",
+  fetchTargets.every(
+    (t) => /^["'`][./]/.test(t) || /^candidates\[/.test(t) || /^["'`]\/api\//.test(t),
+  ),
+  fetchTargets.join(" | "),
+);
+check(
+  "autosave posts only to the local /api/signature endpoint",
+  !/fetch\s*\(\s*["'`](?!\/api\/signature)["'`]*\s*,\s*\{\s*[^}]*method:\s*["'`]POST/i.test(
+    codeBare,
+  ),
+);
+
+// --- persistence: the property that was missing and lost a real signature ---
+check("mirrors signatures to localStorage", /localStorage\.setItem/.test(codeBare));
+check("restores signatures from localStorage", /localStorage\.getItem/.test(codeBare));
+check("warns when a signature is not on disk",
+  /MEMORY ONLY|NOT saved to disk/.test(codeBare));
 
 // --- 4. no key material ---
 check("never references a private key or mnemonic",

@@ -529,6 +529,9 @@ useful for testing. Two production routes, both supported:
 
 **1. Batch signing page (recommended, covers all 34 chains)**
 
+Full operator guide, including the security model and troubleshooting:
+**[`scripts/safeSignPage/README.md`](scripts/safeSignPage/README.md)**.
+
 Generate a self-contained page with the bundle already embedded, then serve it:
 
 ```bash
@@ -548,11 +551,15 @@ Open:
       32 chain(s), 0 signature(s) collected, 0/32 ready to execute
 ```
 
-Connect MetaMask/Rabby with the hardware device behind it, sign every chain in one sitting,
-download `signatures.json`, then:
+Connect MetaMask/Rabby with the hardware device behind it and sign every chain in one
+sitting. **Each signature is written to disk the moment it is produced** — the server
+verifies it against the Safe's owner list and appends to
+`safe-bundles/<bundle>/signatures-<signer>.json`, with a `localStorage` mirror as a second
+safety net, so a page reload or server restart cannot lose work. Then:
 
 ```bash
-npx hardhat safe:sign --name accept-all --import signatures-accept-all-<signer>.json
+npx hardhat safe:sign --name accept-all \
+  --import safe-bundles/accept-all/signatures-0x<signer>.json
 ```
 
 > **Use the `http://127.0.0.1` URL, not a `file://` path.** MetaMask does not inject a
