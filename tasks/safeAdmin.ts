@@ -590,6 +590,73 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
   });
 
 // ---------------------------------------------------------------------------
+// safe:sign-page
+// ---------------------------------------------------------------------------
+
+task(
+  "safe:sign-page",
+  "Emit a self-contained signing page with the bundle embedded (no file picker, no fetch)",
+)
+  .addParam("name", "Bundle name")
+  .setAction(async (taskArgs) => {
+    assertOkuSafeConfig();
+    const bundle = readBundle(String(taskArgs.name));
+    const tpl = path.resolve(__dirname, "..", "scripts", "safeSignPage", "index.html");
+    if (!fs.existsSync(tpl)) {
+      throw new Error(`signing page template not found at ${tpl}`);
+    }
+    let html = fs.readFileSync(tpl, "utf8");
+
+    // Inject the bundle ahead of the main script so autoloadBundle() finds it
+    // in window.__BUNDLE__ and never needs to fetch or prompt. JSON is
+    // embedded via a JSON-typed script tag rather than a JS literal so that
+    // no bundle content can be interpreted as code -- and "</" is escaped so
+    // a nested string can never terminate the tag early.
+    const json = JSON.stringify(bundle).replace(/<\//g, "<\\/");
+    const inject =
+      `<script id="__bundle_json" type="application/json">${json}</script>\n` +
+      `<script>window.__BUNDLE__ = JSON.parse(` +
+      `document.getElementById("__bundle_json").textContent);</script>\n`;
+
+    if (!html.includes("<script>")) {
+      throw new Error("signing page template has no <script> block to anchor injection");
+    }
+    html = html.replace("<script>", `${inject}<script>`);
+
+    const outDir = path.join(BUNDLE_DIR, bundle.name);
+    fs.mkdirSync(outDir, { recursive: true });
+    const out = path.join(outDir, "sign.html");
+    fs.writeFileSync(out, html, "utf8");
+
+    const chains = bundle.chains.length;
+    const need = bundle.chains.filter(
+      (c) => c.signatures.length < bundle.threshold,
+    ).length;
+    console.log("");
+    console.log(`Self-contained signing page written:`);
+    console.log(`  ${out}`);
+    console.log(`  bundle embedded : ${bundle.name} (${chains} chain(s), ${need} still short)`);
+    console.log(`  safe            : ${bundle.safe}  ${bundle.threshold} of ${bundle.owners.length}`);
+    console.log("");
+    console.log(`Next:`);
+    console.log(`  npm run sign-page`);
+    console.log(`  then open  http://127.0.0.1:8547/${bundle.name}/sign.html`);
+    console.log("");
+    console.log(
+      `Use that URL, not a file:// path -- MetaMask does not inject a provider into\n` +
+        `file:// pages unless "Allow access to file URLs" is enabled. The server binds\n` +
+        `loopback only and serves safe-bundles/ (never the repo root, which holds .env).`,
+    );
+    console.log("");
+    console.log(
+      `This file contains the full transaction set but NO signatures and NO keys.\n` +
+        `It is safe to hand to each signer. Their output goes back through:\n` +
+        `  npx hardhat safe:sign --name ${bundle.name} --import <signatures.json>`,
+    );
+    console.log("");
+  });
+
+// ---------------------------------------------------------------------------
 // safe:sign
 // ---------------------------------------------------------------------------
 

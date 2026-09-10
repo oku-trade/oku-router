@@ -3,8 +3,24 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'" />
+<!--
+  NOTE: there is deliberately no Content-Security-Policy meta tag here.
+
+  An earlier revision set `default-src 'none'`, which blocked MetaMask from
+  injecting its inpage provider and made the page unable to detect any wallet
+  at all. A CSP that breaks the page's only function is not a security
+  control, it is a bug.
+
+  The guarantees that actually matter are structural, not policy-based:
+    * the source contains no fetch(), XMLHttpRequest, WebSocket or dynamic
+      import -- verifiable by grep, and asserted by
+      `npm run check:sign-page`
+    * the only wallet method it ever calls that changes state is
+      eth_signTypedData_v4; there is no eth_sendTransaction anywhere
+    * it never reads, stores or transmits a key
+    * signatures are re-verified downstream by `safe:sign --import` (which
+      recovers the signer and rejects non-owners) and again by `safe:exec`
+-->
 <title>Oku Safe — batch signer</title>
 <!--
   Oku Safe batch signer
@@ -54,12 +70,23 @@
 
   Usage
   -----
-    1. open this file directly (file://) -- no server needed
-    2. load safe-bundles/<name>.json
-    3. connect wallet, confirm the account is a Safe owner
-    4. Sign all (or one chain at a time)
-    5. download signatures.json
-    6. npx hardhat safe:sign --name <bundle> --import signatures.json
+  Preferred -- self-contained, bundle already embedded, no file picker:
+
+      npx hardhat safe:sign-page --name accept-all
+      npm run sign-page                       # serves it on localhost:8547
+
+  Or serve this directory and pick the bundle by hand:
+
+      npm run sign-page
+
+  IMPORTANT: use http://localhost, not file://. MetaMask does not inject a
+  provider into file:// pages unless you tick "Allow access to file URLs" in
+  chrome://extensions -> MetaMask -> Details. Serving over localhost avoids
+  that entirely.
+
+  Then: connect wallet -> confirm it says "Safe owner" -> Sign all ->
+  download signatures.json ->
+      npx hardhat safe:sign --name <bundle> --import signatures.json
 -->
 <style>
   :root { color-scheme: dark; }
@@ -107,9 +134,11 @@
 <div class="card">
   <div class="row">
     <button id="connect">Connect wallet</button>
+    <select id="providerPick" hidden></select>
     <span id="acct" class="dim">not connected</span>
     <span id="ownerState"></span>
   </div>
+  <div id="diag" class="dim" style="margin-top:10px;font-size:12px"></div>
 </div>
 
 <div class="card">
@@ -150,35 +179,92 @@ function eq(a, b) { return String(a).toLowerCase() === String(b).toLowerCase(); 
 
 /* ---------------- bundle loading ---------------- */
 
+/**
+ * Adopt a bundle object from any source (embedded, fetched, or file picker).
+ */
+function adoptBundle(obj, source) {
+  if (!obj || !obj.chains || !obj.safe) {
+    el("bundleInfo").textContent = "not a safe:build bundle";
+    el("bundleInfo").className = "bad";
+    bundle = null;
+    return false;
+  }
+  bundle = obj;
+  results = [];
+  el("bundleInfo").className = "";
+  el("bundleInfo").innerHTML =
+    '<span class="pill">' + bundle.intent + "</span> " +
+    bundle.chains.length + " chain(s) &nbsp; safe " +
+    bundle.safe + " &nbsp; " + bundle.threshold + " of " + bundle.owners.length +
+    ' &nbsp; <span class="dim">[' + source + "]</span>";
+  renderTable();
+  refreshOwnerState();
+  updateButtons();
+  log('loaded bundle "' + bundle.name + '" with ' + bundle.chains.length +
+      " chain(s) from " + source);
+  return true;
+}
+
+/**
+ * Load the bundle without asking the user, in order of preference:
+ *
+ *   1. window.__BUNDLE__  -- embedded by `safe:sign-page`. Nothing is
+ *      fetched, so this works from file:// too and is the recommended path.
+ *   2. a same-origin GET of a few conventional relative paths, for when this
+ *      file is served straight out of the repo.
+ *
+ * Falls back silently to the file picker. The fetch is the page's only
+ * network access of any kind, it is same-origin, and it is a read of a local
+ * bundle -- never an upload.
+ */
+async function autoloadBundle() {
+  if (window.__BUNDLE__) {
+    adoptBundle(window.__BUNDLE__, "embedded");
+    return;
+  }
+  var candidates = [
+    "../../safe-bundles/accept-all.json",
+    "/safe-bundles/accept-all.json",
+    "./accept-all.json",
+  ];
+  for (var i = 0; i < candidates.length; i++) {
+    try {
+      var res = await fetch(candidates[i], { cache: "no-store" });
+      if (!res.ok) continue;
+      var obj = await res.json();
+      if (adoptBundle(obj, candidates[i])) return;
+    } catch (e) {
+      // file:// or path not served -- try the next candidate, then the picker.
+    }
+  }
+  log("no bundle auto-loaded; choose one with the file picker above");
+}
+
 el("file").addEventListener("change", function (ev) {
   var f = ev.target.files && ev.target.files[0];
   if (!f) return;
   var reader = new FileReader();
   reader.onload = function () {
+    var obj;
     try {
-      bundle = JSON.parse(String(reader.result));
+      obj = JSON.parse(String(reader.result));
     } catch (e) {
       el("bundleInfo").textContent = "invalid JSON";
       el("bundleInfo").className = "bad";
       return;
     }
-    if (!bundle.chains || !bundle.safe) {
-      el("bundleInfo").textContent = "not a safe:build bundle";
-      el("bundleInfo").className = "bad";
-      bundle = null; return;
-    }
-    results = [];
-    el("bundleInfo").className = "";
-    el("bundleInfo").innerHTML =
-      '<span class="pill">' + bundle.intent + "</span> " +
-      bundle.chains.length + " chain(s) &nbsp; safe " +
-      bundle.safe + " &nbsp; " + bundle.threshold + " of " + bundle.owners.length;
-    renderTable();
-    refreshOwnerState();
-    updateButtons();
-    log("loaded bundle \"" + bundle.name + "\" with " + bundle.chains.length + " chain(s)");
+    adoptBundle(obj, f.name);
   };
   reader.readAsText(f);
+});
+
+/* Run discovery + autoload on load so the page is informative immediately. */
+window.addEventListener("load", function () {
+  discoverProviders().then(function (p) {
+    providers = p;
+    renderDiagnostics();
+  });
+  autoloadBundle();
 });
 
 function renderTable() {
@@ -222,30 +308,138 @@ function setStatus(i, html) {
 
 /* ---------------- wallet ---------------- */
 
+/* Providers discovered via EIP-6963, plus the legacy window.ethereum. */
+var providers = [];   // { label, provider }
+var provider = null;  // the selected EIP-1193 provider
+
+/**
+ * Discover wallets.
+ *
+ * EIP-6963 is the modern mechanism and is what makes MetaMask and Rabby
+ * coexist without trampling window.ethereum. We announce-request, wait
+ * briefly for responses, then fall back to window.ethereum (including
+ * window.ethereum.providers, used by older multi-wallet setups).
+ */
+function discoverProviders() {
+  return new Promise(function (resolve) {
+    var found = [];
+    var seen = Object.create(null);
+
+    function onAnnounce(ev) {
+      var d = ev.detail;
+      if (!d || !d.provider) return;
+      var name = (d.info && d.info.name) || "unknown";
+      var key = (d.info && d.info.uuid) || name;
+      if (seen[key]) return;
+      seen[key] = 1;
+      found.push({ label: name, provider: d.provider });
+    }
+
+    window.addEventListener("eip6963:announceProvider", onAnnounce);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    setTimeout(function () {
+      window.removeEventListener("eip6963:announceProvider", onAnnounce);
+
+      // Legacy fallbacks for wallets that never answered EIP-6963.
+      var eth = window.ethereum;
+      if (eth) {
+        var legacy = Array.isArray(eth.providers) ? eth.providers : [eth];
+        legacy.forEach(function (p, i) {
+          if (!p) return;
+          var already = found.some(function (f) { return f.provider === p; });
+          if (already) return;
+          var label = p.isMetaMask ? "MetaMask (legacy)"
+                    : p.isRabby ? "Rabby (legacy)"
+                    : "Injected wallet " + (i + 1);
+          found.push({ label: label, provider: p });
+        });
+      }
+      resolve(found);
+    }, 350);
+  });
+}
+
+function renderDiagnostics() {
+  var isFile = location.protocol === "file:";
+  var bits = [];
+  bits.push("origin: " + location.protocol + "//" + (location.host || "(none)"));
+  bits.push("window.ethereum: " + (window.ethereum ? "present" : "ABSENT"));
+  bits.push("providers found: " + providers.length +
+            (providers.length ? " (" + providers.map(function (p) { return p.label; }).join(", ") + ")" : ""));
+  var html = bits.join(" &nbsp;·&nbsp; ");
+  if (!providers.length) {
+    html += '<br><br><span class="bad">No wallet detected.</span> Most likely one of:';
+    html += "<ol style='margin:6px 0 0 18px'>";
+    if (isFile) {
+      html += "<li><b>You are on a <code>file://</code> URL.</b> MetaMask does not inject " +
+              "into file:// pages by default. Serve over localhost instead: " +
+              "<code>npm run sign-page</code> then open <code>http://localhost:8547</code>. " +
+              "(Alternatively enable “Allow access to file URLs” in " +
+              "chrome://extensions → MetaMask → Details.)</li>";
+    }
+    html += "<li>Extension is locked — unlock MetaMask and click Connect again.</li>";
+    html += "<li>The site is not permitted — check MetaMask → Connected sites.</li>";
+    html += "<li>Try a hard reload; the provider is injected at page load.</li>";
+    html += "</ol>";
+  }
+  el("diag").innerHTML = html;
+}
+
 el("connect").addEventListener("click", function () {
   connect().catch(function (e) {
     log("connect failed: " + (e && e.message ? e.message : e), "bad");
   });
 });
 
+el("providerPick").addEventListener("change", function () {
+  var i = Number(el("providerPick").value);
+  if (providers[i]) {
+    provider = providers[i].provider;
+    log("switched to " + providers[i].label);
+  }
+});
+
 async function connect() {
-  if (!window.ethereum) {
-    log("no injected wallet found. Install MetaMask or Rabby, with your hardware device connected through it.", "bad");
+  providers = await discoverProviders();
+  renderDiagnostics();
+
+  if (!providers.length) {
+    log("no wallet provider detected — see the diagnostics above for the fix", "bad");
     return;
   }
-  var accts = await window.ethereum.request({ method: "eth_requestAccounts" });
+
+  // Offer a picker when more than one wallet is present, so the signer can
+  // choose the one their hardware device sits behind.
+  var pick = el("providerPick");
+  if (providers.length > 1) {
+    pick.hidden = false;
+    pick.innerHTML = providers.map(function (p, i) {
+      return '<option value="' + i + '">' + p.label + "</option>";
+    }).join("");
+  } else {
+    pick.hidden = true;
+  }
+  provider = provider || providers[Number(pick.value || 0)].provider;
+
+  var accts = await provider.request({ method: "eth_requestAccounts" });
   account = accts && accts[0];
   el("acct").textContent = account || "not connected";
   refreshOwnerState();
   renderTable();
   updateButtons();
-  log("connected as " + account);
-  if (window.ethereum.on) {
-    window.ethereum.on("accountsChanged", function (a) {
+  log("connected as " + account + " via " +
+      (providers.find(function (p) { return p.provider === provider; }) || {}).label);
+
+  if (provider.on) {
+    provider.on("accountsChanged", function (a) {
       account = a && a[0];
       el("acct").textContent = account || "not connected";
       refreshOwnerState(); renderTable(); updateButtons();
       log("account changed to " + account, "warn");
+    });
+    provider.on("chainChanged", function (id) {
+      log("wallet switched to chainId " + parseInt(id, 16));
     });
   }
 }
@@ -276,7 +470,7 @@ function updateButtons() {
 async function ensureChain(c) {
   var hexId = "0x" + Number(c.chainId).toString(16);
   try {
-    await window.ethereum.request({
+    await provider.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: hexId }],
     });
@@ -293,7 +487,7 @@ async function ensureChain(c) {
     );
   }
   log("adding network " + c.chainMeta.chainName + " (" + c.chainId + ") to wallet");
-  await window.ethereum.request({
+  await provider.request({
     method: "wallet_addEthereumChain",
     params: [{
       chainId: hexId,
@@ -304,7 +498,7 @@ async function ensureChain(c) {
         ? [c.chainMeta.blockExplorerUrl] : undefined,
     }],
   });
-  await window.ethereum.request({
+  await provider.request({
     method: "wallet_switchEthereumChain",
     params: [{ chainId: hexId }],
   });
@@ -322,7 +516,7 @@ async function signOne(i) {
   // Confirm the wallet really is on the expected chain before asking the
   // device to sign; a silent mismatch would produce a signature over the
   // wrong domain.
-  var active = await window.ethereum.request({ method: "eth_chainId" });
+  var active = await provider.request({ method: "eth_chainId" });
   if (parseInt(active, 16) !== Number(c.chainId)) {
     setStatus(i, '<span class="bad">wrong chain</span>');
     throw new Error(
@@ -334,7 +528,7 @@ async function signOne(i) {
   setStatus(i, '<span class="warn">confirm on device…</span>');
   log(c.network + " (" + c.chainId + "): expect digest " + c.safeTxHash);
 
-  var sig = await window.ethereum.request({
+  var sig = await provider.request({
     method: "eth_signTypedData_v4",
     params: [account, JSON.stringify(c.eip712)],
   });

@@ -529,25 +529,62 @@ useful for testing. Two production routes, both supported:
 
 **1. Batch signing page (recommended, covers all 34 chains)**
 
-`scripts/safeSignPage/index.html` — open it directly as a `file://` URL, no server and no
-build step. Load a bundle, connect MetaMask/Rabby with the hardware device behind it, and
-sign every chain in one sitting; export `signatures.json` and import it:
+Generate a self-contained page with the bundle already embedded, then serve it:
 
 ```bash
-npx hardhat safe:sign --name <bundle> --import signatures-<bundle>-<signer>.json
+npx hardhat safe:sign-page --name accept-all     # -> safe-bundles/accept-all/sign.html
+npm run sign-page                                # prints the exact URL to open
 ```
 
-The page walks the bundle in order, switching networks as it goes (and calling
-`wallet_addEthereumChain` from the bundle's embedded `chainMeta` for networks the wallet
-has never seen — necessary because `eth_signTypedData_v4` is refused when the active chain
-does not match the SafeTx domain). It shows the expected `safeTxHash` next to each chain so
-the signer can compare against the device.
+`npm run sign-page` discovers every generated page and prints its link plus a live
+signature count, e.g.:
 
-Deliberately narrow by design: it never broadcasts, never handles a key, has no
-dependencies, and its CSP sets `connect-src 'none'` so it cannot make network requests at
-all. It is a convenience, not a trusted component — `safe:sign --import` independently
-recovers each signature's signer and rejects anything that is not a current owner, and
-`safe:exec` re-derives every hash and re-validates every signature before spending gas.
+```
+bound to  http://127.0.0.1:8547  (loopback only -- not exposed to your LAN)
+
+Open:
+
+  http://127.0.0.1:8547/accept-all/sign.html
+      32 chain(s), 0 signature(s) collected, 0/32 ready to execute
+```
+
+Connect MetaMask/Rabby with the hardware device behind it, sign every chain in one sitting,
+download `signatures.json`, then:
+
+```bash
+npx hardhat safe:sign --name accept-all --import signatures-accept-all-<signer>.json
+```
+
+> **Use the `http://127.0.0.1` URL, not a `file://` path.** MetaMask does not inject a
+> provider into `file://` pages unless you enable "Allow access to file URLs" in
+> chrome://extensions → MetaMask → Details.
+>
+> The server (`scripts/safeSignPage/serve.js`, plain node, no dependencies) binds
+> **127.0.0.1 only** and serves `safe-bundles/` — never the repo root, which contains
+> `.env` with a live deployer key. Loopback-only matters: a bundle carrying `threshold`
+> signatures is a bearer authorization, and `python3 -m http.server` would bind `0.0.0.0`
+> and publish it to your whole LAN. Path traversal out of `safe-bundles/` is rejected.
+> Override the port with `PORT=8548 npm run sign-page`.
+
+The page walks the bundle in order, switching networks as it goes and calling
+`wallet_addEthereumChain` from the bundle's embedded `chainMeta` for networks the wallet has
+never seen. That switching is mandatory, not cosmetic: `eth_signTypedData_v4` is refused
+when the active chain does not match the SafeTx domain. It re-reads `eth_chainId` before
+each signature so a silent mismatch cannot produce a signature over the wrong domain, and
+shows the expected `safeTxHash` beside each chain for device comparison. Wallets are
+discovered via EIP-6963 (with a `window.ethereum` fallback), so MetaMask and Rabby can
+coexist and you can pick which one your device sits behind.
+
+Deliberately narrow: it never broadcasts, never handles key material, has no dependencies
+and no build step. `npm run check:sign-page` statically asserts those properties — no
+`eth_sendTransaction`, no `XMLHttpRequest`/`WebSocket`/`sendBeacon`, no `eval`, no dynamic
+import, no remote script, and at most a single same-origin `fetch` used only to autoload a
+local bundle (the generated page embeds the bundle and fetches nothing at all).
+
+It is a convenience, not a trusted component. Every signature is re-verified downstream:
+`safe:sign --import` independently recovers the signer and rejects anything that is not a
+current owner, and `safe:exec` re-derives each hash, re-validates every signature and
+re-checks the live Safe nonce before spending gas.
 
 **2. app.safe.global (the 22 chains with a hosted service)**
 

@@ -16,7 +16,9 @@
     "deploy": "npx hardhat --network localhost  run scripts/deploy.ts",
     "lint": "eslint .",
     "test": "npx hardhat test test/base/*.ts",
-    "test:archive": "npx hardhat test test/archive-rpc/*.ts"
+    "test:archive": "npx hardhat test test/archive-rpc/*.ts",
+    "sign-page": "node scripts/safeSignPage/serve.js",
+    "check:sign-page": "node scripts/safeSignPage/check.js"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
