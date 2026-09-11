@@ -1,0 +1,126 @@
+{
+  "name": "accept-robinhood",
+  "intent": "accept-ownership",
+  "params": {},
+  "safe": "0xdC91978e0617CcA2EE1E658d0A1CA3F63CF10f1F",
+  "threshold": 2,
+  "owners": [
+    "0x9B68c14e936104e9a7a24c712BEecdc220002984",
+    "0x5227a7404631Eb7De411232535E36dE8dad318f0",
+    "0x43A9beCdC1323c1dFcfA776cE9bF57F9F8Ce8200"
+  ],
+  "createdAt": "2026-09-11T20:17:57.447Z",
+  "chains": [
+    {
+      "network": "robinhood",
+      "chainId": 4663,
+      "router": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+      "nonce": "0",
+      "chainMeta": {
+        "chainName": "Robinhood",
+        "rpcUrl": "https://rpc.mainnet.chain.robinhood.com",
+        "nativeCurrency": {
+          "name": "Ether",
+          "symbol": "ETH",
+          "decimals": 18
+        },
+        "blockExplorerUrl": "https://robinhoodchain.blockscout.com"
+      },
+      "calls": [
+        {
+          "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+          "data": "0x79ba5097",
+          "value": "0",
+          "label": "acceptOwnership() -- Safe takes ownership of OkuRouter 0xb1f3a7B816B0681188F54dFa400991B93ADf00ed"
+        }
+      ],
+      "tx": {
+        "to": "0xb1f3a7B816B0681188F54dFa400991B93ADf00ed",
+        "value": "0",
+        "data": "0x79ba5097",
+        "operation": 0,
+        "safeTxGas": "0",
+        "baseGas": "0",
+        "gasPrice": "0",
+        "gasToken": "0x0000000000000000000000000000000000000000",
+        "refundReceiver": "0x0000000000000000000000000000000000000000",
+        "nonce": "0"
+      },
+      "safeTxHash": "0x2e8fe50ad29cefd3a2b008e86c9b2fcf61a27305eb0caf51402a8fafdd1e0de0",
+      "eip712": {
+        "types": {
+          "SafeTx": [
+            {
+              "name": "to",
+              "type": "address"
+            },
+            {
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "name": "data",
+              "type": "bytes"
+            },
+            {
+              "name": "operation",
+              "type": "uint8"
+            },
+            {
+              "name": "safeTxGas",
+              "type": "uint256"
+            },
+            {
+              "name": "baseGas",
+              "type": "uint256"
+            },
+            {
+              "name": "gasPrice",
+              "type": "uint256"
+            },
+            {
+              "name": "gasToken",
+              "type": "address"
+            },
+            {
+              "name": "refundReceiver",
+              "type": "address"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "EIP712Domain": [
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ]
+        },
+        "domain": {
+          "chainId": "0x1237",
+          "verifyingContract": "0xdc91978e0617cca2ee1e658d0a1ca3f63cf10f1f"
+        },
+        "primaryType": "SafeTx",
+        "message": {
+          "to": "0xb1f3a7b816b0681188f54dfa400991b93adf00ed",
+          "value": "0",
+          "data": "0x79ba5097",
+          "operation": "0",
+          "safeTxGas": "0",
+          "baseGas": "0",
+          "gasPrice": "0",
+          "gasToken": "0x0000000000000000000000000000000000000000",
+          "refundReceiver": "0x0000000000000000000000000000000000000000",
+          "nonce": "0"
+        }
+      },
+      "signatures": []
+    }
+  ]
+}
