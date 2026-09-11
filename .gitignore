@@ -21,7 +21,15 @@ artifacts
 # matters far more for future bundles (sweepAll, pause) than for an
 # acceptOwnership batch, so the rule is unconditional. Signatures live in
 # per-signer sidecars, which stay local.
-safe-bundles/*/signatures-*.json
+#
+# These patterns are deliberately path-independent. An earlier revision only
+# ignored safe-bundles/*/signatures-*.json, so a signer file dropped anywhere
+# else (scripts/safeSignPage/temp_sigs.json, as actually happened) was staged
+# by `git add -A`. Safety must not depend on which directory a file lands in.
+**/signatures-*.json
+**/temp_sigs*.json
+**/*-sigs.json
+**/*_sigs.json
 # Generated artifacts, all reproducible from the bundle with
 # `safe:sign-page` / `safe:build`.
 safe-bundles/*/sign.html
