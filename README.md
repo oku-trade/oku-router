@@ -427,29 +427,41 @@ in `util/safeConfig.ts` afterwards so the config matches the chain.
 
 ### Migration status
 
+**The handover is complete on 33 of 34 chains.**
+
 | state | chains |
 | --- | --- |
-| **Safe owns the router** | 1 — mantle |
-| **Armed** (`pendingOwner` = Safe, awaiting `acceptOwnership`) | 32 |
-| **Safe not deployed** | 1 — robinhood (deployer underfunded) |
+| **Safe owns the router** | **33** |
+| Still deployer-owned | 1 — robinhood (Safe not deployed; deployer underfunded) |
 
-The 32 armed chains have a built, unsigned acceptance bundle. `owner()` on those chains is
-still the deployer, and each is individually reversible with
-`transferOwnership(address(0))` until its acceptance executes.
+Verified on-chain for all 33: `owner()` is the Safe, `pendingOwner()` is cleared, no chain
+is paused, and every Safe is at nonce 1. All acceptances were relayed by the deployer EOA
+`0x3CB68a…` acting purely as an unprivileged executor — the hardware wallets paid no gas
+on any chain.
 
-To finish: collect two off-chain signatures per chain (see
-[Collecting signatures](#collecting-signatures)), then relay:
+**Remaining work — robinhood (4663):** send ~0.0015 ETH to
+`0x3CB68a6762041aA05E762814A8791CA9d98E79A0` on Robinhood, then
 
 ```bash
-npx hardhat safe:exec --name accept-all                        # dry run
-npx hardhat safe:exec --name accept-all --broadcast
-npx hardhat safe:exec --name accept-all --from-service --broadcast   # UI-signed chains
-npx hardhat safe:refresh-registry
+npx hardhat safe:deploy   --networks robinhood --broadcast
+npx hardhat safe:handover --networks robinhood --broadcast
+npx hardhat safe:build --intent accept-ownership --networks robinhood
+# collect 2 signatures, then
+npx hardhat safe:exec --name <bundle> --broadcast
+npx hardhat safe:refresh-registry --networks robinhood
 ```
 
-> **Nonce discipline:** all 32 acceptances are signed against Safe nonce 0. Executing
-> anything else through a Safe before its acceptance lands will invalidate that chain's
-> signatures and require a rebuild. Do not push other Safe transactions during this window.
+### Day-2 consequences of the handover
+
+- **`whitelist-swap-targets` no longer works.** It preflights `owner() == signer` and now
+  reports `NOT_OWNER` on every handed-over chain — meaning it silently verifies *nothing*.
+  Use `safe:build --intent swap-targets` instead, which diffs on-chain state and emits a
+  bundle only where something is missing.
+- The same applies to `scripts/whitelistBackendSigner.ts` and
+  `scripts/whitelistUniswapRouters.ts`.
+- Only the Safe can send bare ETH to a router (`receive()` requires `msg.sender == owner()`).
+- Every privileged action is now a 2-of-3 ceremony. Chain-config bumps that add new swap
+  targets are best reconciled deliberately rather than discovered as drift later.
 
 Bundles and signatures are stored separately, and only one of them is committed:
 
