@@ -136,6 +136,19 @@ check("restores signatures from localStorage", /localStorage\.getItem/.test(code
 check("warns when a signature is not on disk",
   /MEMORY ONLY|NOT saved to disk/.test(codeBare));
 
+// --- connection guards ---
+// `provider` is null until connect() runs, but the per-row sign buttons are
+// reachable before that. Without these guards, clicking one surfaced as
+// "Cannot read properties of null (reading 'request')".
+check("signOne guards on a connected wallet",
+  /async function signOne[\s\S]{0,120}await ensureConnected\(\)/.test(codeBare));
+check("ensureConnected throws something actionable",
+  /function ensureConnected[\s\S]*?no wallet connected/.test(codeBare));
+check("row sign buttons are disabled until connected",
+  /account \?\s*""\s*:\s*['"] disabled/.test(codeBare));
+check("null-provider TypeError is not shown raw to the signer",
+  /reading 'request'[\s\S]{0,200}no wallet connected/.test(codeBare));
+
 // --- 4. no key material ---
 check("never references a private key or mnemonic",
   !/privateKey|mnemonic|seed\s*phrase|eth_exportAccount/i.test(codeBare));

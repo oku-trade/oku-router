@@ -291,13 +291,21 @@ function renderTable() {
       }).join("<br>") + "</td>" +
       '<td class="mono">' + c.safeTxHash + "</td>" +
       '<td id="st' + i + '">' + status + "</td>" +
-      '<td><button class="sec" data-i="' + i + '">sign</button></td>';
+      '<td><button class="sec" data-i="' + i + '"' +
+        (account ? "" : ' disabled title="Connect a wallet first"') +
+        ">sign</button></td>";
     tb.appendChild(tr);
   });
   Array.prototype.forEach.call(tb.querySelectorAll("button[data-i]"), function (b) {
     b.addEventListener("click", function () {
       signOne(Number(b.getAttribute("data-i"))).catch(function (e) {
-        log("error: " + (e && e.message ? e.message : e), "bad");
+        var m = e && e.message ? e.message : String(e);
+        // A null-provider TypeError means the wallet was never connected;
+        // say that rather than leaking the internal error.
+        if (/reading 'request'|of null|of undefined/.test(m)) {
+          m = "no wallet connected — click “Connect wallet” first";
+        }
+        log("error: " + m, "bad");
       });
     });
   });
@@ -537,8 +545,34 @@ async function ensureChain(c) {
   });
 }
 
+/**
+ * Guarantee a usable wallet before anything touches `provider`.
+ *
+ * `provider` is only assigned by connect(), but the per-row sign buttons are
+ * reachable before that has run -- which used to surface as a raw
+ * "Cannot read properties of null (reading 'request')". Connect on demand,
+ * and if that does not yield a provider, fail with something the signer can
+ * act on instead of a TypeError.
+ */
+async function ensureConnected() {
+  if (provider && account) return;
+  log("no wallet connected yet — connecting first…", "warn");
+  await connect();
+  if (!provider || !account) {
+    throw new Error(
+      "no wallet connected. Click “Connect wallet” and approve the prompt " +
+        "(see the diagnostics panel above if nothing is detected).",
+    );
+  }
+}
+
 async function signOne(i) {
+  await ensureConnected();
   var c = bundle.chains[i];
+  if (hasSignedAlready(c, account)) {
+    log(c.network + ": already signed by " + account + ", skipping");
+    return;
+  }
   if (results.some(function (r) { return eq(r.safeTxHash, c.safeTxHash); })) {
     log(c.network + ": already signed in this session, skipping");
     return;
