@@ -83,6 +83,24 @@ interface DeploymentOverride {
   canonicalPermit2: boolean;
   create2FactoryAddress?: string;
   rpcUrl?: string;
+  /**
+   * Swap targets to whitelist that chain-config's `marketRouters` does not
+   * (yet) carry. Merged into `knownSwapTargets`; chain-config wins on a
+   * duplicate address, so this degrades to a no-op once upstream catches up
+   * rather than producing a duplicate entry.
+   *
+   * ONLY add an address here that Oku's own backend has explicitly named --
+   * i.e. one that appeared in an `OKU_ROUTER_SWAP_TARGET_NOT_ALLOWED`
+   * response. Never add an address inferred from another chain, from
+   * bytecode similarity, or from a vendor's documentation.
+   *
+   * The reason is the blast radius of `updateSwapTargets`: a whitelisted
+   * target receives ERC20 approvals and an arbitrary `.call{value:}()` from
+   * the router, so a wrong address is a direct path to draining in-flight
+   * user funds and accumulated fees. Every entry must cite the response that
+   * named it.
+   */
+  extraSwapTargets?: SwapTarget[];
 }
 
 // Every chain shares the same Oku Router constructor owner.
@@ -351,12 +369,41 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
     // canonical per https://docs.pharos.xyz/getting-started/canonical-contracts
     // Pacific Mainnet table, and verified on-chain via eth_getCode). Kept as
     // a belt-and-suspenders fallback per the same pattern as mainnet/hyperevm.
-    // `marketRouters` is still empty in chain-config (0 entries) -- no
-    // swap targets to whitelist yet, same situation as `celo`.
-    supportedRouters: [],
+    //
+    // `marketRouters` is still empty in chain-config for pharos (0 entries),
+    // and `markets` is `{}`, so `buildKnownSwapTargets` yields nothing. The
+    // routers below therefore come from `extraSwapTargets` instead. Remove
+    // them once chain-config publishes pharos `marketRouters` -- the merge
+    // dedupes by address, so leaving them is harmless in the meantime.
+    supportedRouters: ["icecreamswap", "okx"],
     canonicalPermit2: true,
     create2FactoryAddress: "0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7",
     rpcUrl: process.env.PHAROS_URL,
+    // Both addresses were named by Oku's own backend in
+    // `OKU_ROUTER_SWAP_TARGET_NOT_ALLOWED` responses for
+    // chain_id=1672 oku_router=0xb1f3a7B816B0681188F54dFa400991B93ADf00ed
+    // (PROS -> USDC quotes). Both verified on-chain as contracts and as not
+    // currently whitelisted.
+    //
+    // Deliberately NOT included: okx runs three contracts per chain
+    // elsewhere (~24.5KB / ~13.3KB / ~1.6KB) and only the 13.3KB one was
+    // named here. The other two are not inferred -- if an okx route later
+    // fails naming a new address, that response is the authority for adding
+    // it. `usor` is absent for a different reason: its pharos quote failed
+    // with an upstream HTTP 500 from the market, not a whitelist rejection,
+    // so there is no target to add.
+    extraSwapTargets: [
+      {
+        address: "0x2Ca37ff95caF25366eF16fc2E655b78a165D125F",
+        name: "icecreamswap",
+        protocol: "icecreamswap",
+      },
+      {
+        address: "0x974d1cF6FFA4fCE5a4d62955AFc02F45aAC29f35",
+        name: "okx",
+        protocol: "okx",
+      },
+    ],
   },
 };
 
@@ -419,12 +466,33 @@ function resolvePermit2Address(
  * and lets ethers recompute the canonical checksum, so upstream casing bugs
  * degrade to a no-op here instead of a hard failure.
  */
-function buildKnownSwapTargets(chain: IChainInfo): SwapTarget[] {
-  return marketRouterEntries(chain).map(({ market, address }) => ({
-    address: getAddress(address.toLowerCase()),
-    name: market,
-    protocol: market,
-  }));
+function buildKnownSwapTargets(
+  chain: IChainInfo,
+  extra: SwapTarget[] = [],
+): SwapTarget[] {
+  // Annotated explicitly: without it TS infers `name`/`protocol` as
+  // `keyof MarketRouters` from chain-config's `market` field, which then
+  // rejects the plain-string names carried by `extraSwapTargets`.
+  const targets: SwapTarget[] = marketRouterEntries(chain).map(
+    ({ market, address }) => ({
+      address: getAddress(address.toLowerCase()),
+      name: market,
+      protocol: market,
+    }),
+  );
+
+  // Merge locally-configured supplements, deduped by address with
+  // chain-config taking precedence. That ordering matters: once upstream
+  // publishes a router we are carrying in `extraSwapTargets`, the local entry
+  // silently drops out instead of producing a duplicate whitelist write.
+  const seen = new Set(targets.map((t) => t.address.toLowerCase()));
+  for (const t of extra) {
+    const address = getAddress(t.address.toLowerCase());
+    if (seen.has(address.toLowerCase())) continue;
+    seen.add(address.toLowerCase());
+    targets.push({ ...t, address });
+  }
+  return targets;
 }
 
 function resolveNetworkConfig(
@@ -442,7 +510,7 @@ function resolveNetworkConfig(
     usdcAddress: chain.token.usdcAddress,
     nativeSymbol: chain.nativeCurrency.symbol,
     supportedRouters: override.supportedRouters,
-    knownSwapTargets: buildKnownSwapTargets(chain),
+    knownSwapTargets: buildKnownSwapTargets(chain, override.extraSwapTargets),
     ownerAddress: OWNER_ADDRESS,
     permit2Address: resolvePermit2Address(chain, override.canonicalPermit2),
     canonicalPermit2: override.canonicalPermit2,

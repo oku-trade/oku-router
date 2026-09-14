@@ -718,6 +718,104 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
   });
 
 // ---------------------------------------------------------------------------
+// safe:merge
+// ---------------------------------------------------------------------------
+
+task(
+  "safe:merge",
+  "Combine bundles that touch disjoint chains into one, so signers sign once",
+)
+  .addParam("name", "Name for the merged bundle")
+  .addParam("from", "Comma-separated bundle names to merge")
+  .setAction(async (taskArgs) => {
+    assertOkuSafeConfig();
+    const sources = String(taskArgs.from)
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    if (sources.length < 2) {
+      throw new Error("--from needs at least two bundle names");
+    }
+    const outName = String(taskArgs.name);
+    if (sources.includes(outName)) {
+      throw new Error(`--name ${outName} collides with one of the source bundles`);
+    }
+
+    const loaded = sources.map((n) => readBundle(n));
+
+    // Every bundle must target the same Safe with the same owner set and
+    // threshold, or the merged bundle would be incoherent to sign.
+    const first = loaded[0];
+    for (const b of loaded.slice(1)) {
+      if (getAddress(b.safe) !== getAddress(first.safe)) {
+        throw new Error(`bundle ${b.name} targets a different Safe (${b.safe})`);
+      }
+      if (b.threshold !== first.threshold) {
+        throw new Error(`bundle ${b.name} has threshold ${b.threshold}, expected ${first.threshold}`);
+      }
+      const a = first.owners.map((o) => getAddress(o)).sort().join(",");
+      const c = b.owners.map((o) => getAddress(o)).sort().join(",");
+      if (a !== c) throw new Error(`bundle ${b.name} has a different owner set`);
+    }
+
+    // Chains must be disjoint. Two entries for one chain would be two
+    // transactions competing for the same Safe nonce: only the first could
+    // ever execute, and the second's signatures would be silently dead. Fail
+    // loudly rather than produce a bundle that is half-unexecutable.
+    const byChain = new Map<number, string>();
+    for (const b of loaded) {
+      for (const c of b.chains) {
+        const prev = byChain.get(c.chainId);
+        if (prev) {
+          throw new Error(
+            `chain ${c.network} (${c.chainId}) appears in both "${prev}" and "${b.name}". ` +
+              `Both would target Safe nonce ${c.nonce}, so only one could execute. ` +
+              `Rebuild them as a single bundle with safe:build instead.`,
+          );
+        }
+        byChain.set(c.chainId, b.name);
+      }
+    }
+
+    // Pure concatenation: every chain keeps its own safeTxHash untouched, so
+    // any signatures already collected against a source bundle stay valid.
+    const merged: Bundle = {
+      name: outName,
+      intent: first.intent,
+      params: Object.fromEntries(loaded.map((b) => [b.name, b.params])),
+      safe: first.safe,
+      threshold: first.threshold,
+      owners: [...first.owners],
+      createdAt: new Date().toISOString(),
+      chains: loaded.flatMap((b) => b.chains).sort((a, b) => a.chainId - b.chainId),
+    };
+    const p = writeBundle(merged);
+
+    console.log("");
+    console.log(`Merged bundle written: ${p}`);
+    for (const b of loaded) {
+      console.log(
+        `  from ${b.name.padEnd(24)} intent=${String(b.intent).padEnd(20)} ` +
+          `${b.chains.length} chain(s): ${b.chains.map((c) => c.network).join(", ")}`,
+      );
+    }
+    console.log("");
+    console.log(`  total chains        : ${merged.chains.length}`);
+    console.log(`  signatures needed   : ${merged.chains.length} x ${merged.threshold}`);
+    for (const c of merged.chains) {
+      console.log(
+        `    ${c.network.padEnd(12)} nonce=${String(c.nonce).padEnd(4)} ` +
+          `${c.calls.length} call(s)  ${c.safeTxHash}`,
+      );
+    }
+    console.log("");
+    console.log(`Each safeTxHash is carried over unchanged, so signatures already`);
+    console.log(`collected against a source bundle remain valid here. Next:`);
+    console.log(`  npx hardhat safe:sign-page --name ${outName}`);
+    console.log("");
+  });
+
+// ---------------------------------------------------------------------------
 // safe:sign-page
 // ---------------------------------------------------------------------------
 
