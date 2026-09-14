@@ -52,13 +52,60 @@ function findSignPages() {
   return out.sort();
 }
 
+/**
+ * Summarise progress for a bundle.
+ *
+ * Signatures must be counted from the per-signer sidecars, not from
+ * `bundle.signatures` -- the bundle is deliberately kept signature-free so it
+ * can be committed, so reading it always reported 0 collected even after
+ * every signer had finished. That was actively misleading: a signer could
+ * complete all 32 chains and still be told nothing had been collected.
+ */
 function bundleSummary(name) {
   try {
     const b = JSON.parse(fs.readFileSync(path.join(ROOT, `${name}.json`), "utf8"));
     const total = b.chains.length;
-    const ready = b.chains.filter((c) => c.signatures.length >= b.threshold).length;
-    const sigs = b.chains.reduce((a, c) => a + c.signatures.length, 0);
-    return `${total} chain(s), ${sigs} signature(s) collected, ${ready}/${total} ready to execute`;
+
+    // safeTxHash -> set of owners who have signed it
+    const signers = new Map();
+    const dir = path.join(ROOT, name);
+    if (fs.existsSync(dir)) {
+      for (const f of fs.readdirSync(dir)) {
+        if (!/^signatures-0x[0-9a-fA-F]{40}\.json$/.test(f)) continue;
+        let arr = [];
+        try {
+          arr = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+        } catch {
+          continue;
+        }
+        if (!Array.isArray(arr)) continue;
+        for (const e of arr) {
+          if (!e || !e.safeTxHash || !e.signer) continue;
+          const k = String(e.safeTxHash).toLowerCase();
+          if (!signers.has(k)) signers.set(k, new Set());
+          signers.get(k).add(String(e.signer).toLowerCase());
+        }
+      }
+    }
+
+    // Count legacy in-bundle signatures too, for bundles predating the split.
+    for (const c of b.chains) {
+      const k = String(c.safeTxHash).toLowerCase();
+      for (const s of c.signatures || []) {
+        if (!signers.has(k)) signers.set(k, new Set());
+        signers.get(k).add(String(s.signer).toLowerCase());
+      }
+    }
+
+    let sigs = 0;
+    let ready = 0;
+    for (const c of b.chains) {
+      const n = (signers.get(String(c.safeTxHash).toLowerCase()) || new Set()).size;
+      sigs += n;
+      if (n >= b.threshold) ready++;
+    }
+    const done = ready === total && total > 0 ? "  [all signed]" : "";
+    return `${total} chain(s), ${sigs} signature(s) collected, ${ready}/${total} ready to execute${done}`;
   } catch {
     return null;
   }
