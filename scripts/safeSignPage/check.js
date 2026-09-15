@@ -158,6 +158,36 @@ check("uses eth_signTypedData_v4", /eth_signTypedData_v4/.test(codeBare));
 check("verifies active chain before signing", /eth_chainId/.test(codeBare));
 check("supports EIP-6963 wallet discovery", /eip6963:requestProvider/.test(codeBare));
 
+// --- 6. value-transferring bundles are disclosed, not buried in a label ---
+// A sweep authorizes moving every asset on a chain. Describing that to a
+// signer as one truncated call label is how someone approves something they
+// did not read, so the panel is a required property of the page.
+check("renders a fund-movement panel for sweep bundles",
+  /function renderSweepPanel/.test(codeBare));
+check("fund-movement panel is gated on intent === \"sweep\"",
+  /bundle\.intent\s*!==\s*["']sweep["']/.test(codeBare));
+check("panel is invoked when a bundle is adopted",
+  /function adoptBundle[\s\S]*?renderSweepPanel\(\)/.test(codeBare));
+check("sweep recipient is displayed to the signer",
+  /sweepRecipient/.test(codeBare) && /id="sweepRecipient"/.test(htmlBare));
+check("sweep asset manifest is itemized",
+  /sweepAssets/.test(codeBare) && /sweep\.assets/.test(codeBare));
+check("warns explicitly that the transaction moves funds",
+  /This transaction moves funds/i.test(htmlBare));
+check("flags a bundle that sweeps to more than one recipient",
+  /recipients\.length\s*>\s*1/.test(codeBare));
+// HTML-escape everything interpolated from the bundle. The manifest carries
+// attacker-influencable strings (token symbols come from arbitrary ERC20
+// contracts), so an unescaped symbol would be an injection vector.
+check("escapes bundle-supplied strings before rendering",
+  /function esc\(/.test(codeBare) && /esc\(a\.symbol\)/.test(codeBare));
+
+// --- 7. bundle autoload must not be hardcoded to one bundle name ---
+// It previously always fetched `accept-all.json`, which silently loads the
+// wrong bundle once more than one exists.
+check("autoload is not hardcoded to a single bundle name",
+  !/accept-all\.json/.test(codeBare));
+
 console.log("");
 if (failures) {
   console.error(`FAILED: ${failures} check(s)\n`);

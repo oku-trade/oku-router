@@ -110,6 +110,15 @@
   .pill { display: inline-block; padding: 1px 6px; border-radius: 10px;
           font-size: 11px; background: #363b45; }
   input[type=file] { font: inherit; }
+  /* Fund-movement panel, shown only for bundles that transfer value. */
+  .danger { border-color: #7d2b26; background: #2a1a19; }
+  .danger h2 { font-size: 15px; margin: 0 0 4px; color: #f85149; }
+  .recipient { font-size: 16px; word-break: break-all; color: #f0c674;
+               background: #0f1115; border: 1px solid #4a3a1a; border-radius: 6px;
+               padding: 10px; margin: 10px 0; }
+  .assets { max-height: 320px; overflow: auto; margin-top: 10px; }
+  .assets table { margin-top: 0; }
+  .num { text-align: right; }
   #log { white-space: pre-wrap; max-height: 220px; overflow: auto;
          background: #0f1115; border: 1px solid #262b33; border-radius: 6px;
          padding: 10px; font-size: 12px; margin-top: 12px; }
@@ -149,6 +158,15 @@
   </div>
   <div id="persist" class="dim" style="margin-top:10px;font-size:12px"></div>
   <div id="log" hidden></div>
+</div>
+
+<div class="card danger" id="sweepPanel" hidden>
+  <h2>This transaction moves funds</h2>
+  <div class="sub" id="sweepSummary"></div>
+  <div>Everything below leaves the router and is sent to:</div>
+  <div class="recipient mono" id="sweepRecipient"></div>
+  <div class="dim" id="sweepNote"></div>
+  <div class="assets" id="sweepAssets"></div>
 </div>
 
 <div class="card">
@@ -201,6 +219,7 @@ function adoptBundle(obj, source) {
     bundle.chains.length + " chain(s) &nbsp; safe " +
     bundle.safe + " &nbsp; " + bundle.threshold + " of " + bundle.owners.length +
     ' &nbsp; <span class="dim">[' + source + "]</span>";
+  renderSweepPanel();
   renderTable();
   refreshOwnerState();
   updateButtons();
@@ -209,13 +228,93 @@ function adoptBundle(obj, source) {
   return true;
 }
 
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function fmtUsd(v) {
+  return (typeof v === "number" && isFinite(v)) ? "$" + v.toFixed(2) : "—";
+}
+
+/**
+ * Itemized fund-movement panel for value-transferring bundles.
+ *
+ * Without this, a 32-token sweep is described to the signer as a single
+ * truncated call label — which is not a basis on which anyone can approve
+ * moving every asset on a chain. The data comes from the `sweep` manifest
+ * that `safe:build` pins into each chain entry; it is descriptive only and
+ * carries no authorization material.
+ *
+ * Note the panel is driven by the manifest, NOT by decoding calldata. It is
+ * an aid to review, not proof. The authoritative check remains the
+ * safeTxHash shown on each row, which every downstream tool re-derives.
+ */
+function renderSweepPanel() {
+  var panel = el("sweepPanel");
+  if (!bundle || bundle.intent !== "sweep") { panel.hidden = true; return; }
+
+  var chains = bundle.chains.filter(function (c) { return c.sweep; });
+  if (!chains.length) { panel.hidden = true; return; }
+
+  var recipients = [];
+  chains.forEach(function (c) {
+    if (recipients.indexOf(c.sweep.recipient) === -1) recipients.push(c.sweep.recipient);
+  });
+
+  var totalAssets = 0, notional = 0;
+  chains.forEach(function (c) {
+    totalAssets += (c.sweep.assets || []).length;
+    if (typeof c.sweep.usdNotional === "number") notional += c.sweep.usdNotional;
+  });
+
+  el("sweepSummary").textContent =
+    totalAssets + " asset(s) across " + chains.length + " chain(s)" +
+    (notional > 0 ? ", roughly " + fmtUsd(notional) + " at current prices" : "");
+
+  // More than one recipient in a single bundle is not a normal sweep; make it
+  // impossible to miss rather than rendering only the first.
+  el("sweepRecipient").innerHTML = recipients.map(function (r) {
+    return esc(r);
+  }).join('<br><span class="bad">+ ALSO</span> ');
+  el("sweepNote").innerHTML = recipients.length > 1
+    ? '<span class="bad">WARNING: this bundle sweeps to more than one address. ' +
+      'Do not sign unless every address above was expected.</span>'
+    : "Check this address against the one you were given out of band. " +
+      "A sweep cannot be undone.";
+
+  var html = "";
+  chains.forEach(function (c) {
+    html += '<div class="dim" style="margin-top:8px">' + esc(c.network) +
+            " (chainId " + c.chainId + ")" +
+            (c.sweep.includeEth ? " — includes the native balance" : "") + "</div>";
+    html += "<table><thead><tr><th>asset</th><th>amount</th><th>usd</th>" +
+            "<th>contract</th></tr></thead><tbody>";
+    (c.sweep.assets || []).forEach(function (a) {
+      html += "<tr><td>" + esc(a.symbol) + "</td>" +
+              '<td class="num mono">' + esc(a.amount) + "</td>" +
+              '<td class="num">' + fmtUsd(a.usdValue) + "</td>" +
+              '<td class="mono dim">' +
+                (a.token === "native" ? "(native)" : esc(a.token)) + "</td></tr>";
+    });
+    html += "</tbody></table>";
+  });
+  el("sweepAssets").innerHTML = html;
+  panel.hidden = false;
+}
+
 /**
  * Load the bundle without asking the user, in order of preference:
  *
  *   1. window.__BUNDLE__  -- embedded by `safe:sign-page`. Nothing is
  *      fetched, so this works from file:// too and is the recommended path.
- *   2. a same-origin GET of a few conventional relative paths, for when this
- *      file is served straight out of the repo.
+ *   2. a same-origin GET of a bundle named after the directory this page is
+ *      being served from, for when the file is opened straight out of the
+ *      repo.
+ *
+ * The candidate paths are derived from the URL rather than hardcoded to one
+ * bundle name: an earlier revision always looked for `accept-all.json`, which
+ * silently loaded the wrong bundle once a second one existed -- a dangerous
+ * default when bundles differ in what they authorize.
  *
  * Falls back silently to the file picker. The fetch is the page's only
  * network access of any kind, it is same-origin, and it is a read of a local
@@ -226,11 +325,13 @@ async function autoloadBundle() {
     adoptBundle(window.__BUNDLE__, "embedded");
     return;
   }
-  var candidates = [
-    "../../safe-bundles/accept-all.json",
-    "/safe-bundles/accept-all.json",
-    "./accept-all.json",
-  ];
+  // e.g. /sweep-worldchain/sign.html -> "sweep-worldchain"
+  var segs = String(location.pathname).split("/").filter(Boolean);
+  var dir = segs.length >= 2 ? segs[segs.length - 2] : "";
+  var candidates = [];
+  if (dir) {
+    candidates.push("../" + dir + ".json", "/" + dir + ".json", "./" + dir + ".json");
+  }
   for (var i = 0; i < candidates.length; i++) {
     try {
       var res = await fetch(candidates[i], { cache: "no-store" });

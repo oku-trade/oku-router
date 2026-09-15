@@ -14,6 +14,8 @@ import "./tasks/safeDeploy";
 import "./tasks/safeAdmin";
 import "./tasks/safeHandover";
 import "./tasks/safeProposer";
+import "./tasks/feeScan";
+import "./tasks/feeAccounting";
 
 
 dotEnvConfig();
@@ -325,7 +327,29 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: chainIdFor("optimism"), // Use Optimism chainId by default for EIP-712 compatibility
+      // Use Optimism chainId by default for EIP-712 compatibility.
+      //
+      // FORK_CHAIN_ID overrides it. `hardhat_reset` can change the fork URL
+      // but NOT the chainId, so a script that forks another chain otherwise
+      // runs with `block.chainid` still reporting Optimism's 10. That is
+      // harmless for plain calls but wrong for anything that records or
+      // hashes a chainId (SafeTx domains, accounting artifacts). Default is
+      // unchanged, so existing tests are unaffected.
+      chainId: Number(process.env.FORK_CHAIN_ID) || chainIdFor("optimism"),
+      // Hardhat only ships hardfork-activation history for the chains it knows
+      // about. Forking anything else (Worldchain, Unichain, Sei, ...) fails
+      // with "No known hardfork for execution on historical block N" as soon
+      // as you make a call, because it cannot decide which EVM rules apply.
+      // Declaring the fork target as post-Cancun from genesis is correct for
+      // every chain we fork here -- they are all modern OP-stack or equivalent
+      // deployments -- and only takes effect when FORK_CHAIN_ID is set.
+      chains: process.env.FORK_CHAIN_ID
+        ? {
+            [Number(process.env.FORK_CHAIN_ID)]: {
+              hardforkHistory: { cancun: 0 },
+            },
+          }
+        : {},
       forking: {
         url: process.env.MAINNET_URL ? process.env.MAINNET_URL : zaddr,
         blockNumber: 14546835,

@@ -42,7 +42,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { task } from "hardhat/config";
-import { TypedDataEncoder, Wallet, getAddress } from "ethers";
+import { TypedDataEncoder, Wallet, formatUnits, getAddress } from "ethers";
 import type { JsonRpcProvider } from "ethers";
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import {
@@ -80,6 +80,17 @@ import { withRetry } from "../util/rpcRetry";
 import { NETWORK_CONFIGS, type SwapTarget } from "../util/deploymentConfig";
 import { MAINNET_CHAINS } from "@gfxlabs/oku-chains";
 import { OkuRouter__factory } from "../typechain-types";
+import {
+  NATIVE_SENTINEL,
+  fmtAmount,
+  priceAssets,
+  readNonZeroBalances,
+  scanChainFees,
+  totalUsd,
+  type PricedFeeAsset,
+} from "../util/feeScan";
+import { OKU_FEE_RECIPIENT } from "../util/safeConfig";
+import { accountForSweepTx, writeAccounting } from "./feeAccounting";
 
 const BUNDLE_DIR = path.resolve(__dirname, "..", "safe-bundles");
 const ROUTER_IFACE = OkuRouter__factory.createInterface();
@@ -91,7 +102,30 @@ type Intent =
   | "unpause"
   | "swap-targets"
   | "valid-signer"
-  | "max-warrant-duration";
+  | "max-warrant-duration"
+  | "sweep";
+
+/**
+ * Per-asset record pinned into a sweep bundle's `params`.
+ *
+ * This is the audit trail and the signer-facing manifest in one. The sign
+ * page renders it directly (buildPage.js ships the whole bundle minus
+ * signatures), because a 32-token sweep collapses into a single unreadable
+ * line if the only description is the call label.
+ *
+ * Balances here are a snapshot from build time. `sweepAll` always moves the
+ * FULL balance at execution time, so actual amounts will be >= these. The
+ * accounting artifact records what actually moved.
+ */
+interface SweepAssetSnapshot {
+  token: string;
+  symbol: string;
+  decimals: number;
+  amountRaw: string;
+  amount: string;
+  usdValue?: number;
+  realizableUsd?: number;
+}
 
 interface BundleCall {
   to: string;
@@ -148,6 +182,18 @@ interface BundleChain {
    */
   signedBy?: string[];
   note?: string;
+  /**
+   * Itemized fund-movement manifest, present only on `sweep` bundles.
+   * Rendered by the signing page so a signer approving a 32-token sweep can
+   * see every asset and the recipient, rather than one truncated call label.
+   */
+  sweep?: {
+    recipient: string;
+    includeEth: boolean;
+    assets: SweepAssetSnapshot[];
+    usdNotional: number;
+    usdRealizable: number;
+  };
 }
 
 interface Bundle {
@@ -318,8 +364,120 @@ async function callsForIntent(
         ],
       };
     }
+
+    case "sweep": {
+      const cfg = NETWORK_CONFIGS[chain.network];
+      if (!cfg) return { calls: [], note: "NO_NETWORK_CONFIG" };
+
+      const to = getAddress(String(params.to));
+      const includeEth = params.includeEth !== false;
+      const maxTokens = Number(params.maxTokens ?? 40);
+
+      // Resolve the token set. An explicit --tokens list is honoured verbatim
+      // (minus zero balances); "auto" discovers via OrderFilled history.
+      const explicit = params.tokens as string[] | undefined;
+      let assets: PricedFeeAsset[];
+      let nativeBalance = 0n;
+
+      if (explicit && explicit.length > 0) {
+        const found = await readNonZeroBalances(provider, chain.router!, explicit);
+        const { priced } = await priceAssets(provider, cfg, found);
+        assets = priced;
+        nativeBalance = await provider.getBalance(chain.router!);
+      } else {
+        const scan = await scanChainFees(provider, cfg, chain.router!, { price: true });
+        assets = scan.assets.filter((a) => a.token !== NATIVE_SENTINEL);
+        const nat = scan.assets.find((a) => a.token === NATIVE_SENTINEL);
+        nativeBalance = nat ? nat.balance : 0n;
+      }
+
+      const sweepEth = includeEth && nativeBalance > 0n;
+      if (assets.length === 0 && !sweepEth) {
+        // Preserves the idempotent-diff model: a chain with nothing to sweep
+        // is dropped entirely rather than burning a nonce on a no-op that
+        // would in fact revert with NOTHING_TO_SWEEP.
+        return { calls: [], note: "no idle fees on this chain" };
+      }
+
+      // Chunk so one call cannot grow an unbounded loop. Multiple calls are
+      // batched through MultiSend by buildBatchedSafeTx.
+      const chunks: PricedFeeAsset[][] = [];
+      for (let i = 0; i < assets.length; i += maxTokens) {
+        chunks.push(assets.slice(i, i + maxTokens));
+      }
+      if (chunks.length === 0) chunks.push([]);
+
+      const calls: BundleCall[] = chunks.map((chunk, idx) => {
+        // ETH rides along with the final chunk only, so it is swept exactly once.
+        const withEth = sweepEth && idx === chunks.length - 1;
+        const addrs = chunk.map((a) => a.token);
+        const summary = chunk.map((a) => `${a.symbol} ${fmtAmount(a)}`).join(", ");
+        const ethPart = withEth
+          ? `${chunk.length ? " + " : ""}${formatUnits(nativeBalance, 18)} ${cfg.nativeSymbol}`
+          : "";
+        return {
+          to: chain.router!,
+          data: ROUTER_IFACE.encodeFunctionData("sweepAll", [addrs, withEth, to]),
+          value: "0",
+          label:
+            `sweepAll(${addrs.length} token(s)${withEth ? " + native ETH" : ""}) -> ${to}` +
+            `${chunks.length > 1 ? ` [part ${idx + 1}/${chunks.length}]` : ""}` +
+            `  ::  ${summary}${ethPart}`,
+        };
+      });
+
+      const snapshot: SweepAssetSnapshot[] = assets.map((a) => ({
+        token: a.token,
+        symbol: a.symbol,
+        decimals: a.decimals,
+        amountRaw: a.balance.toString(),
+        amount: fmtAmount(a),
+        usdValue: a.usdValue,
+        realizableUsd: a.realizableUsd,
+      }));
+      if (sweepEth) {
+        snapshot.push({
+          token: NATIVE_SENTINEL,
+          symbol: cfg.nativeSymbol,
+          decimals: 18,
+          amountRaw: nativeBalance.toString(),
+          amount: formatUnits(nativeBalance, 18),
+        });
+      }
+      const totals = totalUsd(assets);
+
+      // Stash the manifest on the chain entry so the sign page can render an
+      // itemized fund-movement panel per chain.
+      sweepManifests.set(`${chain.network}`, {
+        recipient: to,
+        includeEth: sweepEth,
+        assets: snapshot,
+        usdNotional: totals.notional,
+        usdRealizable: totals.realizable,
+      });
+
+      return { calls };
+    }
   }
 }
+
+/**
+ * Per-chain sweep manifests produced during callsForIntent, keyed by network.
+ *
+ * callsForIntent's return type is shared by every intent, so this side channel
+ * carries the richer sweep data out to the bundle assembler without
+ * distorting the other five intents.
+ */
+const sweepManifests = new Map<
+  string,
+  {
+    recipient: string;
+    includeEth: boolean;
+    assets: SweepAssetSnapshot[];
+    usdNotional: number;
+    usdRealizable: number;
+  }
+>();
 
 /**
  * Resolve wallet-facing chain metadata from chain-config for the signing
@@ -507,13 +665,22 @@ function txBuilderJson(chain: BundleChain, safe: string) {
 task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
   .addParam(
     "intent",
-    "accept-ownership | pause | unpause | swap-targets | valid-signer | max-warrant-duration",
+    "accept-ownership | pause | unpause | swap-targets | valid-signer | max-warrant-duration | sweep",
   )
   .addOptionalParam("name", "Bundle name (default: <intent>-<timestamp>)")
   .addOptionalParam("networks", "Comma-separated list of networks to restrict to")
   .addOptionalParam("address", "For valid-signer: the signer address")
   .addOptionalParam("add", "For valid-signer: true|false")
   .addOptionalParam("seconds", "For max-warrant-duration: the new duration")
+  .addOptionalParam("to", "For sweep: recipient (default: OKU_FEE_RECIPIENT)")
+  .addOptionalParam("tokens", "For sweep: comma-separated token list, or omit to auto-discover")
+  .addOptionalParam("maxTokens", "For sweep: max tokens per sweepAll call (default 40)")
+  .addOptionalParam(
+    "rpc",
+    "Override RPC URL (single --networks only). Needed for sweep auto-discovery when " +
+      "the configured endpoint restricts eth_getLogs.",
+  )
+  .addFlag("noEth", "For sweep: do NOT sweep the native balance")
   .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
     assertOkuSafeConfig();
     const dep = getOkuSafeDeployment();
@@ -525,6 +692,7 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
       "swap-targets",
       "valid-signer",
       "max-warrant-duration",
+      "sweep",
     ];
     if (!valid.includes(intent)) {
       throw new Error(`unknown --intent ${intent}. Expected one of: ${valid.join(", ")}`);
@@ -540,6 +708,27 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
       if (!taskArgs.seconds) throw new Error("--seconds is required");
       params.seconds = String(taskArgs.seconds);
     }
+    if (intent === "sweep") {
+      // Defaults to the committed constant so the destination of an
+      // irreversible transfer is reviewed in a diff, not retyped per ceremony.
+      const to = getAddress(String(taskArgs.to ?? OKU_FEE_RECIPIENT));
+      if (to === "0x0000000000000000000000000000000000000000") {
+        throw new Error("sweep recipient cannot be the zero address");
+      }
+      params.to = to;
+      params.includeEth = !taskArgs.noEth;
+      if (taskArgs.tokens) {
+        params.tokens = String(taskArgs.tokens)
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+          .map((s: string) => getAddress(s));
+      }
+      if (taskArgs.maxTokens) params.maxTokens = Number(taskArgs.maxTokens);
+      sweepManifests.clear();
+      console.log(`\nSweep recipient: ${to}${taskArgs.to ? " (explicit --to)" : " (OKU_FEE_RECIPIENT)"}`);
+      console.log(`Include native  : ${params.includeEth}`);
+    }
 
     const only = taskArgs.networks
       ? new Set<string>(
@@ -550,6 +739,13 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
         )
       : undefined;
     const chains = listSafeChains(hre, only).filter((c) => c.router);
+
+    if (taskArgs.rpc && chains.length !== 1) {
+      throw new Error(
+        `--rpc applies to one chain, but ${chains.length} were selected. ` +
+          `Pass --networks <single network> alongside --rpc.`,
+      );
+    }
 
     const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
     const name = String(taskArgs.name ?? `${intent}-${stamp}`);
@@ -562,11 +758,12 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
     console.log(`Chains : ${chains.length}`);
 
     const built = await mapLimit(chains, 5, async (chain): Promise<BundleChain | null> => {
-      if (!chain.rpcUrl) {
+      const rpc = taskArgs.rpc ? String(taskArgs.rpc) : chain.rpcUrl;
+      if (!rpc) {
         console.log(`  ${pad(chain.network, 12)} skip: NO_RPC`);
         return null;
       }
-      const provider = makeProvider(chain.rpcUrl, chain.chainId);
+      const provider = makeProvider(rpc, chain.chainId);
       try {
         // The Safe must exist before we can read its nonce or hash a tx.
         const code = await withRetry(
@@ -671,6 +868,19 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
       return;
     }
     chainsOut.sort((a, b) => a.chainId - b.chainId);
+
+    // Attach the per-chain sweep manifest so the signing page can render an
+    // itemized fund-movement panel, and so the bundle is self-describing when
+    // audited later. Carries no authorization material.
+    if (intent === "sweep") {
+      for (const c of chainsOut) {
+        const m = sweepManifests.get(c.network);
+        if (m) c.sweep = m;
+      }
+      params.recipient = params.to;
+      params.totalUsdNotional = chainsOut.reduce((s, c) => s + (c.sweep?.usdNotional ?? 0), 0);
+      params.totalUsdRealizable = chainsOut.reduce((s, c) => s + (c.sweep?.usdRealizable ?? 0), 0);
+    }
 
     const bundle: Bundle = {
       name,
@@ -831,45 +1041,17 @@ task(
     if (!fs.existsSync(tpl)) {
       throw new Error(`signing page template not found at ${tpl}`);
     }
-    let html = fs.readFileSync(tpl, "utf8");
+    const templateHtml = fs.readFileSync(tpl, "utf8");
 
-    // Strip signature material from the embedded copy.
-    //
-    // This file gets emailed or Slacked to co-signers, so it should carry no
-    // authorization material at all. The page does not need other signers'
-    // signature bytes -- it only needs to know WHICH owners have already
-    // signed each chain, so it can grey those rows out. `signedBy` carries
-    // exactly that and nothing more.
-    //
-    // Without this, `sign.html` would embed every signature collected so far
-    // (32 of them once the first signer imports), turning a file meant for
-    // distribution into a partial authorization set.
+    // Delegate to the shared builder so this task and `npm run sign-page`
+    // cannot drift. The "strip signature bytes before the file is
+    // distributed" guarantee therefore lives in exactly one place: the page
+    // receives `signedBy` (addresses only) so it can grey out rows the
+    // connected account already signed, and no signature material at all.
+    const { buildSignPage } = require("../scripts/safeSignPage/buildPage");
     const sidecars = readSidecars(bundle.name);
-    const shared: Bundle = {
-      ...bundle,
-      chains: bundle.chains.map((c) => ({
-        ...c,
-        signatures: [],
-        signedBy: signaturesFor(bundle, c, sidecars).map((s) => s.signer),
-      })),
-    };
-    const embeddedSigs = shared.chains.reduce((a, c) => a + c.signatures.length, 0);
-
-    // Injected ahead of the main script so autoloadBundle() finds it in
-    // window.__BUNDLE__ and never needs to fetch or prompt. Embedded via a
-    // JSON-typed script tag rather than a JS literal so no bundle content can
-    // be interpreted as code -- and "</" is escaped so a nested string cannot
-    // terminate the tag early.
-    const json = JSON.stringify(shared).replace(/<\//g, "<\\/");
-    const inject =
-      `<script id="__bundle_json" type="application/json">${json}</script>\n` +
-      `<script>window.__BUNDLE__ = JSON.parse(` +
-      `document.getElementById("__bundle_json").textContent);</script>\n`;
-
-    if (!html.includes("<script>")) {
-      throw new Error("signing page template has no <script> block to anchor injection");
-    }
-    html = html.replace("<script>", `${inject}<script>`);
+    const html: string = buildSignPage(templateHtml, bundle, sidecars);
+    const embeddedSigs = 0;
 
     const outDir = path.join(BUNDLE_DIR, bundle.name);
     fs.mkdirSync(outDir, { recursive: true });
@@ -1265,6 +1447,46 @@ task("safe:exec", "Broadcast a signed bundle from the hot relayer (DRY RUN unles
         );
         c.calls.forEach((call) => console.log(`      ${call.label}`));
         ok++;
+
+        // A sweep is irreversible and its amounts are only knowable from the
+        // chain, so capture the record immediately. Failure to write the
+        // artifact must never be reported as a failure to execute -- the funds
+        // have already moved -- hence the isolated catch and the explicit
+        // instruction for regenerating it.
+        if (bundle.intent === "sweep" && c.sweep) {
+          try {
+            const report = await accountForSweepTx({
+              provider,
+              network: c.network,
+              chainId: c.chainId,
+              router: c.router,
+              safe: bundle.safe,
+              recipient: c.sweep.recipient,
+              txHash: sent.hash,
+              mode: "execution",
+              bundle: bundle.name,
+              safeNonce: c.nonce,
+              safeTxHash: c.safeTxHash,
+              signers: sigs.map((s) => getAddress(s.signer)),
+            });
+            const written = writeAccounting(bundle.name, c.network, report);
+            console.log(`      accounting: ${written.json}`);
+            if (!report.reconciliation.allRouterBalancesZero) {
+              console.log(`      WARNING: router still holds a balance for a swept asset`);
+            }
+            if (!report.reconciliation.eventsMatchBalanceDeltas) {
+              console.log(`      WARNING: emitted amounts != measured recipient deltas`);
+            }
+          } catch (e) {
+            console.log(
+              `      accounting FAILED to write: ` +
+                `${String((e as { message?: string }).message ?? e).slice(0, 100)}\n` +
+                `      The sweep itself succeeded. Regenerate with:\n` +
+                `        npx hardhat fees:account --network-name ${c.network} ` +
+                `--tx ${sent.hash} --name ${bundle.name}`,
+            );
+          }
+        }
       } catch (e) {
         const anyE = e as { shortMessage?: string; message?: string };
         console.log(`\n=== ${c.network}: ✗ ${anyE.shortMessage ?? anyE.message ?? e}`);

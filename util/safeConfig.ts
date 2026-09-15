@@ -203,6 +203,26 @@ export const OKU_SAFE_EXPECTED_ADDRESS = "0xdC91978e0617CcA2EE1E658d0A1CA3F63CF1
  */
 export const OKU_DEPLOYER_EOA = "0x3CB68a6762041aA05E762814A8791CA9d98E79A0";
 
+/**
+ * Destination for every protocol-fee sweep, on all 34 chains.
+ *
+ * Team-provided. Deliberately a committed constant rather than a per-call
+ * `--to` flag: fee sweeps are irreversible, so the destination belongs in a
+ * reviewable diff instead of being retyped into a shell on every ceremony.
+ * `safe:build --intent sweep` defaults to this; an explicit `--to` overrides
+ * it for one-off recoveries.
+ *
+ * Verified at the time it was adopted: valid EIP-55 checksum, and no contract
+ * code, zero nonce and zero balance on all 13 chains probed -- i.e. a fresh,
+ * unused address. Note that this proves the string is well-formed, NOT that
+ * anyone holds the key; that can only be established by a signature from it.
+ *
+ * If this address ever becomes a contract, `sweepAll(..., includeEth = true)`
+ * will revert on any chain where it lacks a payable fallback. `safe:build`'s
+ * pre-sign simulation catches that before signatures are collected.
+ */
+export const OKU_FEE_RECIPIENT = "0xd637f2A36c1a3b37d57ef4C7022cB183D8922f2c";
+
 // ---------------------------------------------------------------------------
 // Safe Transaction Service coverage
 // ---------------------------------------------------------------------------

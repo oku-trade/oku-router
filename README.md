@@ -645,9 +645,79 @@ npx hardhat safe:exec         # relay execTransaction       (DRY RUN unless --br
 npx hardhat safe:status       # per-chain Safe + router ownership state
 npx hardhat safe:proposer     # register the hot wallet as a proposer (22 chains)
 npx hardhat safe:refresh-registry   # rewrite deployments/*.json from chain state
+npx hardhat fees:scan         # read-only: idle protocol fees per chain
+npx hardhat fees:account      # accounting artifact for an executed sweep
 ```
 
 Every mutating task is a **dry run by default** and requires `--broadcast`.
+
+## Fee collection
+
+Protocol fees accumulate as the router's own token and ETH balance. There is
+**no fee accounting in the contract** — no `collectableFees()` view, no
+per-token mapping. The only way to know what is there is to work out which
+assets have flowed through (`OrderFilled.tokenIn`) and read `balanceOf`. That
+is what `fees:scan` does.
+
+Collection is `sweepAll(address[] tokens, bool includeEth, address to)`, which
+is `onlyOwner` and therefore a Safe transaction. It always moves the **full**
+balance of each listed asset; there is no amount parameter.
+
+Fees are swept to `OKU_FEE_RECIPIENT` (`util/safeConfig.ts`). It is a
+committed constant rather than a `--to` flag because a sweep is irreversible,
+so the destination belongs in a reviewable diff instead of being retyped into
+a shell each time. `--to` still exists for one-off recoveries.
+
+```bash
+# 1. See what is there. --rpc is needed when the configured endpoint
+#    restricts eth_getLogs (Alchemy caps it at 100 blocks on the public
+#    tier and 10 on the free tier, which makes discovery impossible).
+npx hardhat fees:scan --networks worldchain --rpc <logs-capable-endpoint>
+
+# 2. Build the bundle. Auto-discovers assets, drops zero balances, and pins
+#    an itemized manifest into the bundle for the signing page to render.
+npx hardhat safe:build --intent sweep --networks worldchain \
+  --name sweep-worldchain --rpc <logs-capable-endpoint>
+
+# 3. Rehearse against a fork of the real chain, impersonating the Safe.
+npm run test:fork-sweep
+
+# 4. Collect 2 of 3 signatures, then dry-run and broadcast.
+npm run sign-page
+npx hardhat safe:exec --name sweep-worldchain
+npx hardhat safe:exec --name sweep-worldchain --broadcast
+
+# 5. Confirm the router is drained.
+npx hardhat fees:scan --networks worldchain --rpc <logs-capable-endpoint>
+```
+
+`fees:scan` reports two totals and they are not interchangeable. **Notional**
+is spot price times balance. **Realizable** caps each asset at a fraction of
+its pool depth, because long-tail tokens routinely quote a real-looking price
+against a pool holding no quote liquidity. Decide on realizable.
+
+### Accounting artifacts
+
+`safe:exec` writes `safe-bundles/<name>/accounting/<network>.{json,md}` after a
+sweep, and `fees:account --tx <hash>` regenerates the same record from chain
+data alone. These are committed: they authorize nothing and are the durable
+record of where the money went.
+
+Amounts are derived from two independent sources and cross-checked: the
+`TokenWithdrawn`/`EthWithdrawn` events, and the recipient's measured balance
+delta. That redundancy is load-bearing — `sweepAll` emits the router's balance
+as read *before* the transfer, so a fee-on-transfer or rebasing token delivers
+less than the event claims. Any divergence is recorded per-asset as
+`deltaMatchesEvent: false` and surfaced in `reconciliation.discrepancies`
+rather than being averaged away.
+
+### Forking a chain Hardhat does not know
+
+`hardhat_reset` can change the fork URL but **not** the chainId, and Hardhat
+only ships hardfork-activation history for chains it recognises. Set
+`FORK_CHAIN_ID` to the real chainId when forking anything else; the config
+then reports that chainId and declares the chain post-Cancun, which is what
+`npm run test:fork-sweep` relies on. Default behaviour is unchanged.
 
 ### Runbook
 

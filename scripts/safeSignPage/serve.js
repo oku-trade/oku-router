@@ -23,7 +23,16 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { recoverAddress, getAddress, Signature } = require("ethers");
+let recoverAddress, getAddress, Signature;
+try {
+  ({ recoverAddress, getAddress, Signature } = require("ethers"));
+} catch {
+  console.error(
+    "\nDependencies are not installed. Run this first:\n\n  npm install\n",
+  );
+  process.exit(1);
+}
+const { readSidecars, bundleStatus, buildSignPage } = require("./buildPage");
 
 const ROOT = path.resolve(__dirname, "..", "..", "safe-bundles");
 const PORT = Number(process.env.PORT || 8547);
@@ -40,6 +49,84 @@ const TYPES = {
   ".svg": "image/svg+xml",
   ".txt": "text/plain; charset=utf-8",
 };
+
+/**
+ * Bring safe-bundles/ into the state a signer expects, at startup.
+ *
+ * This exists because `sign.html` is a generated artifact and therefore
+ * gitignored, which produced two failure modes for anyone but the author:
+ *
+ *   1. A `git pull` delivers a new bundle JSON but NOT its page, so the
+ *      server listed nothing for it and the signer had no link to open.
+ *   2. Deleting a stale page locally does not propagate, so a co-worker kept
+ *      being served an old, already-executed bundle -- 32 wasted device
+ *      confirmations if they had signed it, since those nonces are spent.
+ *
+ * So: generate a page for every bundle that still needs signatures, and
+ * remove pages that are complete or orphaned. Signature sidecars are never
+ * touched. The intended workflow is now: start the server, open the printed
+ * link, sign, send the file.
+ */
+function syncPages() {
+  const generated = [];
+  const removed = [];
+  const complete = [];
+  if (!fs.existsSync(ROOT)) return { generated, removed, complete, pages: [] };
+
+  const template = path.join(__dirname, "index.html");
+  const templateHtml = fs.existsSync(template)
+    ? fs.readFileSync(template, "utf8")
+    : null;
+
+  const bundles = fs
+    .readdirSync(ROOT)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => f.replace(/\.json$/, ""));
+
+  for (const name of bundles) {
+    let bundle;
+    try {
+      bundle = JSON.parse(fs.readFileSync(path.join(ROOT, `${name}.json`), "utf8"));
+      if (!bundle || !Array.isArray(bundle.chains) || !bundle.safe) continue;
+    } catch {
+      continue;
+    }
+    const pagePath = path.join(ROOT, name, "sign.html");
+    const status = bundleStatus(bundle, readSidecars(ROOT, name));
+
+    if (status.complete) {
+      // Nothing left to sign. Remove the page so it cannot be opened by
+      // mistake; keep the bundle and its sidecars.
+      if (fs.existsSync(pagePath)) {
+        fs.rmSync(pagePath);
+        removed.push(`${name} (all ${status.total} chain(s) already signed)`);
+      }
+      complete.push(name);
+      continue;
+    }
+    if (!templateHtml) continue;
+    fs.mkdirSync(path.join(ROOT, name), { recursive: true });
+    const html = buildSignPage(templateHtml, bundle, readSidecars(ROOT, name));
+    const existing = fs.existsSync(pagePath) ? fs.readFileSync(pagePath, "utf8") : null;
+    if (existing !== html) {
+      fs.writeFileSync(pagePath, html, "utf8");
+      generated.push(name);
+    }
+  }
+
+  // Orphaned pages: a directory with a sign.html but no matching bundle
+  // JSON, e.g. after a bundle was superseded and deleted upstream.
+  for (const entry of fs.readdirSync(ROOT, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const pagePath = path.join(ROOT, entry.name, "sign.html");
+    if (!fs.existsSync(pagePath)) continue;
+    if (bundles.includes(entry.name)) continue;
+    fs.rmSync(pagePath);
+    removed.push(`${entry.name} (no matching bundle -- superseded or deleted)`);
+  }
+
+  return { generated, removed, complete, pages: findSignPages() };
+}
 
 function findSignPages() {
   if (!fs.existsSync(ROOT)) return [];
@@ -64,48 +151,11 @@ function findSignPages() {
 function bundleSummary(name) {
   try {
     const b = JSON.parse(fs.readFileSync(path.join(ROOT, `${name}.json`), "utf8"));
-    const total = b.chains.length;
-
-    // safeTxHash -> set of owners who have signed it
-    const signers = new Map();
-    const dir = path.join(ROOT, name);
-    if (fs.existsSync(dir)) {
-      for (const f of fs.readdirSync(dir)) {
-        if (!/^signatures-0x[0-9a-fA-F]{40}\.json$/.test(f)) continue;
-        let arr = [];
-        try {
-          arr = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
-        } catch {
-          continue;
-        }
-        if (!Array.isArray(arr)) continue;
-        for (const e of arr) {
-          if (!e || !e.safeTxHash || !e.signer) continue;
-          const k = String(e.safeTxHash).toLowerCase();
-          if (!signers.has(k)) signers.set(k, new Set());
-          signers.get(k).add(String(e.signer).toLowerCase());
-        }
-      }
-    }
-
-    // Count legacy in-bundle signatures too, for bundles predating the split.
-    for (const c of b.chains) {
-      const k = String(c.safeTxHash).toLowerCase();
-      for (const s of c.signatures || []) {
-        if (!signers.has(k)) signers.set(k, new Set());
-        signers.get(k).add(String(s.signer).toLowerCase());
-      }
-    }
-
-    let sigs = 0;
-    let ready = 0;
-    for (const c of b.chains) {
-      const n = (signers.get(String(c.safeTxHash).toLowerCase()) || new Set()).size;
-      sigs += n;
-      if (n >= b.threshold) ready++;
-    }
-    const done = ready === total && total > 0 ? "  [all signed]" : "";
-    return `${total} chain(s), ${sigs} signature(s) collected, ${ready}/${total} ready to execute${done}`;
+    const s = bundleStatus(b, readSidecars(ROOT, name));
+    return (
+      `${s.total} chain(s), ${s.sigs} signature(s) collected, ` +
+      `${s.ready}/${s.total} ready to execute`
+    );
   } catch {
     return null;
   }
@@ -334,7 +384,11 @@ server.on("error", (e) => {
 });
 
 server.listen(PORT, HOST, () => {
-  const pages = findSignPages();
+  // Generate pages for anything that still needs signing and remove pages
+  // that are complete or orphaned, so the links printed below are exactly
+  // the work outstanding -- nothing stale, nothing missing.
+  const sync = syncPages();
+  const pages = sync.pages;
   const bar = "=".repeat(72);
   console.log(`\n${bar}`);
   console.log("Safe batch signing page");
@@ -342,10 +396,21 @@ server.listen(PORT, HOST, () => {
   console.log(`serving   ${ROOT}`);
   console.log(`bound to  http://${HOST}:${PORT}  (loopback only -- not exposed to your LAN)`);
 
+  if (sync.generated.length) {
+    console.log(`\nprepared  ${sync.generated.join(", ")}`);
+  }
+  for (const r of sync.removed) {
+    console.log(`removed   ${r}`);
+  }
+  if (sync.complete.length) {
+    console.log(`complete  ${sync.complete.join(", ")}  (nothing left to sign)`);
+  }
+
   if (pages.length === 0) {
-    console.log(`\nNo generated signing page found under safe-bundles/*/sign.html.`);
-    console.log(`Generate one first:`);
-    console.log(`  npx hardhat safe:sign-page --name <bundle>\n`);
+    console.log(`\nNothing to sign -- every bundle in safe-bundles/ is already at`);
+    console.log(`its signature threshold, or there are no bundles yet.`);
+    console.log(`\nIf you expected work here, pull the latest bundle first:`);
+    console.log(`  git pull oku master\n`);
   } else {
     console.log(`\nOpen:`);
     for (const name of pages) {
