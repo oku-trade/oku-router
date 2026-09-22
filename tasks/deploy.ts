@@ -30,7 +30,7 @@ const gfxOwner = "0x00a0bB9dfD2db3a6E447147426aB2D1B5Ac356d5";
  * cross-chain address we have to deploy with the same `owner` everywhere
  * (currently: the deployer EOA, with ownership transferred post-deploy).
  */
-export async function predictOkuRouterAddress(
+async function predictOkuRouterAddress(
   hre: HardhatRuntimeEnvironment,
   owner: string,
   permit2Address: string,
@@ -75,7 +75,7 @@ export async function predictOkuRouterAddress(
  * errors). This is exported so both the live `deploy` task and local-fork
  * test scripts exercise identical whitelist-registration logic and logging.
  */
-export async function registerSwapTargets(
+async function registerSwapTargets(
   hre: HardhatRuntimeEnvironment,
   contract: OkuRouter,
   targets: readonly SwapTarget[],
@@ -132,7 +132,7 @@ export async function registerSwapTargets(
   return { alreadyRegistered, newlyRegistered: targetsToAdd };
 }
 
-export async function deployDeterministic(
+async function deployDeterministic(
   hre: HardhatRuntimeEnvironment,
   signer: Signer,
   owner: string,

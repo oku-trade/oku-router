@@ -30,9 +30,12 @@ import { OkuRouter__factory } from "../typechain-types";
 import { NATIVE_SENTINEL, priceAssets, type FeeAsset } from "../util/feeScan";
 import {
   buildReport,
+  ledgerEntryFor,
   renderMarkdown,
   type AccountingAsset,
   type AccountingMode,
+  type AccountingReport,
+  type LedgerEntry,
 } from "../util/feeAccounting";
 
 const ERC20 = new Interface([
@@ -42,6 +45,7 @@ const ERC20 = new Interface([
 ]);
 
 const BUNDLE_DIR = path.resolve(__dirname, "..", "safe-bundles");
+const REPORTS_DIR = path.resolve(__dirname, "..", "fee-reports");
 
 /** Atomic write, matching the convention used by the deployments registry. */
 export function writeAtomic(file: string, contents: string): void {
@@ -262,19 +266,233 @@ export async function accountForSweepTx(opts: {
   });
 }
 
-/** Write both artifacts and return their paths. */
-export function writeAccounting(
-  bundleName: string,
-  network: string,
-  report: ReturnType<typeof buildReport>,
-): { json: string; md: string } {
-  const dir = path.join(BUNDLE_DIR, bundleName, "accounting");
-  const json = path.join(dir, `${network}.json`);
-  const md = path.join(dir, `${network}.md`);
+/**
+ * Write a sweep's artifacts and fold it into the ledger.
+ *
+ * Layout (see README "Fee collection"):
+ *
+ *   fee-reports/data/<YYYY-MM-DD>/<network>-<txprefix>.json   machine-readable
+ *   fee-reports/reports/<YYYY-MM-DD>/<network>.md             human-readable
+ *   fee-reports/reports/<YYYY-MM-DD>/SUMMARY.md               cross-chain roll-up
+ *   fee-reports/ledger.json                                   append-only index
+ *   fee-reports/simulations/...                               fork rehearsals (gitignored)
+ *
+ * Three properties are deliberate:
+ *   - The date comes from the BLOCK timestamp, so a regenerated report cannot
+ *     drift into the wrong bucket.
+ *   - The JSON filename carries a tx-hash prefix, so a second sweep of the
+ *     same chain on the same day can never silently overwrite the first.
+ *     An accounting record that can be clobbered is not a record.
+ *   - Human and machine artifacts live in separate trees, so `data/` can be
+ *     consumed programmatically without filtering prose out of it.
+ *
+ * Simulations are diverted to their own gitignored tree: they are rehearsals,
+ * not financial events, and must never contaminate the ledger.
+ */
+export function writeAccounting(report: ReturnType<typeof buildReport>): {
+  json: string;
+  md: string;
+} {
+  const sim = report.mode === "fork-simulation";
+  const txPrefix = report.execution.txHash.split(",")[0].slice(2, 10);
+
+  if (sim) {
+    const dir = path.join(REPORTS_DIR, "simulations", report.date);
+    const json = path.join(dir, `${report.network}-${txPrefix}.json`);
+    const md = path.join(dir, `${report.network}-${txPrefix}.md`);
+    writeAtomic(json, `${JSON.stringify(report, null, 2)}\n`);
+    writeAtomic(md, renderMarkdown(report));
+    return { json, md };
+  }
+
+  const json = path.join(REPORTS_DIR, "data", report.date, `${report.network}-${txPrefix}.json`);
+  const md = path.join(REPORTS_DIR, "reports", report.date, `${report.network}.md`);
   writeAtomic(json, `${JSON.stringify(report, null, 2)}\n`);
   writeAtomic(md, renderMarkdown(report));
+
+  appendLedger(ledgerEntryFor(report, path.relative(REPORTS_DIR, json)));
+  writeDateSummary(report.date);
   return { json, md };
 }
+
+/**
+ * Merge one entry into the ledger, keyed by (txHash, network) so re-running
+ * `fees:account` on the same transaction updates rather than duplicates.
+ */
+export function appendLedger(entry: LedgerEntry): void {
+  const file = path.join(REPORTS_DIR, "ledger.json");
+  let entries: LedgerEntry[] = [];
+  if (fs.existsSync(file)) {
+    try {
+      entries = JSON.parse(fs.readFileSync(file, "utf8")) as LedgerEntry[];
+    } catch {
+      // A corrupt ledger must not block recording a sweep that already
+      // happened; it is rebuildable from data/ via `fees:report --rebuild`.
+      entries = [];
+    }
+  }
+  const idx = entries.findIndex(
+    (e) => e.txHash === entry.txHash && e.network === entry.network,
+  );
+  if (idx >= 0) entries[idx] = entry;
+  else entries.push(entry);
+  entries.sort((a, b) => (a.date === b.date ? a.network.localeCompare(b.network) : a.date.localeCompare(b.date)));
+  writeAtomic(file, `${JSON.stringify(entries, null, 2)}\n`);
+}
+
+/** Read every machine-readable record under data/. */
+export function readAllReports(): AccountingReport[] {
+  const dataDir = path.join(REPORTS_DIR, "data");
+  if (!fs.existsSync(dataDir)) return [];
+  const out: AccountingReport[] = [];
+  for (const day of fs.readdirSync(dataDir)) {
+    const dir = path.join(dataDir, day);
+    if (!fs.statSync(dir).isDirectory()) continue;
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith(".json")) continue;
+      try {
+        out.push(JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) as AccountingReport);
+      } catch {
+        // skip unreadable record rather than abort the whole roll-up
+      }
+    }
+  }
+  return out;
+}
+
+function usd(n: number | undefined): string {
+  return typeof n === "number" && isFinite(n) ? `$${n.toFixed(2)}` : "—";
+}
+
+/** Regenerate the cross-chain SUMMARY.md for one sweep date. */
+export function writeDateSummary(date: string): string | null {
+  const reports = readAllReports().filter((r) => r.date === date);
+  if (reports.length === 0) return null;
+  reports.sort((a, b) => b.totals.usdRealizable - a.totals.usdRealizable);
+
+  const notional = reports.reduce((s, r) => s + r.totals.usdNotional, 0);
+  const realizable = reports.reduce((s, r) => s + r.totals.usdRealizable, 0);
+  const gasUsd = reports.reduce((s, r) => s + (r.execution.gasCostUsd ?? 0), 0);
+  const assets = reports.reduce((s, r) => s + r.totals.assetCount, 0);
+  const unreconciled = reports.filter(
+    (r) => !r.reconciliation.allRouterBalancesZero || !r.reconciliation.eventsMatchBalanceDeltas,
+  );
+
+  const L: string[] = [];
+  L.push(`# Fee collection — ${date} (${reports[0].isoWeek})`);
+  L.push("");
+  L.push(`| | |`);
+  L.push(`|---|---|`);
+  L.push(`| Chains swept | ${reports.length} |`);
+  L.push(`| Assets moved | ${assets} |`);
+  L.push(`| Notional | ${usd(notional)} |`);
+  L.push(`| **Realizable** | **${usd(realizable)}** |`);
+  L.push(`| Gas spent | ${usd(gasUsd)} |`);
+  L.push(`| Fully reconciled | ${unreconciled.length === 0 ? "yes" : `NO — ${unreconciled.length} chain(s)`} |`);
+  L.push("");
+  L.push("| Chain | Assets | Notional | Realizable | Gas | Tx |");
+  L.push("|---|---:|---:|---:|---:|---|");
+  for (const r of reports) {
+    L.push(
+      `| [${r.network}](./${r.network}.md) | ${r.totals.assetCount} | ${usd(r.totals.usdNotional)} ` +
+        `| ${usd(r.totals.usdRealizable)} | ${usd(r.execution.gasCostUsd)} | \`${r.execution.txHash.slice(0, 12)}…\` |`,
+    );
+  }
+  L.push("");
+  if (unreconciled.length) {
+    L.push("## Needs attention");
+    L.push("");
+    for (const r of unreconciled) {
+      if (!r.reconciliation.allRouterBalancesZero) {
+        L.push(`- **${r.network}**: router still holds ${r.reconciliation.residuals.length} asset(s)`);
+      }
+      for (const d of r.reconciliation.discrepancies) L.push(`- **${r.network}**: ${d}`);
+    }
+    L.push("");
+  }
+  L.push(
+    "Realizable caps each asset at a fraction of its pool depth; notional does not. " +
+      "Use realizable.",
+  );
+  L.push("");
+
+  const file = path.join(REPORTS_DIR, "reports", date, "SUMMARY.md");
+  writeAtomic(file, L.join("\n"));
+  return file;
+}
+
+task("fees:report", "Roll up fee collection across dates, weeks or chains")
+  .addOptionalParam("since", "Inclusive start date, YYYY-MM-DD")
+  .addOptionalParam("until", "Inclusive end date, YYYY-MM-DD")
+  .addOptionalParam("week", "ISO week, e.g. 2026-W38")
+  .addOptionalParam("networkName", "Restrict to one chain")
+  .addFlag("rebuild", "Regenerate ledger.json and every SUMMARY.md from data/")
+  .setAction(async (args) => {
+    let reports = readAllReports();
+
+    if (args.rebuild) {
+      // data/ is the source of truth; ledger.json and the summaries are
+      // derived, so they can always be reconstructed from it.
+      const ledgerFile = path.join(REPORTS_DIR, "ledger.json");
+      if (fs.existsSync(ledgerFile)) fs.rmSync(ledgerFile);
+      const days = new Set<string>();
+      for (const r of reports) {
+        const txPrefix = r.execution.txHash.split(",")[0].slice(2, 10);
+        appendLedger(
+          ledgerEntryFor(r, path.join("data", r.date, `${r.network}-${txPrefix}.json`)),
+        );
+        days.add(r.date);
+      }
+      for (const d of days) writeDateSummary(d);
+      console.log(`Rebuilt ledger.json (${reports.length} record(s)) and ${days.size} SUMMARY.md file(s).`);
+      return;
+    }
+
+    if (args.week) reports = reports.filter((r) => r.isoWeek === String(args.week));
+    if (args.since) reports = reports.filter((r) => r.date >= String(args.since));
+    if (args.until) reports = reports.filter((r) => r.date <= String(args.until));
+    if (args.networkName) reports = reports.filter((r) => r.network === String(args.networkName));
+
+    if (reports.length === 0) {
+      console.log("No sweep records match that filter.");
+      return;
+    }
+    reports.sort((a, b) => (a.date === b.date ? a.network.localeCompare(b.network) : a.date.localeCompare(b.date)));
+
+    const notional = reports.reduce((s, r) => s + r.totals.usdNotional, 0);
+    const realizable = reports.reduce((s, r) => s + r.totals.usdRealizable, 0);
+    const gas = reports.reduce((s, r) => s + (r.execution.gasCostUsd ?? 0), 0);
+    const assets = reports.reduce((s, r) => s + r.totals.assetCount, 0);
+    const bad = reports.filter(
+      (r) => !r.reconciliation.allRouterBalancesZero || !r.reconciliation.eventsMatchBalanceDeltas,
+    );
+
+    console.log("");
+    console.log(`${"date".padEnd(12)}${"week".padEnd(10)}${"chain".padEnd(13)}${"assets".padStart(7)}${"notional".padStart(12)}${"realizable".padStart(12)}${"gas".padStart(9)}`);
+    console.log("-".repeat(75));
+    for (const r of reports) {
+      console.log(
+        r.date.padEnd(12) +
+          r.isoWeek.padEnd(10) +
+          r.network.padEnd(13) +
+          String(r.totals.assetCount).padStart(7) +
+          usd(r.totals.usdNotional).padStart(12) +
+          usd(r.totals.usdRealizable).padStart(12) +
+          usd(r.execution.gasCostUsd).padStart(9),
+      );
+    }
+    console.log("-".repeat(75));
+    console.log(
+      `${reports.length} sweep(s), ${assets} asset(s):  notional ${usd(notional)}   ` +
+        `realizable ${usd(realizable)}   gas ${usd(gas)}`,
+    );
+    if (bad.length) {
+      console.log(`\n${bad.length} sweep(s) did NOT fully reconcile:`);
+      for (const r of bad) console.log(`  ${r.date} ${r.network}  tx ${r.execution.txHash.slice(0, 18)}…`);
+      process.exitCode = 1;
+    }
+    console.log("");
+  });
 
 task("fees:account", "Build the accounting record for an executed fee sweep")
   .addParam("tx", "Transaction hash of the executed sweep")
@@ -346,7 +564,7 @@ task("fees:account", "Build the accounting record for an executed fee sweep")
         signers,
       });
 
-      const { json, md } = writeAccounting(bundleName, network, report);
+      const { json, md } = writeAccounting(report);
       console.log(renderMarkdown(report));
       console.log(`\nWritten:\n  ${json}\n  ${md}`);
 

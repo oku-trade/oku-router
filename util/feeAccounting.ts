@@ -25,6 +25,79 @@ import { formatUnits } from "ethers";
 
 export type AccountingMode = "execution" | "fork-simulation";
 
+/**
+ * UTC date key (YYYY-MM-DD) for a unix timestamp.
+ *
+ * Derived from the BLOCK timestamp, never from the wall clock, so
+ * regenerating a report months later cannot relabel when the funds actually
+ * moved.
+ */
+export function dateKey(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * ISO-8601 week label (e.g. "2026-W38") for a unix timestamp.
+ *
+ * Stored alongside the date in the ledger so weekly and quarterly roll-ups
+ * are a filter over records rather than a directory-naming convention. That
+ * matters because sweeps will not always land on the intended cadence, and a
+ * week-named directory would then either lie or force a judgement call about
+ * which bucket an off-schedule sweep belongs in.
+ */
+export function isoWeek(unixSeconds: number): string {
+  const d = new Date(unixSeconds * 1000);
+  // Shift to Thursday of the same ISO week: ISO weeks are numbered by the
+  // year that owns their Thursday, which is what makes year boundaries work.
+  const target = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = (target.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  target.setUTCDate(target.getUTCDate() - day + 3);
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
+  const firstDay = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDay + 3);
+  const week = 1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 86400000));
+  return `${target.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+/** One row of the append-only sweep ledger. */
+export interface LedgerEntry {
+  date: string;
+  isoWeek: string;
+  network: string;
+  chainId: number;
+  txHash: string;
+  blockNumber: number;
+  recipient: string;
+  assetCount: number;
+  usdNotional: number;
+  usdRealizable: number;
+  gasCostNative: string;
+  gasCostUsd?: number;
+  reconciled: boolean;
+  dataFile: string;
+}
+
+/** Project a report into its ledger row. */
+export function ledgerEntryFor(r: AccountingReport, dataFile: string): LedgerEntry {
+  return {
+    date: r.date,
+    isoWeek: r.isoWeek,
+    network: r.network,
+    chainId: r.chainId,
+    txHash: r.execution.txHash,
+    blockNumber: r.execution.blockNumber,
+    recipient: r.recipient,
+    assetCount: r.totals.assetCount,
+    usdNotional: r.totals.usdNotional,
+    usdRealizable: r.totals.usdRealizable,
+    gasCostNative: r.execution.gasCostNative,
+    gasCostUsd: r.execution.gasCostUsd,
+    reconciled:
+      r.reconciliation.allRouterBalancesZero && r.reconciliation.eventsMatchBalanceDeltas,
+    dataFile,
+  };
+}
+
 export interface AccountingAsset {
   /** ERC20 address, or "native". */
   token: string;
@@ -79,6 +152,10 @@ export interface AccountingReport {
   router: string;
   safe: string;
   recipient: string;
+  /** UTC date the sweep executed (YYYY-MM-DD), from the block timestamp. */
+  date: string;
+  /** ISO-8601 week the sweep executed, for cadence roll-ups. */
+  isoWeek: string;
   generatedAt: string;
   execution: AccountingExecution;
   assets: AccountingAsset[];
@@ -147,6 +224,12 @@ export function buildReport(input: BuildReportInput): AccountingReport {
     usdRealizable += a.realizableUsd ?? 0;
   }
 
+  // Anchor the record to the block, not the clock.
+  const executedAt = Date.parse(input.execution.blockTimestamp);
+  const unix = Number.isFinite(executedAt)
+    ? Math.floor(executedAt / 1000)
+    : Math.floor(Date.now() / 1000);
+
   return {
     kind: "oku-fee-sweep",
     schemaVersion: 1,
@@ -157,6 +240,8 @@ export function buildReport(input: BuildReportInput): AccountingReport {
     router: input.router,
     safe: input.safe,
     recipient: input.recipient,
+    date: dateKey(unix),
+    isoWeek: isoWeek(unix),
     generatedAt: new Date().toISOString(),
     execution: input.execution,
     assets: input.assets,
@@ -200,6 +285,7 @@ export function renderMarkdown(r: AccountingReport): string {
   }
   L.push(`| | |`);
   L.push(`|---|---|`);
+  L.push(`| Date | ${r.date} (${r.isoWeek}) |`);
   L.push(`| Network | ${r.network} (chainId ${r.chainId}) |`);
   if (r.bundle) L.push(`| Bundle | \`${r.bundle}\` |`);
   L.push(`| Router | \`${r.router}\` |`);

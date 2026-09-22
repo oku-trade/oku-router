@@ -116,9 +116,13 @@
   .recipient { font-size: 16px; word-break: break-all; color: #f0c674;
                background: #0f1115; border: 1px solid #4a3a1a; border-radius: 6px;
                padding: 10px; margin: 10px 0; }
+  .sweepTotal { font-size: 22px; font-weight: 600; color: #f0c674; }
+  .sweepTotalLabel { color: #8a8f98; font-size: 12px; margin-top: 2px; }
   .assets { max-height: 320px; overflow: auto; margin-top: 10px; }
   .assets table { margin-top: 0; }
   .num { text-align: right; }
+  .chainTotal td { border-top: 1px solid #3a3f4a; font-weight: 600;
+                    color: #f0c674; border-bottom: none; }
   #log { white-space: pre-wrap; max-height: 220px; overflow: auto;
          background: #0f1115; border: 1px solid #262b33; border-radius: 6px;
          padding: 10px; font-size: 12px; margin-top: 12px; }
@@ -163,9 +167,18 @@
 <div class="card danger" id="sweepPanel" hidden>
   <h2>This transaction moves funds</h2>
   <div class="sub" id="sweepSummary"></div>
-  <div>Everything below leaves the router and is sent to:</div>
+  <div class="sweepTotal" id="sweepGrandTotal"></div>
+  <div class="sweepTotalLabel">estimated total, all chains combined, at current prices</div>
+  <div style="margin-top:10px">Everything below leaves the router and is sent to:</div>
   <div class="recipient mono" id="sweepRecipient"></div>
   <div class="dim" id="sweepNote"></div>
+  <div class="dim" id="sweepAmountsNote">
+    The amounts below are an estimate taken when the bundle was built, and they are
+    <b>not part of the transaction</b>. <span class="mono">sweepAll</span> is given a
+    token list only: it moves the <b>entire balance</b> of each token at execution time,
+    whatever that balance turns out to be. Treat the figures as an indication of scale,
+    not a limit. What you are approving is "send every listed asset to the address above".
+  </div>
   <div class="assets" id="sweepAssets"></div>
 </div>
 
@@ -261,15 +274,22 @@ function renderSweepPanel() {
     if (recipients.indexOf(c.sweep.recipient) === -1) recipients.push(c.sweep.recipient);
   });
 
-  var totalAssets = 0, notional = 0;
+  // Simple USD totals only -- sum of usdValue, no pool-depth/liquidity
+  // capping. That distinction matters elsewhere (deciding whether a chain is
+  // worth sweeping), but here it is just an estimate of scale for the signer,
+  // and the extra caveat would only add noise.
+  var totalAssets = 0, grandTotal = 0, anyPriced = false;
   chains.forEach(function (c) {
-    totalAssets += (c.sweep.assets || []).length;
-    if (typeof c.sweep.usdNotional === "number") notional += c.sweep.usdNotional;
+    var assets = c.sweep.assets || [];
+    totalAssets += assets.length;
+    assets.forEach(function (a) {
+      if (typeof a.usdValue === "number") { grandTotal += a.usdValue; anyPriced = true; }
+    });
   });
 
   el("sweepSummary").textContent =
-    totalAssets + " asset(s) across " + chains.length + " chain(s)" +
-    (notional > 0 ? ", roughly " + fmtUsd(notional) + " at current prices" : "");
+    totalAssets + " asset(s) across " + chains.length + " chain(s)";
+  el("sweepGrandTotal").textContent = anyPriced ? fmtUsd(grandTotal) : "— (no priced assets)";
 
   // More than one recipient in a single bundle is not a normal sweep; make it
   // impossible to miss rather than rendering only the first.
@@ -284,18 +304,27 @@ function renderSweepPanel() {
 
   var html = "";
   chains.forEach(function (c) {
+    var assets = c.sweep.assets || [];
+    var chainTotal = 0, chainAnyPriced = false;
+    assets.forEach(function (a) {
+      if (typeof a.usdValue === "number") { chainTotal += a.usdValue; chainAnyPriced = true; }
+    });
+
     html += '<div class="dim" style="margin-top:8px">' + esc(c.network) +
             " (chainId " + c.chainId + ")" +
-            (c.sweep.includeEth ? " — includes the native balance" : "") + "</div>";
+            (c.sweep.includeEth ? " — includes the native balance" : "") +
+            " — " + (chainAnyPriced ? fmtUsd(chainTotal) : "unpriced") + "</div>";
     html += "<table><thead><tr><th>asset</th><th>amount</th><th>usd</th>" +
             "<th>contract</th></tr></thead><tbody>";
-    (c.sweep.assets || []).forEach(function (a) {
+    assets.forEach(function (a) {
       html += "<tr><td>" + esc(a.symbol) + "</td>" +
               '<td class="num mono">' + esc(a.amount) + "</td>" +
               '<td class="num">' + fmtUsd(a.usdValue) + "</td>" +
               '<td class="mono dim">' +
                 (a.token === "native" ? "(native)" : esc(a.token)) + "</td></tr>";
     });
+    html += '<tr class="chainTotal"><td colspan="2">chain total</td>' +
+            '<td class="num">' + (chainAnyPriced ? fmtUsd(chainTotal) : "—") + "</td><td></td></tr>";
     html += "</tbody></table>";
   });
   el("sweepAssets").innerHTML = html;

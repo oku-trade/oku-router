@@ -1,0 +1,18 @@
+[
+  {
+    "date": "2026-09-15",
+    "isoWeek": "2026-W38",
+    "network": "worldchain",
+    "chainId": 480,
+    "txHash": "0x339173ed9518534c96dc438a64bd055ea998c91ad8103acb2d96f946d500e54e",
+    "blockNumber": 35082737,
+    "recipient": "0xd637f2A36c1a3b37d57ef4C7022cB183D8922f2c",
+    "assetCount": 33,
+    "usdNotional": 549.234876781528,
+    "usdRealizable": 425.507591484403,
+    "gasCostNative": "0.0000020550165",
+    "gasCostUsd": 0.004933653388017318,
+    "reconciled": true,
+    "dataFile": "data/2026-09-15/worldchain-339173ed.json"
+  }
+]

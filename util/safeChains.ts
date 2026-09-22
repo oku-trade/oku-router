@@ -21,6 +21,12 @@ export interface SafeChain {
   network: string;
   chainId: number;
   rpcUrl: string;
+  /**
+   * Endpoint to use for eth_getLogs-heavy work (fee asset discovery), from
+   * `<NET>_LOGS_URL`. Undefined when no override is set, in which case
+   * callers fall back to `rpcUrl`.
+   */
+  logsRpcUrl?: string;
   /** Live OkuRouter address from the registry, if deployed. */
   router?: string;
   /** `owner` field recorded in the registry (not a live read). */
@@ -29,6 +35,38 @@ export interface SafeChain {
   recordedSafe?: string;
   /** Raw hardhat network config, for gas overrides. */
   netCfg: Record<string, unknown>;
+}
+
+/**
+ * Env var prefix for a hardhat network name.
+ *
+ * hardhat.config.ts uses the uppercased network name for every chain except
+ * `arbitrum`, which reads ARB_URL. Centralized here so the _LOGS_URL family
+ * cannot drift from the _URL family it shadows.
+ */
+export function envPrefix(network: string): string {
+  return network === "arbitrum" ? "ARB" : network.toUpperCase();
+}
+
+/** Name of the logs-endpoint override env var for a network, e.g. BASE_LOGS_URL. */
+export function logsEnvVar(network: string): string {
+  return `${envPrefix(network)}_LOGS_URL`;
+}
+
+/**
+ * Resolve the eth_getLogs endpoint for a chain.
+ *
+ * Most public endpoints cap eth_getLogs at 10-100 blocks, which makes
+ * long-tail fee asset discovery impossible on a chain with millions of
+ * blocks. `--rpc` covers one chain at a time; a 34-chain sweep needs a
+ * per-chain override, and env vars keep the (key-bearing) URLs out of git.
+ *
+ * Returns undefined when unset, so callers can report whether an override was
+ * actually in play rather than guessing.
+ */
+export function resolveLogsRpc(network: string): string | undefined {
+  const v = process.env[logsEnvVar(network)];
+  return v && v.trim() ? v.trim() : undefined;
 }
 
 /**
@@ -56,6 +94,7 @@ export function listSafeChains(
       network,
       chainId: Number(reg.chainId),
       rpcUrl: typeof netCfg.url === "string" ? netCfg.url : "",
+      logsRpcUrl: resolveLogsRpc(network),
       router: reg.current?.OkuRouter?.address,
       recordedOwner: reg.current?.OkuRouter?.owner,
       recordedSafe: reg.current?.Safe?.address,

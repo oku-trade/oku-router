@@ -174,8 +174,23 @@ check("sweep asset manifest is itemized",
   /sweepAssets/.test(codeBare) && /sweep\.assets/.test(codeBare));
 check("warns explicitly that the transaction moves funds",
   /This transaction moves funds/i.test(htmlBare));
+// sweepAll takes a token list and no amounts: it moves whatever balance exists
+// at execution time. The manifest is therefore an estimate that will be wrong
+// by the time anyone signs, and a signer who reads those figures as a cap has
+// misunderstood what they are approving. Saying so is not optional.
+check("states that the listed amounts are not part of the transaction",
+  /id="sweepAmountsNote"/.test(htmlBare) &&
+  /not part of the transaction/i.test(htmlBare) &&
+  /entire balance/i.test(htmlBare));
 check("flags a bundle that sweeps to more than one recipient",
   /recipients\.length\s*>\s*1/.test(codeBare));
+// A cross-chain USD total, up top, is the whole point of this change: a
+// signer approving 31 sweeps in one sitting should not have to add up 31
+// per-chain figures themselves to know the scale of what they are signing.
+check("shows a cross-chain USD total at the top of the sweep panel",
+  /id="sweepGrandTotal"/.test(htmlBare) && /sweepGrandTotal/.test(codeBare));
+check("shows a per-chain USD subtotal in the itemized report",
+  /chainTotal/.test(codeBare) && /class="chainTotal"/.test(codeBare));
 // HTML-escape everything interpolated from the bundle. The manifest carries
 // attacker-influencable strings (token symbols come from arbitrary ERC20
 // contracts), so an unescaped symbol would be an injection vector.

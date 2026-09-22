@@ -185,8 +185,9 @@ invalidates the on-chain verification of every live deployment (all 34 of them, 
 For this reason:
 
 - `npm run lint` runs **ESLint only**. There is deliberately no Prettier check on
-  `contracts/**/*.sol`, and no `prettier-sol` write script. 24 of the 25 `.sol`
-  files are not Prettier-formatted, and that is intentional and permanent.
+  `contracts/**/*.sol`, and no `prettier-sol` write script — Prettier is not even a
+  dependency. The `.sol` sources are not Prettier-formatted, and that is intentional
+  and permanent.
 - CI (`.github/workflows/main.yml`) is lint-only for the same reason.
 - If a genuine contract change is ever required, it must go through a
   `CONTRACT_VERSION` bump in `util/contractMeta.ts` and a full redeploy — see
@@ -240,23 +241,26 @@ so all chains share the same `OkuRouter` address for a given `(CONTRACT_NAME, CO
 Bumping the version invalidates the prior CREATE2 salt and produces a new deterministic address.
 
 1. Bump `CONTRACT_VERSION` in `util/contractMeta.ts`.
-2. (Pre-flight) Confirm cross-chain address parity:
+2. (Pre-flight) Confirm cross-chain address parity, and check it against what is
+   actually deployed:
    ```bash
-   npx hardhat predict-all --owner 0x<deployer>
+   npx hardhat predict-all --owner 0x<deployer> --verify
+   npx hardhat predict-all --contract permit2proxy --verify
    ```
-   Every supported chain should report the same predicted address.
-3. (Per chain) Predict + sanity-check the network you're about to deploy to:
-   ```bash
-   npx hardhat run scripts/predictAddress.ts --network <chain>
-   ```
-4. (Per chain) Deploy:
+   Chains do **not** all share one address. `permit2` is a constructor argument,
+   so any chain whose Permit2 is not the canonical
+   `0x000000000022D473030F116dDEE9F6B43aC78BA3` derives a different CREATE2
+   address. The task groups chains by predicted address so the real parity
+   picture is visible, and `--verify` diffs every prediction against
+   `deployments/*.json`.
+3. (Per chain) Deploy:
    ```bash
    npx hardhat deploy --network <chain> --deterministic
    ```
    This overwrites `current.OkuRouter` in `deployments/<chain>.json` with the new
    `{ address, version, owner }` entry; the previous entry is dropped (it's still in
    git history). Swap targets and the zero-address signer are re-registered idempotently.
-5. (World Chain only — the only chain that currently needs it) Deploy the Permit2Proxy:
+4. (World Chain only — the only chain that currently needs it) Deploy the Permit2Proxy:
    ```bash
    npx hardhat deploy-permit2-proxy --network worldchain
    ```
@@ -271,7 +275,7 @@ Bumping the version invalidates the prior CREATE2 salt and produces a new determ
    The proxy supports both `execute` (Permit2 SignatureTransfer) and `executeAllowance`
    (Permit2 AllowanceTransfer / MiniKit v2). One deployment serves Safe wallets and World App
    users. Do not add `Permit2Proxy` entries to other networks' deployment files.
-6. Transfer ownership to the production Safe (Ownable2Step, two senders):
+5. Transfer ownership to the production Safe (Ownable2Step, two senders):
    ```bash
    npx hardhat safe:handover --networks <chain> --broadcast   # transferOwnership, from deployer
    npx hardhat safe:build --intent accept-ownership           # acceptOwnership, from the Safe
@@ -280,6 +284,10 @@ Bumping the version invalidates the prior CREATE2 salt and produces a new determ
    npx hardhat safe:refresh-registry --networks <chain>
    ```
     See [Production multisig](#production-multisig-safe) for the full runbook.
+6. (Per chain) Verify on the block explorer:
+   ```bash
+   npx hardhat verify-deployments --networks <chain>
+   ```
 7. Commit the updated `deployments/<chain>.json` files.
 
 ## Swap-target whitelisting
@@ -290,9 +298,11 @@ mapping. The desired set is **derived from chain-config** — `marketRouters` in
 publishes a new aggregator router, the workflow is: bump the dependency, detect the gap,
 apply it, confirm.
 
-> A hardcoded backfill script (`scripts/whitelistMarketRouters.ts`) exists but is
-> **superseded** and kept only as a historical record. Do not extend it; hardcoded address
-> lists go stale the moment chain-config publishes again.
+> Hardcoded backfill scripts for this used to live in `scripts/`. They have been
+> removed: they stopped working the moment ownership moved to the Safe, and a
+> hardcoded address list goes stale as soon as chain-config publishes again.
+> Everything now flows through `safe:build --intent swap-targets`, which diffs
+> live on-chain state against chain-config. They remain in git history.
 
 ### 1. Detect — `yarn check:swap-targets` (chain-config repo)
 
@@ -457,8 +467,8 @@ npx hardhat safe:refresh-registry --networks robinhood
   reports `NOT_OWNER` on every handed-over chain — meaning it silently verifies *nothing*.
   Use `safe:build --intent swap-targets` instead, which diffs on-chain state and emits a
   bundle only where something is missing.
-- The same applies to `scripts/whitelistBackendSigner.ts` and
-  `scripts/whitelistUniswapRouters.ts`.
+- The equivalent EOA-era backfill scripts have been deleted for the same reason.
+  Use `safe:build --intent valid-signer` for the backend warrant signer.
 - Only the Safe can send bare ETH to a router (`receive()` requires `msg.sender == owner()`).
 - Every privileged action is now a 2-of-3 ceremony. Chain-config bumps that add new swap
   targets are best reconciled deliberately rather than discovered as drift later.
@@ -645,8 +655,10 @@ npx hardhat safe:exec         # relay execTransaction       (DRY RUN unless --br
 npx hardhat safe:status       # per-chain Safe + router ownership state
 npx hardhat safe:proposer     # register the hot wallet as a proposer (22 chains)
 npx hardhat safe:refresh-registry   # rewrite deployments/*.json from chain state
+npx hardhat fees:cycle        # scan all chains -> sweep bundle -> signing page
 npx hardhat fees:scan         # read-only: idle protocol fees per chain
 npx hardhat fees:account      # accounting artifact for an executed sweep
+npx hardhat fees:report       # roll up collections by date, week or chain
 ```
 
 Every mutating task is a **dry run by default** and requires `--broadcast`.
@@ -668,40 +680,198 @@ committed constant rather than a `--to` flag because a sweep is irreversible,
 so the destination belongs in a reviewable diff instead of being retyped into
 a shell each time. `--to` still exists for one-off recoveries.
 
+### Who runs what
+
+The scan is a **coordinator-only** step. Signers never run it.
+
+| Role | Runs | Needs |
+| --- | --- | --- |
+| Coordinator | `fees:cycle`, then `safe:exec` | RPC endpoints, relayer key, ~15 min |
+| Signer | `npm run sign-page`, then signs in the browser | the repo, `npm install`, a hardware wallet |
+
+`fees:cycle` decides which chains are in play and writes that into the bundle,
+which **is committed**. A signer pulls, runs `npm run sign-page`, and gets a
+page containing exactly the chains that hold fees — no RPC endpoints, no API
+keys, no `.env`, no scanning, no waiting. Chains that are empty are dropped
+before the bundle exists, so they never reach a signing device. Selection is
+by non-zero balance, not by value: a chain holding assets with no USD price
+still gets swept.
+
+`sign.html` is gitignored because it is regenerated from the bundle in a
+second; `npm run sign-page` rebuilds it, prunes pages for bundles that are
+already complete, and prints the URL for what is actually outstanding.
+
+### The regular cycle — `fees:cycle`
+
+One command covers assessing every chain, totalling what is collectable, and
+producing the signing page:
+
 ```bash
-# 1. See what is there. --rpc is needed when the configured endpoint
-#    restricts eth_getLogs (Alchemy caps it at 100 blocks on the public
-#    tier and 10 on the free tier, which makes discovery impossible).
+# Look first. Writes a snapshot + markdown report, builds nothing.
+npx hardhat fees:cycle --scan-only
+
+# Scan all 34 chains, build the sweep bundle from that exact scan, emit sign.html
+npx hardhat fees:cycle
+
+# Then: collect 2 of 3 signatures, dry-run, broadcast.
+npm run sign-page                                   # http://127.0.0.1:8547/<name>/sign.html
+npx hardhat safe:exec --name sweep-2026-09-22
+npx hardhat safe:exec --name sweep-2026-09-22 --broadcast
+```
+
+The scan and the build are a single pass on purpose. Discovery — working out
+which assets have ever flowed through each router — is the expensive part, and
+run separately the two steps pay for it twice. `fees:cycle` scans once and
+hands the result to `safe:build --from-scan`.
+
+What the bundle actually needs from the scan is the **token address list**.
+`sweepAll(address[] tokens, bool includeEth, address to)` takes no amounts: it
+reads `balanceOf` at execution time, moves the entire balance of each listed
+token, and silently skips any that are zero. Amounts and USD figures never
+enter the calldata. They exist for exactly two purposes — judging whether a
+chain is worth a ceremony, and itemizing the manifest signers see — and both
+tolerate being approximate. So the snapshot's valuations are reused as-is
+rather than re-derived at build time; they would be equally stale by the time
+anyone signs, and equally absent from the transaction either way.
+
+This is also why the signing page states plainly that the listed amounts are
+an estimate and that what is being approved is "send every listed asset to
+this address", not a specific quantity.
+
+It does **not** filter by value. `--min-usd` defaults to `0`, so every chain
+holding anything is built. Whether a chain is worth a 2-of-3 hardware ceremony
+is an operator judgement, and at 34 chains that decision is worth seeing rather
+than inheriting from a constant. The ranked table and the copy-pasteable
+`--networks` line make acting on it cheap:
+
+```bash
+npx hardhat fees:cycle --min-usd 25                          # apply a floor
+npx hardhat fees:cycle --networks base,arbitrum,worldchain   # or pick by hand
+```
+
+Useful flags: `--name` (bundle name, default `sweep-<date>`), `--scan-only`,
+`--no-cache`, `--no-eth`, `--max-requests`, `--concurrency`, `--force`.
+
+Rebuilding an existing bundle name is refused unless `--force`. A rebuild picks
+up fresh Safe nonces, which changes every `safeTxHash` and silently kills any
+signatures already collected.
+
+Chains that **could not be read** are reported separately from chains with
+nothing to collect, and set a non-zero exit code. Previously both simply
+vanished from the bundle, which on a 34-chain sweep is indistinguishable from
+a silent loss of collectable fees.
+
+### Log endpoints — `<NET>_LOGS_URL`
+
+Asset discovery walks `OrderFilled` history, and most public endpoints cap
+`eth_getLogs` at 10–100 blocks (Alchemy: 100 on the public tier, 10 on free),
+which makes long-tail discovery impossible. `--rpc` overrides one chain at a
+time; a multi-chain run needs a per-chain override:
+
+```bash
+WORLDCHAIN_LOGS_URL=https://...
+BASE_LOGS_URL=https://...
+```
+
+Same naming as the existing `<NET>_URL` family, including the `arbitrum` →
+`ARB_LOGS_URL` deviation. Unset chains fall back to their normal RPC. These
+URLs carry API keys, so they live in `.env` and are never written into a
+snapshot — only a boolean `usedLogsRpc` is recorded.
+
+### Discovery cache
+
+Discovery is the expensive half of a scan, and re-walking full history on
+every run across 34 chains is the difference between minutes and hours. The
+scan therefore resumes from a local cache in `.cache/fee-assets/<network>.json`
+(gitignored, derived state).
+
+Only the **set of token addresses** ever observed is cached — never balances,
+which are re-read live every time. That is what makes it safe: a stale cache
+can omit a newly-traded asset, which the next run picks up; it can never
+produce a wrong amount.
+
+Each run spends its budget scanning forward from the resume point, then uses
+whatever is left to extend coverage *backward*, so a chain converges to full
+history over repeated runs instead of being re-decided by whichever endpoint
+answered today. A refused log window does **not** advance the resume point:
+recording the chain head after a mid-scan refusal would skip those blocks on
+every future run, and an asset first traded inside the hole would be
+permanently invisible. The hole is re-scanned instead.
+
+The cache is invalidated automatically when the router address changes
+(redeployment) or when the stored resume point is ahead of the chain head
+(wrong endpoint). `--no-cache` re-walks history from scratch but still retains
+known addresses: that an address once took a fee is an append-only fact, and
+dropping it would let a budget-limited re-scan quietly shrink the asset list.
+
+### Single chain
+
+```bash
+# read-only, any single chain
 npx hardhat fees:scan --networks worldchain --rpc <logs-capable-endpoint>
 
-# 2. Build the bundle. Auto-discovers assets, drops zero balances, and pins
-#    an itemized manifest into the bundle for the signing page to render.
+# build by hand, without a cycle snapshot
 npx hardhat safe:build --intent sweep --networks worldchain \
   --name sweep-worldchain --rpc <logs-capable-endpoint>
 
-# 3. Rehearse against a fork of the real chain, impersonating the Safe.
+# rehearse against a fork of the real chain, impersonating the Safe
 npm run test:fork-sweep
-
-# 4. Collect 2 of 3 signatures, then dry-run and broadcast.
-npm run sign-page
-npx hardhat safe:exec --name sweep-worldchain
-npx hardhat safe:exec --name sweep-worldchain --broadcast
-
-# 5. Confirm the router is drained.
-npx hardhat fees:scan --networks worldchain --rpc <logs-capable-endpoint>
 ```
 
-`fees:scan` reports two totals and they are not interchangeable. **Notional**
-is spot price times balance. **Realizable** caps each asset at a fraction of
-its pool depth, because long-tail tokens routinely quote a real-looking price
-against a pool holding no quote liquidity. Decide on realizable.
+`fees:scan --json <path>` writes the same snapshot format `fees:cycle`
+produces, so it can be fed straight to `safe:build --from-scan <path>`.
+
+`fees:scan` and `fees:cycle` report two totals and they are not
+interchangeable. **Notional** is spot price times balance. **Realizable** caps
+each asset at a fraction of its pool depth, because long-tail tokens routinely
+quote a real-looking price against a pool holding no quote liquidity. Decide on
+realizable.
 
 ### Accounting artifacts
 
-`safe:exec` writes `safe-bundles/<name>/accounting/<network>.{json,md}` after a
-sweep, and `fees:account --tx <hash>` regenerates the same record from chain
-data alone. These are committed: they authorize nothing and are the durable
-record of where the money went.
+`safe:exec` writes the record automatically after a sweep, and
+`fees:account --tx <hash>` regenerates it from chain data alone. Layout:
+
+```
+fee-reports/
+├── data/2026-09-15/worldchain-339173ed.json   machine-readable
+├── reports/2026-09-15/worldchain.md           human-readable
+├── reports/2026-09-15/SUMMARY.md              cross-chain roll-up for that date
+├── ledger.json                                append-only index of every sweep
+├── simulations/                               fork rehearsals (gitignored)
+└── scans/2026-09-22/17-05-49.{json,md}        pre-sweep snapshots (gitignored)
+```
+
+Only what was actually collected is committed. A pre-sweep scan describes money
+that merely *exists*, priced off spot pool state, and it is stale the moment the
+next swap lands — the same reason fork rehearsals are excluded. The bundle
+records which snapshot it was built from in `params.scanRef`.
+
+Human and machine artifacts are separate trees so `data/` can be consumed
+programmatically without filtering prose out of it. The date comes from the
+**block timestamp**, not the clock, so regenerating a report cannot move it
+into the wrong bucket. The JSON filename carries a tx-hash prefix, so a second
+sweep of the same chain on the same day cannot overwrite the first — a record
+that can be clobbered is not a record.
+
+`ledger.json` and every `SUMMARY.md` are **derived** from `data/`; never edit
+them by hand. `fees:report --rebuild` reconstructs both.
+
+Weekly cadence is a filter, not a directory convention — sweeps will not always
+land on schedule, and a week-named folder would then either lie or force a
+judgement call about which bucket an off-schedule sweep belongs in:
+
+```bash
+npx hardhat fees:report                          # everything
+npx hardhat fees:report --week 2026-W38          # one ISO week
+npx hardhat fees:report --since 2026-07-01 --until 2026-09-30
+npx hardhat fees:report --network-name worldchain
+npx hardhat fees:report --rebuild                # regenerate ledger + summaries
+```
+
+Simulations are diverted to their own gitignored tree. They are rehearsals
+describing money that never moved, and letting them sit beside real records
+invites someone to read one as an actual collection.
 
 Amounts are derived from two independent sources and cross-checked: the
 `TokenWithdrawn`/`EthWithdrawn` events, and the recipient's measured balance
@@ -807,8 +977,10 @@ npx hardhat safe:exec --name <bundle> --broadcast
 real owner, checks the live Safe nonce hasn't advanced (stale signatures), and simulates
 the full `execTransaction` before spending gas.
 
-> `safe-bundles/` is gitignored. A bundle carrying `threshold` signatures is a bearer
-> authorization — anyone holding it can execute it.
+> The bundle definition **is** committed — it authorizes nothing on its own and is the
+> record of exactly what was proposed. **Signatures are not.** They live in gitignored
+> per-signer sidecars (`signatures-0x<addr>.json`), because a set of `threshold`
+> signatures is a bearer authorization: anyone holding it can execute the transaction.
 
 ### Accepted limitations
 

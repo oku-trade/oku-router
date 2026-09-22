@@ -306,7 +306,7 @@ async function main() {
     assets,
   });
 
-  const { json, md } = writeAccounting(`${bundleName}`, `${networkName}-forksim`, report);
+  const { json, md } = writeAccounting(report);
 
   // ---- 6. Assertions -----------------------------------------------------
   console.log(`\n${"-".repeat(96)}`);
@@ -314,10 +314,23 @@ async function main() {
   console.log("-".repeat(96));
   console.log(`Artifacts:\n  ${json}\n  ${md}`);
 
+  const moved = assets.filter((a) => BigInt(a.amountRaw) > 0n);
+
   const failures: string[] = [];
   if (!report.reconciliation.allRouterBalancesZero) {
     failures.push(
       `router still holds: ${report.reconciliation.residuals.map((r) => `${r.symbol} ${r.amount}`).join(", ")}`,
+    );
+  }
+  // A sweep of an already-empty router trivially satisfies every other
+  // assertion: nothing reverts, no balance is left behind, and no event
+  // contradicts a delta. Reporting that as a pass would mean the rehearsal
+  // proves nothing on exactly the run where it matters least -- so require
+  // that something actually moved.
+  if (moved.length === 0) {
+    failures.push(
+      "nothing moved: the router held no balance for any asset in the bundle, so this " +
+        "run exercised no transfer path. Rebuild the bundle against current balances.",
     );
   }
   if (!report.reconciliation.eventsMatchBalanceDeltas) {
@@ -336,9 +349,13 @@ async function main() {
     return;
   }
 
+  // Report what actually moved, not how many entries the manifest had -- the
+  // two diverge whenever balances changed between build and rehearsal.
+  const skipped = assets.length - moved.length;
   console.log(
-    `\nSIMULATION PASSED. ${assets.length} asset(s) swept, router fully drained, ` +
-      `every event reconciled against a measured recipient delta.`,
+    `\nSIMULATION PASSED. ${moved.length} of ${assets.length} manifest asset(s) moved` +
+      `${skipped > 0 ? ` (${skipped} held a zero balance and were skipped)` : ""}, ` +
+      `router fully drained, every event reconciled against a measured recipient delta.`,
   );
 }
 

@@ -1,21 +1,83 @@
 import "@nomicfoundation/hardhat-toolbox"; // Includes ethers, chai-matchers, typechain, verify, etc.
+
+/**
+ * DO NOT REMOVE THESE TWO IMPORTS.
+ *
+ * They look dead: there is no `deploy/` directory, nothing calls
+ * `hre.deployments` or `getNamedAccounts()`, and deployment is done by
+ * tasks/deploy.ts and tasks/safeDeploy.ts using raw CREATE2. Every signal
+ * says "unused dependency".
+ *
+ * They are not. `hardhat-deploy` injects
+ *
+ *     metadata: { useLiteralContent: true }
+ *
+ * into the solc input. That embeds full source text in the contract metadata
+ * instead of source hashes, which changes the metadata JSON, which changes
+ * the metadata hash solc appends to the runtime bytecode, which changes the
+ * bytecode, which changes the CREATE2 address.
+ *
+ * Removing them was tried. A clean rebuild produced OkuRouter codehash
+ * 0x6feabf18… instead of the deployed 0xdf9b34ed…, and `predict-all --verify`
+ * reported all 34 chains as MISMATCH. It would also have invalidated the
+ * on-chain source verification everywhere.
+ *
+ * The failure is invisible in an incremental build: the compile cache reports
+ * "Nothing to compile" and the stale, correct artifact is reused. It only
+ * surfaces after `rm -rf artifacts cache`. Any change here must be validated
+ * with a clean rebuild plus `npx hardhat predict-all --owner <deployer>
+ * --verify`.
+ */
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
+
 import { HardhatUserConfig, task } from 'hardhat/config';
 import { config as dotEnvConfig } from "dotenv";
 import { networkByName } from "@gfxlabs/oku-chains";
-import "./tasks/deploy";
-import "./tasks/deployPermit2Proxy";
-import "./tasks/predictAll";
-import "./tasks/verifyDeployments";
-import "./tasks/whitelistSwapTargets";
-import "./tasks/safePreflight";
-import "./tasks/safeDeploy";
-import "./tasks/safeAdmin";
-import "./tasks/safeHandover";
-import "./tasks/safeProposer";
-import "./tasks/feeScan";
-import "./tasks/feeAccounting";
+import * as fs from "fs";
+import * as path from "path";
+
+/**
+ * Load the custom task suite, but only once TypeChain bindings exist.
+ *
+ * Hardhat loads this config BEFORE running any task -- including `compile`,
+ * which is what generates `typechain-types/`. Our tasks import those
+ * bindings, so importing the tasks unconditionally makes `npx hardhat
+ * compile` fail on a fresh clone with:
+ *
+ *   Error: Cannot find module '../typechain-types'
+ *
+ * `typechain-types/` is generated output and therefore gitignored, so "not
+ * present yet" is the normal state of a fresh clone -- previously this was
+ * masked only because the directory was committed.
+ *
+ * So: on a fresh clone the first `compile` runs with the built-in tasks
+ * alone, generates the bindings, and every subsequent invocation sees the
+ * full task list. The warning makes the degraded state obvious rather than
+ * leaving an operator wondering why `safe:build` "doesn't exist".
+ */
+const typechainReady = fs.existsSync(path.join(__dirname, "typechain-types", "index.ts"));
+if (typechainReady) {
+  require("./tasks/deploy");
+  require("./tasks/deployPermit2Proxy");
+  require("./tasks/predictAll");
+  require("./tasks/verifyDeployments");
+  require("./tasks/whitelistSwapTargets");
+  require("./tasks/safePreflight");
+  require("./tasks/safeDeploy");
+  require("./tasks/safeAdmin");
+  require("./tasks/safeHandover");
+  require("./tasks/safeProposer");
+  require("./tasks/feeScan");
+  require("./tasks/feeAccounting");
+  require("./tasks/feeCycle");
+} else {
+  console.warn(
+    "[hardhat.config] typechain-types/ not found - custom tasks (deploy, safe:*, fees:*)\n" +
+      "                 are disabled until `npx hardhat compile` generates the bindings.\n" +
+      "                 This is expected on a fresh clone; run compile, then re-run.",
+  );
+}
 
 
 dotEnvConfig();
@@ -107,11 +169,6 @@ function rpcUrl(
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
-  namedAccounts: {
-    deployer: {
-      default: 0, // First account from accounts array
-    },
-  },
   etherscan: {
     // Etherscan V2 API - single universal API key for all Etherscan-compatible chains.
     //

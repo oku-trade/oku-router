@@ -89,6 +89,8 @@ import {
   totalUsd,
   type PricedFeeAsset,
 } from "../util/feeScan";
+import { discoverFeeAssets } from "../util/feeAssetCache";
+import { readSnapshot, type SnapshotAsset } from "../util/feeSnapshot";
 import { OKU_FEE_RECIPIENT } from "../util/safeConfig";
 import { accountForSweepTx, writeAccounting } from "./feeAccounting";
 
@@ -372,23 +374,73 @@ async function callsForIntent(
       const to = getAddress(String(params.to));
       const includeEth = params.includeEth !== false;
       const maxTokens = Number(params.maxTokens ?? 40);
+      const minUsd = Number(params.minUsd ?? 0);
 
-      // Resolve the token set. An explicit --tokens list is honoured verbatim
-      // (minus zero balances); "auto" discovers via OrderFilled history.
+      // What sweepAll actually needs is the TOKEN ADDRESS LIST and nothing
+      // else. It takes no amounts: it reads balanceOf(address(this)) at
+      // execution time and moves the full balance, skipping zero balances
+      // silently. Amounts and USD figures never enter the calldata -- they
+      // exist only to let an operator judge whether a chain is worth a
+      // ceremony, and to itemize the manifest for signers.
+      //
+      // So the token set is resolved in descending order of trust:
+      //   1. --tokens    : honoured verbatim, minus zero balances
+      //   2. --from-scan : the list the operator just reviewed. Reused as-is,
+      //                    including its valuations -- re-reading balances and
+      //                    re-probing pools here would repeat the scan that
+      //                    finished seconds ago to produce figures that are
+      //                    equally stale by signing time and equally absent
+      //                    from the transaction.
+      //   3. incremental discovery over OrderFilled history
       const explicit = params.tokens as string[] | undefined;
+      const fromScan = scanAssetsByNetwork.get(chain.network);
       let assets: PricedFeeAsset[];
       let nativeBalance = 0n;
+      // Valuation of the NATIVE balance, kept separately from `assets`
+      // because native does not ride in the tokens array -- it is the
+      // includeEth flag. It still belongs in the chain's total, or the
+      // bundle would report a smaller figure than the scan it came from.
+      let nativeValue: PricedFeeAsset | undefined;
 
       if (explicit && explicit.length > 0) {
         const found = await readNonZeroBalances(provider, chain.router!, explicit);
         const { priced } = await priceAssets(provider, cfg, found);
         assets = priced;
         nativeBalance = await provider.getBalance(chain.router!);
+      } else if (fromScan) {
+        const toPriced = (a: SnapshotAsset): PricedFeeAsset => ({
+          token: a.token,
+          symbol: a.symbol,
+          decimals: a.decimals,
+          balance: BigInt(a.amountRaw),
+          usdPrice: a.usdPrice,
+          usdValue: a.usdValue,
+          poolDepthUsd: a.poolDepthUsd,
+          realizableUsd: a.realizableUsd,
+          priceSource: a.priceSource,
+        });
+        assets = fromScan.filter((a) => a.token !== NATIVE_SENTINEL).map(toPriced);
+        const nat = fromScan.find((a) => a.token === NATIVE_SENTINEL);
+        if (nat) {
+          nativeValue = toPriced(nat);
+          nativeBalance = nativeValue.balance;
+        }
       } else {
-        const scan = await scanChainFees(provider, cfg, chain.router!, { price: true });
+        const discovery = await discoverFeeAssets(
+          provider,
+          { network: chain.network, chainId: chain.chainId, router: chain.router! },
+          {},
+        );
+        const scan = await scanChainFees(provider, cfg, chain.router!, {
+          price: true,
+          discovery: { tokens: discovery.tokens, coverage: discovery.coverage },
+        });
         assets = scan.assets.filter((a) => a.token !== NATIVE_SENTINEL);
         const nat = scan.assets.find((a) => a.token === NATIVE_SENTINEL);
-        nativeBalance = nat ? nat.balance : 0n;
+        if (nat) {
+          nativeValue = nat;
+          nativeBalance = nat.balance;
+        }
       }
 
       const sweepEth = includeEth && nativeBalance > 0n;
@@ -397,6 +449,24 @@ async function callsForIntent(
         // is dropped entirely rather than burning a nonce on a no-op that
         // would in fact revert with NOTHING_TO_SWEEP.
         return { calls: [], note: "no idle fees on this chain" };
+      }
+
+      // Optional economic floor. Defaults to 0 (build everything): what is
+      // worth a hardware-wallet ceremony is the operator's call, not a
+      // constant here. When it IS set, the comparison is against realizable,
+      // and the note reports how many assets carried no price at all -- those
+      // contribute 0 and would otherwise silently drag a chain under.
+      if (minUsd > 0) {
+        const { realizable } = totalUsd(assets);
+        if (realizable < minUsd) {
+          const unpriced = assets.filter((a) => a.usdValue === undefined).length;
+          return {
+            calls: [],
+            note:
+              `below --min-usd: realizable $${realizable.toFixed(2)} < $${minUsd.toFixed(2)}` +
+              `${unpriced ? ` (${unpriced} asset(s) unpriced, counted as $0)` : ""}`,
+          };
+        }
       }
 
       // Chunk so one call cannot grow an unbounded loop. Multiple calls are
@@ -442,9 +512,15 @@ async function callsForIntent(
           decimals: 18,
           amountRaw: nativeBalance.toString(),
           amount: formatUnits(nativeBalance, 18),
+          usdValue: nativeValue?.usdValue,
+          realizableUsd: nativeValue?.realizableUsd,
         });
       }
-      const totals = totalUsd(assets);
+      // Native is counted in the chain total when it is being swept. It is
+      // not in `assets` because it travels as the includeEth flag rather than
+      // an array entry, and omitting it made the bundle report a smaller
+      // figure than the scan it was built from.
+      const totals = totalUsd(sweepEth && nativeValue ? [...assets, nativeValue] : assets);
 
       // Stash the manifest on the chain entry so the sign page can render an
       // itemized fund-movement panel per chain.
@@ -478,6 +554,26 @@ const sweepManifests = new Map<
     usdRealizable: number;
   }
 >();
+
+/**
+ * Per-chain asset lists taken from a `--from-scan` snapshot, keyed by network.
+ *
+ * Populated before the build loop so the sweep intent can skip discovery
+ * entirely. Only the token ADDRESSES are load-bearing -- they are what
+ * sweepAll receives. The amounts ride along solely to itemize the signing
+ * page, where they are labelled as an estimate.
+ */
+const scanAssetsByNetwork = new Map<string, SnapshotAsset[]>();
+
+/**
+ * Chains that FAILED to build, as opposed to chains with nothing to do.
+ *
+ * The build loop turns both into `null`, which means a transient RPC error is
+ * indistinguishable from "already in the desired state" -- on a 34-chain
+ * sweep that is a silent loss of collectable fees. Recorded here so the
+ * summary can name them and the process can exit non-zero.
+ */
+const buildErrors: { network: string; message: string }[] = [];
 
 /**
  * Resolve wallet-facing chain metadata from chain-config for the signing
@@ -676,9 +772,18 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
   .addOptionalParam("tokens", "For sweep: comma-separated token list, or omit to auto-discover")
   .addOptionalParam("maxTokens", "For sweep: max tokens per sweepAll call (default 40)")
   .addOptionalParam(
+    "fromScan",
+    "For sweep: path to a fees:cycle / fees:scan snapshot. Uses its asset lists instead " +
+      "of re-discovering, so the bundle matches the report that was reviewed.",
+  )
+  .addOptionalParam(
+    "minUsd",
+    "For sweep: skip chains whose realizable total is below this (default 0 = no filter)",
+  )
+  .addOptionalParam(
     "rpc",
-    "Override RPC URL (single --networks only). Needed for sweep auto-discovery when " +
-      "the configured endpoint restricts eth_getLogs.",
+    "Override RPC URL (single --networks only). For multi-chain sweeps set <NET>_LOGS_URL " +
+      "instead; the default endpoints on several chains restrict eth_getLogs.",
   )
   .addFlag("noEth", "For sweep: do NOT sweep the native balance")
   .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
@@ -725,10 +830,32 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
           .map((s: string) => getAddress(s));
       }
       if (taskArgs.maxTokens) params.maxTokens = Number(taskArgs.maxTokens);
+      if (taskArgs.minUsd) params.minUsd = Number(taskArgs.minUsd);
       sweepManifests.clear();
+      scanAssetsByNetwork.clear();
+      if (taskArgs.fromScan) {
+        const snapPath = path.resolve(String(taskArgs.fromScan));
+        const snap = readSnapshot(snapPath);
+        for (const c of snap.chains) {
+          if (c.status !== "has-fees") continue;
+          scanAssetsByNetwork.set(c.network, c.assets);
+        }
+        // Recorded so the bundle says which observation it was built from.
+        // The snapshot itself is gitignored and will not survive; the
+        // reference still pins the date and generation time.
+        params.scanRef = path.relative(path.resolve(__dirname, ".."), snapPath);
+        params.scanGeneratedAt = snap.generatedAt;
+        console.log(`\nUsing scan       : ${params.scanRef}  (${snap.generatedAt})`);
+        console.log(
+          `  chains with fees: ${scanAssetsByNetwork.size}` +
+            `${snap.totals.chainsErrored ? `, ${snap.totals.chainsErrored} errored during scan` : ""}`,
+        );
+      }
       console.log(`\nSweep recipient: ${to}${taskArgs.to ? " (explicit --to)" : " (OKU_FEE_RECIPIENT)"}`);
       console.log(`Include native  : ${params.includeEth}`);
+      if (params.minUsd) console.log(`Minimum USD     : $${Number(params.minUsd).toFixed(2)}`);
     }
+    buildErrors.length = 0;
 
     const only = taskArgs.networks
       ? new Set<string>(
@@ -743,7 +870,8 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
     if (taskArgs.rpc && chains.length !== 1) {
       throw new Error(
         `--rpc applies to one chain, but ${chains.length} were selected. ` +
-          `Pass --networks <single network> alongside --rpc.`,
+          `Pass --networks <single network> alongside --rpc, or set <NET>_LOGS_URL ` +
+          `per chain (e.g. WORLDCHAIN_LOGS_URL) for a multi-chain run.`,
       );
     }
 
@@ -853,9 +981,12 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
         };
       } catch (e) {
         const anyE = e as { shortMessage?: string; message?: string };
-        console.log(
-          `  ${pad(chain.network, 12)} ✗ ${anyE.shortMessage ?? anyE.message ?? e}`,
-        );
+        const message = String(anyE.shortMessage ?? anyE.message ?? e);
+        // Recorded, not just logged: a failure here excludes the chain from
+        // the bundle exactly as "nothing to do" does, and the two must not
+        // look alike in the summary.
+        buildErrors.push({ network: chain.network, message });
+        console.log(`  ${pad(chain.network, 12)} ✗ ${message}`);
         return null;
       } finally {
         provider.destroy();
@@ -865,6 +996,7 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
     const chainsOut = built.filter((b): b is BundleChain => b !== null);
     if (chainsOut.length === 0) {
       console.log("\nNothing to do on any chain. No bundle written.");
+      reportBuildErrors();
       return;
     }
     chainsOut.sort((a, b) => a.chainId - b.chainId);
@@ -924,8 +1056,27 @@ task("safe:build", "Diff on-chain state and emit a per-chain SafeTx bundle")
         `getTransactionHash(),\nand every inner call was simulated from the Safe ` +
         `address to prove it will not revert.`,
     );
+    reportBuildErrors();
     console.log("");
   });
+
+/**
+ * Name the chains that failed to build and set a non-zero exit code.
+ *
+ * Without this a sweep that silently dropped six chains to RPC timeouts looks
+ * identical to one where those six had nothing to collect.
+ */
+function reportBuildErrors(): void {
+  if (buildErrors.length === 0) return;
+  console.log("\n" + "!".repeat(96));
+  console.log(
+    `${buildErrors.length} chain(s) FAILED to build and are NOT in the bundle. ` +
+      `They were not\nproven to be in the desired state -- they could not be read:`,
+  );
+  for (const e of buildErrors) console.log(`  ${pad(e.network, 12)} ${e.message}`);
+  console.log("!".repeat(96));
+  process.exitCode = 1;
+}
 
 // ---------------------------------------------------------------------------
 // safe:merge
@@ -1469,7 +1620,7 @@ task("safe:exec", "Broadcast a signed bundle from the hot relayer (DRY RUN unles
               safeTxHash: c.safeTxHash,
               signers: sigs.map((s) => getAddress(s.signer)),
             });
-            const written = writeAccounting(bundle.name, c.network, report);
+            const written = writeAccounting(report);
             console.log(`      accounting: ${written.json}`);
             if (!report.reconciliation.allRouterBalancesZero) {
               console.log(`      WARNING: router still holds a balance for a swept asset`);

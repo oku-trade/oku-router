@@ -40,8 +40,15 @@ to check. Specifically:
    Compare the whole string, not the first and last four characters. A sweep
    cannot be reversed or recalled.
 2. **Confirm the asset list looks plausible** for accumulated fees. It is
-   normal to see a long tail of obscure tokens worth very little; those are
-   leftovers from swaps that routed through the router.
+   normal to see a long tail of obscure tokens worth very little, and to see
+   some with no USD value at all; those are leftovers from swaps that routed
+   through the router. What matters is the list of assets and the recipient —
+   not the quantities.
+
+   The **amounts shown are an estimate** taken when the bundle was built and
+   are *not* part of what you sign. The transaction names a token list only;
+   it moves whatever balance is on the router at the moment it executes.
+   Treat the numbers as an indication of scale, never as a cap.
 3. **If the panel warns that there is more than one recipient, do not sign.**
    A normal sweep has exactly one.
 
@@ -78,6 +85,11 @@ npm run sign-page
 That is the whole setup. The server works out which bundles still need your
 signature, builds the page for them, and removes any page that is already
 finished — so whatever link it prints is exactly the work outstanding.
+
+You do **not** need RPC endpoints, API keys, a `.env` file, or to run any
+scanning task. The coordinator has already worked out which chains hold fees;
+chains with nothing on them are not in the bundle and will never appear on
+your page. Everything the page needs is embedded in it.
 
 It prints something like:
 
