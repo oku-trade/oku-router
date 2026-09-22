@@ -22,6 +22,15 @@
  *
  * This module replaces `util/networkConfig.ts` (deprecated, see that file).
  *
+ * DUPLICATED, NOT SHARED: a sibling repo that operates the production Safe
+ * multisig and fee collection keeps its own copy of this exact file (it has
+ * no build dependency on this repo). Any edit to `DEPLOYMENT_OVERRIDES`,
+ * `knownSwapTargets`/`extraSwapTargets`, or anything else in this file that
+ * the two need to agree on (they do) must be applied to both copies by hand.
+ * There is currently no shared package enforcing that; a stale copy there
+ * degrades to a stale whitelist/config, not a build failure, so it will not
+ * announce itself.
+ *
  * `@gfxlabs/oku-chains` is installed from the published npm registry, range
  * pinned in `package.json` (currently `^1.12.42`; installed 1.12.42 as of
  * this writing) for reproducible-enough deploys while still picking up
