@@ -54,7 +54,7 @@ import * as path from "path";
  * So: on a fresh clone the first `compile` runs with the built-in tasks
  * alone, generates the bindings, and every subsequent invocation sees the
  * full task list. The warning makes the degraded state obvious rather than
- * leaving an operator wondering why `safe:build` "doesn't exist".
+ * leaving a developer wondering why `predict-all` "doesn't exist".
  */
 const typechainReady = fs.existsSync(path.join(__dirname, "typechain-types", "index.ts"));
 if (typechainReady) {
@@ -62,20 +62,12 @@ if (typechainReady) {
   require("./tasks/deployPermit2Proxy");
   require("./tasks/predictAll");
   require("./tasks/verifyDeployments");
-  require("./tasks/whitelistSwapTargets");
-  require("./tasks/safePreflight");
-  require("./tasks/safeDeploy");
-  require("./tasks/safeAdmin");
-  require("./tasks/safeHandover");
-  require("./tasks/safeProposer");
-  require("./tasks/feeScan");
-  require("./tasks/feeAccounting");
-  require("./tasks/feeCycle");
 } else {
   console.warn(
-    "[hardhat.config] typechain-types/ not found - custom tasks (deploy, safe:*, fees:*)\n" +
-      "                 are disabled until `npx hardhat compile` generates the bindings.\n" +
-      "                 This is expected on a fresh clone; run compile, then re-run.",
+    "[hardhat.config] typechain-types/ not found - custom tasks (deploy, predict-all,\n" +
+      "                 verify-deployments) are disabled until `npx hardhat compile`\n" +
+      "                 generates the bindings. This is expected on a fresh clone; run\n" +
+      "                 compile, then re-run.",
   );
 }
 

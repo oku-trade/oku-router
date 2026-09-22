@@ -21,55 +21,5 @@ coverage
 # Editors
 .idea/**
 
-# Safe operations.
-#
-# The bundle itself (safe-bundles/<name>.json) IS committed: it is the record
-# of exactly what was authorized, authorizes nothing on its own, and is
-# derivable from public chain state. Co-signers can pull it rather than being
-# emailed a file, and it is no longer at risk from `git clean -fdx`.
-#
-# Signature material is NEVER committed. A set of `threshold` signatures is a
-# bearer authorization -- anyone holding it can execute the transaction. This
-# matters far more for future bundles (sweepAll, pause) than for an
-# acceptOwnership batch, so the rule is unconditional. Signatures live in
-# per-signer sidecars, which stay local.
-#
-# These patterns are deliberately path-independent. An earlier revision only
-# ignored safe-bundles/*/signatures-*.json, so a signer file dropped anywhere
-# else (scripts/safeSignPage/temp_sigs.json, as actually happened) was staged
-# by `git add -A`. Safety must not depend on which directory a file lands in.
-**/signatures-*.json
-**/temp_sigs*.json
-**/*-sigs.json
-**/*_sigs.json
-# Generated artifacts, all reproducible from the bundle with
-# `safe:sign-page` / `safe:build`.
-safe-bundles/*/sign.html
-safe-bundles/*/tx-builder/
-safe-bundles/*/eip712/
-
-# Fee collection.
-#
-# fee-reports/data/ and fee-reports/reports/ ARE committed: they are the
-# durable record of where protocol fees went, they authorize nothing, and
-# ledger.json + SUMMARY.md are regenerable from data/ via `fees:report
-# --rebuild`.
-#
-# Fork rehearsals are NOT. They are reproducible dry runs against a local
-# fork, they describe money that never moved, and letting them sit next to
-# real records invites someone to read a simulation as an actual collection.
-fee-reports/simulations/
-#
-# Pre-sweep scans are NOT, for the same reason. A snapshot describes money
-# that merely EXISTS, priced off spot pool state, and it is stale the moment
-# the next swap lands. Only what was actually collected -- reconciled against
-# a receipt -- belongs in the durable record.
-fee-reports/scans/
-
-# Fee asset discovery cache. Pure derived state: only the SET of token
-# addresses ever seen per chain, never balances, fully reproducible by
-# re-walking OrderFilled history. A cold cache degrades to a full scan.
-.cache/
-
 # Local assistant tooling settings.
 .claude/settings.local.json
