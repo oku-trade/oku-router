@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@gfxlabs/oku-chains": "^1.12.42",
+    "@gfxlabs/oku-chains": "1.13.0",
     "@openzeppelin/contracts": "5.0.2",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
