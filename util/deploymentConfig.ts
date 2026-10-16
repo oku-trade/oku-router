@@ -31,14 +31,19 @@
  * degrades to a stale whitelist/config, not a build failure, so it will not
  * announce itself.
  *
- * `@gfxlabs/oku-chains` is installed from the published npm registry, range
- * pinned in `package.json` (currently `^1.12.42`; installed 1.12.42 as of
- * this writing) for reproducible-enough deploys while still picking up
- * chain-config fixes. It was confirmed to include the marketRouters
- * reconciliation (oneinch/unizen/propellerswap/binance/native additions,
- * telos's new marketRouters block, robinhood's full router set), the fynd
- * router addition, and the bitget router addition (mainnet, arbitrum, base,
- * bsc, polygon, avalanche, hyperevm) this migration depends on.
+ * `@gfxlabs/oku-chains` is installed from the published npm registry,
+ * exact-pinned in `package.json` (currently `1.16.0`, published from
+ * chain-config eee4cfd). Bump it deliberately in both repos together: every
+ * new `marketRouters` entry becomes a swap target that must be whitelisted
+ * through the Safe. 1.15.1 adds the Rango Diamond router on 16 chains and
+ * corrects Celo's uniswap SwapRouter02 to 0x5615CDAb10dc425a742d643d949a7F474C01abc4
+ * (0x68b3...Fc45 is an unrelated contract on Celo; it is no longer in config
+ * but remains whitelisted on the Celo router until explicitly removed).
+ * 1.16.0 adds the shared threeroute router 0x333333333c306C76f341028122ae7c90A334D176
+ * on mainnet, base, monad, robinhood and etherlink (sonic too, but OkuRouter
+ * is not deployed there). On etherlink it replaces threeroute
+ * 0x1B62C2CEf163E3120E512F71F6e6E99058c80F6E, which likewise stays
+ * whitelisted on-chain until explicitly removed.
  *
  * Note that 1.12.40 filed the TychoRouterV3 addresses under `fynd` rather
  * than `propellerswap`, so `marketRouters.fynd` on those chains holds two
