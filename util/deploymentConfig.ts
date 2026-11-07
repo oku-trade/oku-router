@@ -427,10 +427,10 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
     // gas. First published in @gfxlabs/oku-chains 1.21.0.
     //
     // chain-config records canonical Permit2 (verified on-chain via
-    // eth_getCode). `marketRouters` is deliberately empty upstream until the
-    // aggregator deployments are confirmed, so no swap targets get whitelisted
-    // at deploy time. Add them later through the Safe, from an
-    // `OKU_ROUTER_SWAP_TARGET_NOT_ALLOWED` response (see `extraSwapTargets`).
+    // eth_getCode). `marketRouters` was deliberately left empty upstream
+    // until the aggregator deployments were confirmed. At launch, aggregators supplied their elysium addresses directly. They
+    // are carried in `extraSwapTargets` below until chain-config publishes
+    // them (the merge then drops the local copies).
     //
     // `create2FactoryAddress` is intentionally unset. As of 2026-11-06 the
     // Safe Singleton Factory has no code on elysium, and its deployer
@@ -441,24 +441,72 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
     // 0xb1f3a7B8… address. That tradeoff was accepted. Redeploying at the
     // canonical address later, once the factory exists, is fine: set this
     // field and run `deploy --deterministic`.
-    supportedRouters: ["openocean"],
+    supportedRouters: ["enso", "icecreamswap", "kyberswap", "openocean"],
     canonicalPermit2: true,
     rpcUrl: process.env.ELYSIUM_URL,
     // A pre-launch exception to the "backend-named only" rule above: the
-    // operator approved this address directly (2026-11-06), since the
-    // backend has no elysium routes yet to name it. It is OpenOcean's usual
-    // router address (the same one chain-config lists on base, arbitrum,
-    // optimism and hyperevm). Checked on-chain: an EIP-1967 proxy with the
-    // same ProxyAdmin as on Base (0xc979fec5bf053d0d52cada4cfe1c25737731502d),
-    // and the proxy and implementation (0xed85325119ccfc6acb16fa931bac6378b76e4615)
-    // runtime code are identical to Base's except for the solc metadata hash.
-    // Whitelisted on the elysium router 2026-11-06. Other aggregators are
-    // pending their deployment addresses ahead of the 2026-11-09 launch.
+    // backend has no elysium routes yet to name anything, so every entry
+    // here was supplied by the protocol and approved directly by the
+    // operator. Apply with:
+    //   npx hardhat whitelist-swap-targets --fork-network elysium   (dry run)
+    //   npx hardhat whitelist-swap-targets --network elysium
     extraSwapTargets: [
+      // OpenOcean's usual router address (chain-config lists the same one on
+      // base, arbitrum, optimism and hyperevm). Approved 2026-11-06. Checked
+      // on-chain: an EIP-1967 proxy with the same ProxyAdmin as on Base
+      // (0xc979fec5bf053d0d52cada4cfe1c25737731502d), and the proxy and
+      // implementation (0xed85325119ccfc6acb16fa931bac6378b76e4615) runtime
+      // code are identical to Base's except for the solc metadata hash.
       {
         address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
         name: "openocean",
         protocol: "openocean",
+      },
+      // Supplied by IceCreamSwap (ICS) for elysium, approved 2026-11-06.
+      // ICS deploys a different router address on each chain, so there is no
+      // cross-chain code comparison; checked only that it has code (1,775 bytes).
+      // Kyber and Enso below were compared against other chains' code, and
+      // all five new targets were whitelisted 2026-11-06 after a fork dry run.
+      {
+        address: "0x6af335771d1DdF7dD1501eCC89e978455Fe5c6Dd",
+        name: "icecreamswap",
+        protocol: "icecreamswap",
+      },
+      // Supplied by Enso, approved 2026-11-06. The same address chain-config
+      // lists for enso on robinhood, with runtime code identical to it apart
+      // from the solc metadata hash.
+      {
+        address: "0xCfBAa9Cfce952Ca4F4069874fF1Df8c05e37a3c7",
+        name: "enso",
+        protocol: "enso",
+      },
+      // Supplied by KyberSwap, approved 2026-11-06. The router is the same
+      // address chain-config lists on base, arbitrum, optimism, ethereum,
+      // hyperevm and robinhood. On those chains only the router is
+      // whitelisted; Kyber asked for the executor proxy and input-scale
+      // helper here too, and the operator approved all three. Checked
+      // on-chain against hyperevm/base/robinhood:
+      //   - router: same code as hyperevm except its WETH immutable (elysium
+      //     WHYPE 0xbA87…5E81 vs hyperevm 0x5555…) and the metadata hash.
+      //     Its owner() differs: 0xBE2F0354D970265BFc36D383af77F72736b81B54
+      //     here vs 0x1874028262F1F4B2DD1F2700A72Ee8b9b7C69090 on hyperevm.
+      //   - executor proxy: identical code to base, hyperevm and robinhood.
+      //   - input-scale helper: an ERC-1967 proxy to the same implementation
+      //     as hyperevm (0x6d88e9296f51ebe4044a6f518b529c2b4861579a).
+      {
+        address: "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+        name: "kyberswap MetaAggregationRouterV2",
+        protocol: "kyberswap",
+      },
+      {
+        address: "0x8F10B468b06c6FD214B65F87778827F7D113f996",
+        name: "kyberswap AggregationExecutorProxy",
+        protocol: "kyberswap",
+      },
+      {
+        address: "0x2f577A41BeC1BE1152AeEA12e73b7391d15f655D",
+        name: "kyberswap InputScaleHelper",
+        protocol: "kyberswap",
       },
     ],
   },

@@ -267,6 +267,11 @@ async function setupNetworkFork(
     params: [{ forking: { jsonRpcUrl: target.url } }],
   });
   const forkBlock = await hre.ethers.provider.getBlockNumber();
+  // Mine one local block so later calls run against a locally built header.
+  // Orbit chains (e.g. elysium) omit `excessBlobGas` from their headers, and
+  // EDR panics (`Header(ExcessBlobGasNotSet)`) when it executes a call
+  // directly against the remote fork block.
+  await hre.network.provider.request({ method: "hardhat_mine", params: ["0x1"] });
   console.log(`\n[fork] ${forkNetwork} (chainId ${forkConfig.chainId}) forked at block ${forkBlock}`);
 
   // Impersonate the real deployer, not an arbitrary funded account: the owner
@@ -695,4 +700,71 @@ task("deploy", "Deploy OkuRouter contract")
     }
 
     console.log("\n✓ Deployment complete!");
+  });
+
+/**
+ * Whitelist every `knownSwapTargets` entry (chain-config `marketRouters` plus
+ * local `extraSwapTargets`) on a chain's deployed OkuRouter, skipping any
+ * already registered. Only works while the deployer EOA still owns the
+ * router; once ownership is with the Safe, use the operator repo's Safe
+ * bundle flow instead.
+ *
+ * Dry run first on a fork, as the real deployer:
+ *   FORK_CHAIN_ID=<id> npx hardhat whitelist-swap-targets --fork-network <net>
+ * then for real:
+ *   npx hardhat whitelist-swap-targets --network <net>
+ */
+task("whitelist-swap-targets", "Register a chain's configured swap targets on its deployed OkuRouter")
+  .addOptionalParam(
+    "forkNetwork",
+    "Dry run on a local fork of this network, as its real deployer (hardhat network only; needs FORK_CHAIN_ID)",
+  )
+  .setAction(async (taskArgs, hre) => {
+    const forkNetwork: string | undefined = taskArgs.forkNetwork;
+    let networkName = hre.network.name;
+    let signer: Signer;
+    if (forkNetwork) {
+      ({ signer } = await setupNetworkFork(hre, forkNetwork, false));
+      networkName = forkNetwork;
+    } else {
+      if (networkName === "hardhat" || networkName === "localhost") {
+        throw new Error("Pass --network <chain>, or --fork-network <chain> for a dry run.");
+      }
+      [signer] = await hre.ethers.getSigners();
+    }
+
+    const config = getNetworkConfig(networkName);
+    const router = getCurrentEntry(networkName, "OkuRouter")?.address;
+    if (!router) throw new Error(`No OkuRouter in deployments/${networkName}.json`);
+    const contract = OkuRouter__factory.connect(router, signer);
+
+    const signerAddress = await signer.getAddress();
+    const owner = await withRetry(() => contract.owner(), "owner()");
+    console.log(`\n${networkName}: OkuRouter ${router}, owner ${owner}, signer ${signerAddress}`);
+    if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
+      throw new Error(`Signer is not the router owner (${owner}). Whitelist through the Safe instead.`);
+    }
+
+    // Refuse to whitelist an address with no code: a typo'd or not-yet-
+    // deployed target would otherwise silently become a valid call target.
+    for (const t of config.knownSwapTargets) {
+      const code = await withRetry(() => hre.ethers.provider.getCode(t.address), `getCode(${t.address})`);
+      if (code === "0x") throw new Error(`${t.name} ${t.address} has no code on ${networkName}`);
+    }
+
+    const { newlyRegistered } = await registerSwapTargets(hre, contract, config.knownSwapTargets, {
+      sleepBetweenTxMs: forkNetwork ? undefined : 1000,
+    });
+
+    // Read every target back so the run proves the end state, not just that
+    // transactions were mined.
+    for (const t of config.knownSwapTargets) {
+      if (!(await withRetry(() => contract.swapTargets(t.address), `swapTargets(${t.address})`))) {
+        throw new Error(`${t.name} ${t.address} is still not registered`);
+      }
+    }
+    console.log(
+      `\n✓ All ${config.knownSwapTargets.length} swap targets registered (${newlyRegistered.length} new)` +
+        (forkNetwork ? " on the fork; nothing was broadcast" : ""),
+    );
   });

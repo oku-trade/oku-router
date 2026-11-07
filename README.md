@@ -286,6 +286,32 @@ Bumping the version invalidates the prior CREATE2 salt and produces a new determ
    ```
 7. Commit the updated `deployments/<chain>.json` files.
 
+## New chains, dry runs and swap targets
+
+`deploy` and `whitelist-swap-targets` can both dry-run on a local fork of any
+configured network, impersonating the real deployer. `FORK_CHAIN_ID` must be
+the chain's id so `block.chainid` (and the EIP-712 domain) match:
+
+```bash
+FORK_CHAIN_ID=99901 npx hardhat deploy --fork-network elysium [--deterministic --inject-safe-factory]
+FORK_CHAIN_ID=99901 npx hardhat whitelist-swap-targets --fork-network elysium
+```
+
+`--inject-safe-factory` places the Safe Singleton Factory on the fork when the
+live chain lacks it. Use it only to preview a CREATE2 deploy. On a chain with no
+factory, deploy without `--deterministic`. The router then gets a nonce-based
+address, and `predict-all --verify` reports it as expected. Elysium is deployed
+this way.
+
+Swap targets come from chain-config `marketRouters` plus each chain's
+`extraSwapTargets` in `util/deploymentConfig.ts`. Every local entry records
+where the address came from and how it was checked. While the deployer EOA
+still owns a chain's router, apply them with
+`npx hardhat whitelist-swap-targets --network <chain>`. The task refuses
+addresses with no code, skips targets that are already registered, and reads
+every target back at the end. After the Safe handover, whitelist through the
+operator repo instead.
+
 ## License
 
 GPL-3.0
