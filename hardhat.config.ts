@@ -135,6 +135,11 @@ const PUBLIC_RPCS: Record<string, string> = {
   // HTML error page, and the blocksscan one 403s automated clients, which
   // made xdc unreadable during whitelist/verify sweeps. This one serves JSON-RPC.
   "xdc-mainnet":        "https://rpc.xdcrpc.com",
+  // Alchemy serves elysium-mainnet, but the network has to be enabled per
+  // app, and ours is not yet ("ELYSIUM_MAINNET is not enabled for this app").
+  // Once it is, add "elysium-mainnet" to ALCHEMY_SUPPORTED above. Until then,
+  // use the chain-config public RPC (or override with ELYSIUM_URL).
+  "elysium-mainnet":    "https://rpc-live.elysp.com",
 };
 
 // Resolve RPC URL: Alchemy if supported, else public fallback
@@ -363,6 +368,16 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://robinhoodchain.blockscout.com/api",
           browserURL: "https://robinhoodchain.blockscout.com"
+        }
+      },
+      // Elysium (Kinetiq). Not on Etherscan V2; verified out-of-band via
+      // tasks/verifyDeployments.ts (needs ELYSIUM_EXPLORER_API_KEY).
+      {
+        network: "elysium",
+        chainId: 99901,
+        urls: {
+          apiURL: "https://elysium.kinetiq.xyz/explorer/api",
+          browserURL: "https://elysium.kinetiq.xyz/explorer"
         }
       }
     ]
@@ -632,6 +647,11 @@ const config: HardhatUserConfig = {
       url: rpcUrl(process.env.PHAROS_URL, "pharos-mainnet", chainConfigRpc("pharos")),
       accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
       chainId: chainIdFor("pharos"),
+    },
+    elysium: {
+      url: rpcUrl(process.env.ELYSIUM_URL, "elysium-mainnet", chainConfigRpc("elysium")),
+      accounts: [process.env.MAINNET_PRIVATE_KEY || zaddr],
+      chainId: chainIdFor("elysium"),
     },
   },
   solidity: {

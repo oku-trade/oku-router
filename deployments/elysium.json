@@ -1,0 +1,11 @@
+{
+  "networkName": "elysium",
+  "chainId": 99901,
+  "current": {
+    "OkuRouter": {
+      "address": "0xA89A26c4d81A2cca4d0670F77f0FC88362b72248",
+      "version": "2.0",
+      "owner": "0x3CB68a6762041aA05E762814A8791CA9d98E79A0"
+    }
+  }
+}

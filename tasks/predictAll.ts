@@ -125,7 +125,12 @@ task("predict-all", "Predict deterministic addresses for all chains")
       if (taskArgs.verify) {
         if (!r.actual) suffix = "  (not deployed)";
         else if (r.actual.toLowerCase() === r.predicted.toLowerCase()) suffix = "  MATCH";
-        else if (which === "permit2proxy") {
+        else if (which === "okurouter" && !r.factory) {
+          // No Safe Singleton Factory configured (e.g. elysium at launch), so
+          // the router was deliberately deployed nonce-based. It cannot
+          // match a CREATE2 prediction, and that was an accepted tradeoff.
+          suffix = `  nonce-deployed at ${r.actual} (no factory)`;
+        } else if (which === "permit2proxy") {
           // Permit2Proxy defaults to a plain nonce-based deploy (CREATE2 is
           // opt-in via --deterministic), so a live address that differs from
           // the CREATE2 prediction is the NORMAL case, not a fault. Calling

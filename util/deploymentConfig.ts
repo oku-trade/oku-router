@@ -32,8 +32,8 @@
  * announce itself.
  *
  * `@gfxlabs/oku-chains` is installed from the published npm registry,
- * exact-pinned in `package.json` (currently `1.16.0`, published from
- * chain-config eee4cfd). Bump it deliberately in both repos together: every
+ * exact-pinned in `package.json` (currently `1.21.0`, published from
+ * chain-config b5015c0). Bump it deliberately in both repos together: every
  * new `marketRouters` entry becomes a swap target that must be whitelisted
  * through the Safe. 1.15.1 adds the Rango Diamond router on 16 chains and
  * corrects Celo's uniswap SwapRouter02 to 0x5615CDAb10dc425a742d643d949a7F474C01abc4
@@ -44,6 +44,9 @@
  * is not deployed there). On etherlink it replaces threeroute
  * 0x1B62C2CEf163E3120E512F71F6e6E99058c80F6E, which likewise stays
  * whitelisted on-chain until explicitly removed.
+ * 1.21.0 adds elysium (chainId 99901), the first version that has it. Every
+ * hardhat command fails at config load on an older version, because the
+ * `elysium` network entry resolves its chainId through `networkByName`.
  *
  * Note that 1.12.40 filed the TychoRouterV3 addresses under `fynd` rather
  * than `propellerswap`, so `marketRouters.fynd` on those chains holds two
@@ -416,6 +419,46 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
         address: "0x974d1cF6FFA4fCE5a4d62955AFc02F45aAC29f35",
         name: "okx",
         protocol: "okx",
+      },
+    ],
+  },
+  elysium: {
+    // Kinetiq's Arbitrum Orbit L2 settling to HyperEVM, chainId 99901, HYPE
+    // gas. First published in @gfxlabs/oku-chains 1.21.0.
+    //
+    // chain-config records canonical Permit2 (verified on-chain via
+    // eth_getCode). `marketRouters` is deliberately empty upstream until the
+    // aggregator deployments are confirmed, so no swap targets get whitelisted
+    // at deploy time. Add them later through the Safe, from an
+    // `OKU_ROUTER_SWAP_TARGET_NOT_ALLOWED` response (see `extraSwapTargets`).
+    //
+    // `create2FactoryAddress` is intentionally unset. As of 2026-11-06 the
+    // Safe Singleton Factory has no code on elysium, and its deployer
+    // 0xE1CB04A0fA36DdD16a06ea828007E35e1a3cBC37 is still at nonce 0. Safe
+    // has not yet published a pre-signed deployment for 99901. So OkuRouter
+    // is deployed here with plain CREATE (`deploy` without --deterministic),
+    // at an address derived from the deployer's nonce rather than the shared
+    // 0xb1f3a7B8… address. That tradeoff was accepted. Redeploying at the
+    // canonical address later, once the factory exists, is fine: set this
+    // field and run `deploy --deterministic`.
+    supportedRouters: ["openocean"],
+    canonicalPermit2: true,
+    rpcUrl: process.env.ELYSIUM_URL,
+    // A pre-launch exception to the "backend-named only" rule above: the
+    // operator approved this address directly (2026-11-06), since the
+    // backend has no elysium routes yet to name it. It is OpenOcean's usual
+    // router address (the same one chain-config lists on base, arbitrum,
+    // optimism and hyperevm). Checked on-chain: an EIP-1967 proxy with the
+    // same ProxyAdmin as on Base (0xc979fec5bf053d0d52cada4cfe1c25737731502d),
+    // and the proxy and implementation (0xed85325119ccfc6acb16fa931bac6378b76e4615)
+    // runtime code are identical to Base's except for the solc metadata hash.
+    // Whitelisted on the elysium router 2026-11-06. Other aggregators are
+    // pending their deployment addresses ahead of the 2026-11-09 launch.
+    extraSwapTargets: [
+      {
+        address: "0x6352a56caadC4F1E25CD6c75970Fa768A3304e64",
+        name: "openocean",
+        protocol: "openocean",
       },
     ],
   },

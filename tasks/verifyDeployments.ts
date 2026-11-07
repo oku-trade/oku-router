@@ -79,6 +79,27 @@ const EXPLORERS: Record<string, ExplorerConfig> = {
   zerog: { apiUrl: "https://chainscan.0g.ai/open/api", browserUrl: "https://chainscan.0g.ai" },
   saga: { apiUrl: "https://sagaevm.sagaexplorer.io/api", browserUrl: "https://sagaevm.sagaexplorer.io" },
   pharos: { apiUrl: "https://pharos.socialscan.io/api", browserUrl: "https://pharos.socialscan.io" },
+  // Kinetiq's official explorer. Not on Etherscan V2. Its Etherscan-compatible
+  // API rejects requests without a partner access code ("Invalid API Key: this
+  // network's API needs your partner access code"), so `any` does not work here.
+  // Without ELYSIUM_EXPLORER_API_KEY, fall back to the third-party explorer
+  // elysiumexplore.com (opsis), whose Etherscan-compatible API is open.
+  // Getters, because hardhat.config.ts loads this module before dotenv runs.
+  elysium: {
+    get apiUrl() {
+      return process.env.ELYSIUM_EXPLORER_API_KEY
+        ? "https://elysium.kinetiq.xyz/explorer/api"
+        : "https://elysiumexplore.com/api";
+    },
+    get browserUrl() {
+      return process.env.ELYSIUM_EXPLORER_API_KEY
+        ? "https://elysium.kinetiq.xyz/explorer"
+        : "https://elysiumexplore.com";
+    },
+    get apiKey() {
+      return process.env.ELYSIUM_EXPLORER_API_KEY;
+    },
+  },
   // Known blockers -- skipped by default via DEFAULT_SKIP below.
   filecoin: { apiUrl: "https://filecoin.blockscout.com/api", browserUrl: "https://filecoin.blockscout.com" },
   scroll: { apiUrl: "https://api.scrollscan.com/api", browserUrl: "https://scrollscan.com" },
@@ -100,6 +121,8 @@ async function getSourceCode(explorer: ExplorerConfig, address: string): Promise
   if (explorer.etherscanV2ChainId !== undefined) {
     params.set("chainid", String(explorer.etherscanV2ChainId));
     params.set("apikey", buildinArgs());
+  } else if (explorer.apiKey) {
+    params.set("apikey", explorer.apiKey);
   }
   const url = `${explorer.apiUrl}?${params.toString()}`;
   try {
@@ -131,7 +154,7 @@ async function submitVerification(
   const params = new URLSearchParams();
   params.set("module", "contract");
   params.set("action", "verifysourcecode");
-  params.set("apikey", explorer.etherscanV2ChainId !== undefined ? buildinArgs() : "any");
+  params.set("apikey", explorer.etherscanV2ChainId !== undefined ? buildinArgs() : explorer.apiKey || "any");
   if (explorer.etherscanV2ChainId !== undefined) {
     params.set("chainid", String(explorer.etherscanV2ChainId));
   }

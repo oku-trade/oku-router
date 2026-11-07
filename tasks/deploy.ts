@@ -228,17 +228,149 @@ async function deployDeterministic(
 
 
 
+// Arachnid's deterministic deployment proxy. Its runtime code is byte-for-byte
+// identical to the Safe Singleton Factory's, which is what lets
+// --inject-safe-factory reproduce a missing factory faithfully on a fork.
+const ARACHNID_CREATE2_DEPLOYER = "0x4e59b44847b379578588920cA78FbF26c0B4956C";
+
+/**
+ * Reset the local Hardhat network to a fork of a configured live network and
+ * impersonate that network's real deployer, so a dry run exercises the exact
+ * CREATE2 address, constructor args and admin calls a live deploy would.
+ *
+ * The chainId cannot be changed by `hardhat_reset`; it comes from
+ * FORK_CHAIN_ID when hardhat.config.ts loads. It must match, or the EIP-712
+ * domain baked into the contract would be computed for the wrong chain.
+ */
+async function setupNetworkFork(
+  hre: HardhatRuntimeEnvironment,
+  forkNetwork: string,
+  injectSafeFactory: boolean,
+): Promise<{ signer: Signer; forkBlock: number }> {
+  if (hre.network.name !== "hardhat") {
+    throw new Error("--fork-network only works on the in-process `hardhat` network.");
+  }
+  const target = hre.config.networks[forkNetwork];
+  if (!target || !("url" in target) || !target.url) {
+    throw new Error(`--fork-network ${forkNetwork}: no such network (or no RPC url) in hardhat.config.ts`);
+  }
+  const forkConfig = getNetworkConfig(forkNetwork);
+  if (hre.network.config.chainId !== forkConfig.chainId) {
+    throw new Error(
+      `Local chainId is ${hre.network.config.chainId}, but ${forkNetwork} is ${forkConfig.chainId}.\n` +
+        `Re-run with FORK_CHAIN_ID=${forkConfig.chainId} so block.chainid matches the real chain.`,
+    );
+  }
+
+  await hre.network.provider.request({
+    method: "hardhat_reset",
+    params: [{ forking: { jsonRpcUrl: target.url } }],
+  });
+  const forkBlock = await hre.ethers.provider.getBlockNumber();
+  console.log(`\n[fork] ${forkNetwork} (chainId ${forkConfig.chainId}) forked at block ${forkBlock}`);
+
+  // Impersonate the real deployer, not an arbitrary funded account: the owner
+  // is a constructor arg, so it determines the CREATE2 address.
+  const deployer = forkConfig.ownerAddress;
+  await hre.network.provider.request({ method: "hardhat_impersonateAccount", params: [deployer] });
+  const realBalance = await hre.ethers.provider.getBalance(deployer);
+  console.log(`[fork] deployer ${deployer}, live balance ${hre.ethers.formatEther(realBalance)} ${forkConfig.nativeSymbol}`);
+  await setBalance(deployer, hre.ethers.parseEther("10"));
+
+  if (injectSafeFactory) {
+    const factoryCode = await hre.ethers.provider.getCode(SAFE_SINGLETON_FACTORY);
+    if (factoryCode !== "0x") {
+      console.log("[fork] Safe Singleton Factory already deployed; nothing to inject");
+    } else {
+      const arachnidCode = await hre.ethers.provider.getCode(ARACHNID_CREATE2_DEPLOYER);
+      if (arachnidCode === "0x") {
+        throw new Error("--inject-safe-factory: no reference CREATE2 deployer code on this chain to copy");
+      }
+      await hre.network.provider.request({
+        method: "hardhat_setCode",
+        params: [SAFE_SINGLETON_FACTORY, arachnidCode],
+      });
+      console.log(
+        `[fork] ASSUMPTION: injected Safe Singleton Factory code at ${SAFE_SINGLETON_FACTORY}` +
+          ` (it is NOT deployed on the live chain)`,
+      );
+    }
+  }
+
+  return { signer: await hre.ethers.getSigner(deployer), forkBlock };
+}
+
+/**
+ * Sum the gas used by `from` in every block mined locally since the fork, and
+ * price it at the live network's current gas price. This is the number to
+ * fund the deployer with, before any safety buffer.
+ */
+async function reportForkGas(
+  hre: HardhatRuntimeEnvironment,
+  forkNetwork: string,
+  from: string,
+  forkBlock: number,
+): Promise<void> {
+  const latest = await hre.ethers.provider.getBlockNumber();
+  let gasUsed = 0n;
+  let txCount = 0;
+  for (let n = forkBlock + 1; n <= latest; n++) {
+    const block = await hre.ethers.provider.getBlock(n, true);
+    for (const tx of block?.prefetchedTransactions ?? []) {
+      if (tx.from.toLowerCase() !== from.toLowerCase()) continue;
+      const receipt = await hre.ethers.provider.getTransactionReceipt(tx.hash);
+      if (receipt?.status !== 1) throw new Error(`[fork] tx ${tx.hash} reverted`);
+      gasUsed += receipt.gasUsed;
+      txCount++;
+    }
+  }
+
+  const target = hre.config.networks[forkNetwork] as { url: string };
+  const live = new hre.ethers.JsonRpcProvider(target.url);
+  const liveGasPrice = (await live.getFeeData()).gasPrice ?? 0n;
+  const symbol = getNetworkConfig(forkNetwork).nativeSymbol;
+  const cost = gasUsed * liveGasPrice;
+  console.log(
+    `\n[fork] Gas summary: ${txCount} txs, ${gasUsed} gas total\n` +
+      `[fork] Live gas price ${hre.ethers.formatUnits(liveGasPrice, "gwei")} gwei` +
+      ` -> ${hre.ethers.formatEther(cost)} ${symbol} at today's price` +
+      ` (${hre.ethers.formatEther(cost * 3n)} ${symbol} with a 3x buffer)`,
+  );
+}
+
 task("deploy", "Deploy OkuRouter contract")
   .addFlag("deterministic", "Use deterministic deployment via CREATE2")
+  .addOptionalParam(
+    "forkNetwork",
+    "Dry run on a local fork of this network, as its real deployer (hardhat network only; needs FORK_CHAIN_ID)",
+  )
+  .addFlag(
+    "injectSafeFactory",
+    "With --fork-network: place the Safe Singleton Factory on the fork if the live chain lacks it",
+  )
   .setAction(async (taskArgs, hre) => {
     const deterministicMode = taskArgs.deterministic;
+    const forkNetwork: string | undefined = taskArgs.forkNetwork;
+    if (taskArgs.injectSafeFactory && !forkNetwork) {
+      throw new Error("--inject-safe-factory requires --fork-network");
+    }
 
     let networkName = hre.network.name;
     const testNetwork = "worldchain";
     let mainnet = true;
     let signer: Signer;
+    let forkBlock: number | undefined;
 
-    if (networkName === "hardhat" || networkName === "localhost") {
+    if (forkNetwork) {
+      // Unlike the legacy worldchain path below, this mode allows
+      // --deterministic: we impersonate the real deployer against the real
+      // factory (or an exact copy of it), so the CREATE2 address is the one a
+      // live deploy produces. `mainnet = false` keeps the registry, explorer
+      // verification and Permit2Proxy steps from running.
+      mainnet = false;
+      ({ signer, forkBlock } = await setupNetworkFork(hre, forkNetwork, !!taskArgs.injectSafeFactory));
+      networkName = forkNetwork;
+    } else if (networkName === "hardhat" || networkName === "localhost") {
       // Local fork: CREATE2 via Safe Singleton Factory does not behave
       // reliably here (state-overrides interfere with deterministic
       // address computation), so we hard-block --deterministic locally.
@@ -321,10 +453,16 @@ task("deploy", "Deploy OkuRouter contract")
         reused = result.reused;
         contract = OkuRouter__factory.connect(contractAddress, signer);
       } else {
-        // Non-deterministic fallback: useful only for local forks. The
+        // Non-deterministic fallback: for local forks, and for live chains
+        // without the Safe Singleton Factory (accepted for elysium). The
         // resulting address is nonce-dependent and will NOT match other
         // chains' deployments, so consumers of the registry shouldn't
         // rely on cross-chain parity in this path.
+        const expectedAddress = hre.ethers.getCreateAddress({
+          from: ownerAddress,
+          nonce: await hre.ethers.provider.getTransactionCount(ownerAddress),
+        });
+        console.log(`Deploying with plain CREATE (non-deterministic), expected address ${expectedAddress}...`);
         contract = await new OkuRouter__factory()
           .connect(signer)
           .deploy(CONTRACT_NAME, CONTRACT_VERSION, ownerAddress, permit2Address, { gasLimit: 5_000_000 });
@@ -335,6 +473,9 @@ task("deploy", "Deploy OkuRouter contract")
           const receipt = await deployTx.wait();
           blockNumber = receipt?.blockNumber ?? null;
           txHash = deployTx.hash;
+        }
+        if (contractAddress.toLowerCase() !== expectedAddress.toLowerCase()) {
+          throw new Error(`Deployed to ${contractAddress}, expected ${expectedAddress}`);
         }
         console.log("✓ Deployed to:", contractAddress);
       }
@@ -541,6 +682,17 @@ task("deploy", "Deploy OkuRouter contract")
         `    contract.transferOwnership("${gfxOwner}")\n` +
         `  followed by ${gfxOwner} calling acceptOwnership() (Ownable2Step).`,
     );
+
+    if (forkNetwork && forkBlock !== undefined) {
+      const owner = await contract.owner();
+      if (owner.toLowerCase() !== ownerAddress.toLowerCase()) {
+        throw new Error(`[fork] owner() is ${owner}, expected ${ownerAddress}`);
+      }
+      console.log(`\n[fork] Post-deploy check: owner() = ${owner}`);
+      await reportForkGas(hre, forkNetwork, ownerAddress, forkBlock);
+      console.log("\n✓ Fork simulation complete (nothing was broadcast)");
+      return;
+    }
 
     console.log("\n✓ Deployment complete!");
   });
