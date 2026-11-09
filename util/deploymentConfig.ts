@@ -441,13 +441,13 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
     // 0xb1f3a7B8… address. That tradeoff was accepted. Redeploying at the
     // canonical address later, once the factory exists, is fine: set this
     // field and run `deploy --deterministic`.
-    supportedRouters: ["enso", "icecreamswap", "kyberswap", "openocean"],
+    supportedRouters: ["enso", "icecreamswap", "kyberswap", "okx", "openocean", "zeroex"],
     canonicalPermit2: true,
     rpcUrl: process.env.ELYSIUM_URL,
-    // A pre-launch exception to the "backend-named only" rule above: the
-    // backend has no elysium routes yet to name anything, so every entry
-    // here was supplied by the protocol and approved directly by the
-    // operator. Apply with:
+    // The first six entries are a pre-launch exception to the "backend-named
+    // only" rule above: the backend had no elysium routes yet, so they were
+    // supplied by the protocols and approved directly by the operator. Later
+    // entries were named by the backend as usual. Apply with:
     //   npx hardhat whitelist-swap-targets --fork-network elysium   (dry run)
     //   npx hardhat whitelist-swap-targets --network elysium
     extraSwapTargets: [
@@ -507,6 +507,31 @@ const DEPLOYMENT_OVERRIDES: Record<string, DeploymentOverride> = {
         address: "0x2f577A41BeC1BE1152AeEA12e73b7391d15f655D",
         name: "kyberswap InputScaleHelper",
         protocol: "kyberswap",
+      },
+      // The two below follow the normal rule: each was named by Oku's own
+      // backend in an `OKU_ROUTER_SWAP_TARGET_NOT_ALLOWED` response for
+      // chain_id=99901 oku_router=0xA89A26c4d81A2cca4d0670F77f0FC88362b72248,
+      // and the operator approved them on 2026-11-06.
+      //
+      // OKX DexRouter. Not in chain-config for any chain at this address.
+      // version() = "v1.0.10-rfq-anti-arbitrage", the same as chain-config's
+      // hyperevm okx router 0xb193874f0C77948d2bCFeC2EfAF8Bc65B4C2ca89, and
+      // both have owner() 0xAcE2B3E7c752d5deBca72210141d464371b3B9b1. The
+      // runtime code is the same length and differs only in four embedded
+      // per-chain helper addresses (all of which have code on elysium) and the
+      // metadata hash.
+      {
+        address: "0x91Ab9c4B07f479D48b60AEFE8F7E31B3760C88c1",
+        name: "okx",
+        protocol: "okx",
+      },
+      // 0x AllowanceHolder. chain-config lists it as `zeroex` at this same
+      // address on 14 chains, and its runtime code is byte-identical to the
+      // base, arbitrum, hyperevm and robinhood deployments.
+      {
+        address: "0x0000000000001fF3684f28c67538d4D072C22734",
+        name: "zeroex",
+        protocol: "zeroex",
       },
     ],
   },
